@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TarikArkas — SiapBOSP</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="bg"></div>
+<main class="kartu">
+  <header>
+    <div class="logo">🎓</div>
+    <div>
+      <h1>TarikArkas</h1>
+      <p>Kirim data ARKAS ke SiapBOSP dalam satu klik</p>
+    </div>
+    <span id="statusDb" class="chip">…</span>
+  </header>
+
+  <section id="panelSetup">
+    <label>Alamat server SiapBOSP
+      <input id="server" type="text" placeholder="https://siapbosp.dinas.go.id" autocomplete="off">
+    </label>
+    <label>Token sekolah <small>(SiapBOSP → Utility → Profil → Token API)</small>
+      <input id="token" type="password" placeholder="Tempel token di sini" autocomplete="off">
+    </label>
+    <label>Tahun anggaran
+      <select id="tahun"></select>
+    </label>
+    <div class="baris">
+      <button id="btnTes" class="sekunder">🔌 Tes Koneksi</button>
+      <button id="btnKirim" class="primer">🚀 Kirim Sekarang</button>
+    </div>
+    <p id="infoPemilik" class="info"></p>
+  </section>
+
+  <section id="hasil" class="sembunyi">
+    <h2 id="judulHasil">SELESAI ✅</h2>
+    <div class="grid" id="kartuHasil"></div>
+    <div id="catatan"></div>
+    <button id="btnLagi" class="sekunder">← Kembali</button>
+  </section>
+
+  <footer>SiapBOSP · hanya membaca ARKAS, tidak mengubahnya</footer>
+</main>
+<script src="/neutralino.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
