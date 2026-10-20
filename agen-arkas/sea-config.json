@@ -1,0 +1,6 @@
+{
+    "main": "dist/tarik.cjs",
+    "output": "dist/sea.blob",
+    "disableExperimentalSEAWarning": true,
+    "useSnapshot": false
+}

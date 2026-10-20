@@ -1,0 +1,26 @@
+TARIK ARKAS — Agen Satu-Klik SiapBOSP (untuk Operator Sekolah)
+================================================================
+
+CARA PAKAI:
+
+1. Minta ke Dinas: (a) alamat server SiapBOSP, misal
+   https://siapbosp.dinas.go.id, dan (b) token milik SEKOLAH ANDA
+   (operator juga bisa buat sendiri di SiapBOSP → Utility → Profil).
+   PENTING: token harus milik NPSN yang sama dengan ARKAS laptop ini —
+   agen memeriksanya otomatis dan menolak token sekolah lain.
+2. Klik 2x TarikArkas.bat → jawab server + token.
+   Cukup SEKALI — tersimpan otomatis.
+3. Setiap selesai input di ARKAS dan ingin datanya masuk SiapBOSP,
+   klik 2x TarikArkas.bat — tunggu tulisan SELESAI.
+
+SYARAT DI LAPTOP INI:
+- Aplikasi ARKAS sudah pernah dibuka (ada datanya). Tutup ARKAS dulu
+  bila muncul pesan "database terkunci".
+- Butuh koneksi internet ke server SiapBOSP saat mengirim.
+
+KEAMANAN:
+- Token = kunci sekolah Anda. Jangan disebar. Kalau bocor, buat ulang
+  token di Profil (token lama otomatis mati).
+- Aplikasi ini hanya MEMBACA database ARKAS, tidak mengubahnya.
+
+BANTUAN: hubungi Admin Dinas bila muncul pesan GAGAL.
