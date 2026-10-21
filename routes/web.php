@@ -13,6 +13,7 @@ use App\Http\Controllers\PembukuanController;
 use App\Http\Controllers\PenandatanganController;
 use App\Http\Controllers\PenerimaanController;
 use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\PerencanaanController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\ReferensiController;
 use App\Http\Controllers\RekonsiliasiController;
@@ -43,7 +44,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/referensi', [ReferensiController::class, 'index'])->name('referensi');
     Route::post('/api-token', function () {
         $token = Str::random(64);
-        // Database hanya menyimpan hash sha256; nilai asli diflash sekali untuk disalin pengguna.
         auth()->user()->forceFill(['api_token' => hash('sha256', $token)])->save();
 
         return back()->with([
@@ -69,13 +69,33 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:operator,kepsek')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        // ---- Hulu Pra-ARKAS: PBD/Rapor Pendidikan -> RKM -> RKT + Standar Harga (SSH/SBU) ----
+        Route::get('/perencanaan', [PerencanaanController::class, 'index'])->name('perencanaan.index');
+        Route::post('/perencanaan/pbd/template', [PerencanaanController::class, 'pbdTemplate'])->name('perencanaan.pbd.template');
+        Route::post('/perencanaan/pbd', [PerencanaanController::class, 'pbdStore'])->name('perencanaan.pbd.store');
+        Route::delete('/perencanaan/pbd/{pbd}', [PerencanaanController::class, 'pbdDestroy'])->name('perencanaan.pbd.destroy');
+        Route::post('/perencanaan/rkm', [PerencanaanController::class, 'rkmStore'])->name('perencanaan.rkm.store');
+        Route::delete('/perencanaan/rkm/{rkm}', [PerencanaanController::class, 'rkmDestroy'])->name('perencanaan.rkm.destroy');
+        Route::post('/perencanaan/rkt', [PerencanaanController::class, 'rktStore'])->name('perencanaan.rkt.store');
+        Route::delete('/perencanaan/rkt/{rkt}', [PerencanaanController::class, 'rktDestroy'])->name('perencanaan.rkt.destroy');
+        Route::post('/perencanaan/rkt/ke-rkas', [PerencanaanController::class, 'dorongKeRkas'])->name('perencanaan.rkt.keRkas');
+        Route::get('/perencanaan/ssh', [PerencanaanController::class, 'ssh'])->name('perencanaan.ssh');
+        Route::post('/perencanaan/ssh', [PerencanaanController::class, 'sshStore'])->name('perencanaan.ssh.store');
+        Route::post('/perencanaan/ssh/impor', [PerencanaanController::class, 'sshImpor'])->name('perencanaan.ssh.impor');
+        Route::delete('/perencanaan/ssh/{ssh}', [PerencanaanController::class, 'sshDestroy'])->name('perencanaan.ssh.destroy');
+
+        // ---- Penganggaran / Kertas Kerja RKAS ala ARKAS 4 ----
         Route::get('/rkas', [RkasController::class, 'index'])->name('rkas.index');
         Route::get('/rkas/buat', [RkasController::class, 'create'])->name('rkas.create');
         Route::post('/rkas', [RkasController::class, 'store'])->name('rkas.store');
-        Route::get('/rkas/{rkasHeader}', [RkasController::class, 'show'])->name('rkas.show');
-        Route::get('/rkas/{rkasHeader}/pdf', [RkasController::class, 'pdf'])->name('rkas.pdf');
-        Route::get('/rkas/{rkasHeader}/xlsx', [RkasController::class, 'xlsx'])->name('rkas.xlsx');
-        Route::post('/rkas/{rkasHeader}/aksi', [RkasController::class, 'aksi'])->name('rkas.aksi');
+        Route::post('/rkas/salin', [RkasController::class, 'salin'])->name('rkas.salin');
+        Route::get('/rkas/{rkasHeader}', [RkasController::class, 'show'])->name('rkas.show')->whereNumber('rkasHeader');
+        Route::get('/rkas/{rkasHeader}/salin-arkas', [RkasController::class, 'salinArkas'])->name('rkas.salinArkas')->whereNumber('rkasHeader');
+        Route::post('/rkas/{rkasHeader}/detail/{detail}/toggle-arkas', [RkasController::class, 'toggleInputArkas'])->name('rkas.toggleArkas')->whereNumber('rkasHeader');
+        Route::post('/rkas/{rkasHeader}/sisip/{detail}', [RkasController::class, 'sisipUraian'])->name('rkas.sisip')->whereNumber('rkasHeader');
+        Route::get('/rkas/{rkasHeader}/pdf', [RkasController::class, 'pdf'])->name('rkas.pdf')->whereNumber('rkasHeader');
+        Route::get('/rkas/{rkasHeader}/xlsx', [RkasController::class, 'xlsx'])->name('rkas.xlsx')->whereNumber('rkasHeader');
+        Route::post('/rkas/{rkasHeader}/aksi', [RkasController::class, 'aksi'])->name('rkas.aksi')->whereNumber('rkasHeader');
         Route::post('/rkas-impor', [RkasController::class, 'impor'])->name('rkas.impor');
         Route::get('/hpp', [HppController::class, 'index'])->name('hpp.index');
         Route::post('/hpp', [HppController::class, 'store'])->name('hpp.store');
@@ -113,10 +133,11 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/pengeluaran/belanja', [PengeluaranController::class, 'belanja'])->name('belanja.index');
         Route::get('/pengeluaran/belanja/buat', [PengeluaranController::class, 'belanjaCreate'])->name('belanja.create');
+        Route::get('/pengeluaran/belanja/hitung-pajak', [PengeluaranController::class, 'hitungPajak'])->name('belanja.hitungPajak');
         Route::post('/pengeluaran/belanja', [PengeluaranController::class, 'belanjaStore'])->name('belanja.store');
-        Route::get('/pengeluaran/belanja/{belanja}', [PengeluaranController::class, 'belanjaShow'])->name('belanja.show');
-        Route::get('/pengeluaran/belanja/{belanja}/kwitansi', [PengeluaranController::class, 'kwitansi'])->name('belanja.kwitansi');
-        Route::get('/pengeluaran/belanja/{belanja}/spj', [PengeluaranController::class, 'spj'])->name('belanja.spj');
+        Route::get('/pengeluaran/belanja/{belanja}', [PengeluaranController::class, 'belanjaShow'])->name('belanja.show')->whereNumber('belanja');
+        Route::get('/pengeluaran/belanja/{belanja}/kwitansi', [PengeluaranController::class, 'kwitansi'])->name('belanja.kwitansi')->whereNumber('belanja');
+        Route::get('/pengeluaran/belanja/{belanja}/spj', [PengeluaranController::class, 'spj'])->name('belanja.spj')->whereNumber('belanja');
         Route::get('/pengeluaran/setor-pajak', [PengeluaranController::class, 'setorPajak'])->name('setorpajak.index');
         Route::post('/pengeluaran/setor-pajak', [PengeluaranController::class, 'setorPajakStore'])->name('setorpajak.store');
         Route::post('/pengeluaran/setor-utang-pajak', [PengeluaranController::class, 'setorUtangStore'])->name('setorutang.store');
@@ -130,6 +151,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembukuan/bku.csv', [PembukuanController::class, 'bkuCsv'])->name('bku.csv');
         Route::get('/pembukuan/buku-pembantu', [PembukuanController::class, 'bukuPembantu'])->name('pembukuan.bukuPembantu');
         Route::get('/pembukuan/rekap-realisasi', [PembukuanController::class, 'rekapRealisasi'])->name('pembukuan.rekapRealisasi');
+        Route::get('/pembukuan/sptjm', [PembukuanController::class, 'sptjm'])->name('pembukuan.sptjm');
         Route::post('/pembukuan/bku/tutup', [PembukuanController::class, 'tutupBulan'])->name('bku.tutup');
         Route::post('/pembukuan/bku/buka', [PembukuanController::class, 'bukaBulan'])->name('bku.buka');
         Route::get('/pembukuan/kas', [PembukuanController::class, 'kas'])->name('kas');

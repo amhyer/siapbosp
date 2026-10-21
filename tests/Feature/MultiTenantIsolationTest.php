@@ -94,6 +94,7 @@ class MultiTenantIsolationTest extends TestCase
 
         $this->assertSame($this->sekolahA->id, (int) $baru->school_id);
         // 2 transaksi bawaan setUp + 1 transaksi baru = 3.
+        $this->assertSame(2, KasTransaction::count());
         $this->assertSame(3, KasTransaction::withoutGlobalScope('school')->count());
     }
 
