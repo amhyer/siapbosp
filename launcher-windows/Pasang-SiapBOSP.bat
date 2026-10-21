@@ -17,6 +17,13 @@ if not exist "%~dp0..\temp" mkdir "%~dp0..\temp"
 set "TMP=%~dp0..\temp"
 set "TEMP=%~dp0..\temp"
 
+REM --- jaminan folder wajib Laravel: tahan alat ekstrak yang membuang folder kosong ---
+if not exist "bootstrap\cache" mkdir "bootstrap\cache"
+if not exist "storage\framework\views" mkdir "storage\framework\views"
+if not exist "storage\framework\cache" mkdir "storage\framework\cache"
+if not exist "storage\framework\sessions" mkdir "storage\framework\sessions"
+if not exist "storage\logs" mkdir "storage\logs"
+
 set "DEST=%LocalAppData%\Programs\SiapBOSP"
 if defined SIPBOS_DEST set "DEST=!SIPBOS_DEST!"
 
