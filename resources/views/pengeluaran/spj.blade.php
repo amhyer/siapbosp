@@ -18,6 +18,12 @@
   $kepsekNip = $kepsek?->nip ? 'NIP. '.$kepsek->nip : '';
   $komiteNama = $komite?->nama;
   $totalPembayaran = $totalHarga; // format ARKAS: harga + kirim (PPN hanya info)
+  // Permendikdasmen No 15/2026 Pasal 12 ayat (4): dokumen perencanaan bebas
+  // untuk belanja paling banyak Rp1.000.000. Di atas itu wajib ada.
+  $ambangPerencanaan = 1000000;
+  $wajibDokumen = (int) $totalHarga > $ambangPerencanaan;
+  $noPerencanaan = $nomorDefault.'/-RENCANA';
+  $noBanding = $nomorDefault.'/-BANDING';
 @endphp
 <style>
   .isi{display:inline-block;min-width:6rem;padding:0 .3rem;border-bottom:1px dotted #64748b}
@@ -35,6 +41,162 @@
   <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
   <a href="{{ route('belanja.show', $belanja) }}">← Kembali ke belanja</a>
   <span style="color:#64748b">Isi bagian bertitik-titik (klik langsung pada garis) sebelum mencetak — nomor, tanggal, nama, kuantitas, spesifikasi.</span>
+</div>
+
+{{-- ================= 0) RINGKASAN KEPATUHAN BELANJA (Permendikdasmen 15/2026) ================= --}}
+<div class="pg">
+  <h3 class="judul">
+    RINGKASAN KEPATUHAN BELANJA BARANG/JASA<br>
+    Permendikdasmen No 15 Tahun 2026
+  </h3>
+  <table class="blockinfo blockinfo-bordered" style="width:100%;font-size:.8rem">
+    <tr><td style="width:38%">Satuan Pendidikan</td><td>{{ $sekolah->nama }}</td></tr>
+    <tr><td>Nomor Paket / BKU</td><td>{{ $nomorDefault }} · BKU #{{ $belanja->no_bku }}</td></tr>
+    <tr><td>Paket Pesanan</td><td>{{ $paket }}</td></tr>
+    <tr><td>Total Belanja</td><td><b>{{ rp($totalHarga) }}</b></td></tr>
+    <tr><td>Status Dokumen Perencanaan</td><td>
+      @if($wajibDokumen)
+        <b>WAJIB</b> — belanja di atas Rp1.000.000 (Pasal 12 ayat 4)
+      @else
+        <b>DIKECUALIKAN</b> — belanja paling banyak Rp1.000.000 (Pasal 12 ayat 4)
+      @endif
+    </td></tr>
+  </table>
+
+  <p style="font-size:.82rem;margin-top:.7rem"><b>Tahapan Belanja (Pasal 11):</b> persiapan → pemilihan barang/jasa &amp; penyedia → pelaksanaan kesepakatan → pelaporan.</p>
+  <table class="tbl" style="font-size:.78rem">
+    <thead><tr><th style="width:32%">Bukti pelaporan (Pasal 24 ayat 2)</th><th>Dokumen dalam paket ini</th><th style="width:22%">Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>a. Bukti pelaksanaan persiapan Belanja</td>
+        <td>Dokumen Perencanaan (KAK/RKA)</td>
+        <td>
+          @if($wajibDokumen)
+            <span class="badge bg-emerald-100 text-emerald-700">Wajib dilampirkan</span>
+          @else
+            <span class="badge bg-slate-100 text-slate-600">Dikecualikan (≤ Rp1 jt)</span>
+          @endif
+        </td>
+      </tr>
+      <tr><td>b. Bukti hasil pembandingan</td><td>Bukti Perbandingan Harga (≥ 2 penyedia)</td>
+        <td>
+          @if($wajibDokumen)
+            <span class="badge bg-emerald-100 text-emerald-700">Wajib dilampirkan</span>
+          @else
+            <span class="badge bg-slate-100 text-slate-600">Dikecualikan (≤ Rp1 jt)</span>
+          @endif
+        </td>
+      </tr>
+      <tr><td>c. Bukti negosiasi</td><td>Berita Acara Negosiasi</td><td><span class="badge bg-emerald-100 text-emerald-700">Terlampir</span></td></tr>
+      <tr><td>d. Bukti kesepakatan belanja</td><td>Surat Pesanan (SP)</td><td><span class="badge bg-emerald-100 text-emerald-700">Terlampir</span></td></tr>
+      <tr><td>e. Bukti pemeriksaan &amp; penerimaan barang/jasa</td><td>Surat Hasil Pemeriksaan + Berita Acara Serah Terima</td><td><span class="badge bg-emerald-100 text-emerald-700">Terlampir</span></td></tr>
+      <tr><td>f. Bukti pembayaran</td><td>Surat Pesanan (kolom pembayaran) + bukti transfer/kuitansi</td><td><span class="badge bg-emerald-100 text-emerald-700">Terlampir</span></td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:.78rem;margin-top:.6rem">
+    <b>Catatan:</b> pembayaran di luar SiPLah dilaksanakan <b>setelah barang/jasa diterima</b> (Pasal 18 ayat 5). Pelaporan disampaikan melalui sistem aplikasi rencana kegiatan dan anggaran yang disediakan Kementerian; bila sistem belum memfasilitasi, pelaporan dapat dilakukan manual (Pasal 25–26). Pengawasan dilakukan Kementerian, pemerintah daerah, dan komite sekolah (Pasal 31–33).
+  </p>
+</div>
+
+{{-- ================= 1) DOKUMEN PERENCANAAN (persiapan belanja) ================= --}}
+<div class="pg">
+  <h3 class="judul">
+    DOKUMEN PERENCANAAN BELANJA<br>
+    Nomor: <span class="isi" contenteditable="true">{{ $noPerencanaan }}</span>
+  </h3>
+  @unless($wajibDokumen)
+    <p style="font-size:.82rem"><b>Catatan:</b> belanja nilai Rp{{ number_format($totalHarga, 0, ',', '.') }} paling banyak Rp1.000.000 sehingga <b>dikecualikan</b> dari kewajiban dokumen perencanaan (Permendikdasmen No 15 Tahun 2026 Pasal 12 ayat 4). Halaman ini tetap dicetak sebagailampiran bila diperlukan.</p>
+  @endunless
+  <table class="blockinfo blockinfo-bordered" style="width:100%;font-size:.8rem">
+    <tr><td style="width:38%">Nama Barang/Jasa</td><td>{{ $paket }}</td></tr>
+    <tr><td>Jumlah Barang/Jasa</td><td><span class="isi" contenteditable="true">{{ $rincian->count() }}</span></td></tr>
+    <tr><td>Spesifikasi / Ruang Lingkup</td><td><span class="isi" contenteditable="true"></span></td></tr>
+    <tr><td>Waktu &amp; Lokasi Serah Terima</td><td><span class="isi" contenteditable="true"></span></td></tr>
+    <tr><td>Alokasi Anggaran (Rekening)</td><td>
+      @foreach($rincian as $d)
+        {{ $d['rekening'] ? $d['rekening'].' — ' : '' }}{{ $d['uraian'] }} @if(! $loop->last)<br>@endif
+      @endforeach
+    </td></tr>
+    <tr><td>Persyaratan Penyedia</td><td><span class="isi" contenteditable="true"></span></td></tr>
+    <tr><td>Disusun oleh (Pelaksana)</td><td><span class="isi" contenteditable="true"></span></td></tr>
+    <tr><td>Disetujui oleh (Kepala Satuan Pendidikan)</td><td><span class="isi" contenteditable="true"></span></td></tr>
+  </table>
+
+  <div class="ttd3 mt-8">
+    <div>
+      {{ $tempat }}, <span class="isi" contenteditable="true">{{ $tglId }}</span><br>
+      PELAKSANA,<br><br><br><br>
+      <b><span class="isi" contenteditable="true"></span></b>
+    </div>
+    <div>
+      {{ $tempat }}, <span class="isi" contenteditable="true">{{ $tglId }}</span><br>
+      KEPALA SATUAN PENDIDIKAN,<br><br><br><br>
+      <b>{{ $kepsekNama }}</b><br>
+      {{ $kepsekNip }}
+    </div>
+    <div>
+      {{ $tempat }}, <span class="isi" contenteditable="true">{{ $tglId }}</span><br>
+      KETUA KOMITE,<br><br><br><br>
+      <b><span class="isi" contenteditable="true">{{ $komiteNama }}</span></b>
+    </div>
+  </div>
+</div>
+
+{{-- ================= 2) BUKTI PERBANDINGAN HARGA ================= --}}
+<div class="pg">
+  <h3 class="judul">
+    BUKTI PERBANDINGAN HARGA DAN KUALITAS<br>
+    Nomor: <span class="isi" contenteditable="true">{{ $noBanding }}</span>
+  </h3>
+  @unless($wajibDokumen)
+    <p style="font-size:.82rem"><b>Catatan:</b> belanja paling banyak Rp1.000.000 sehingga bebas dokumen perencanaan; halaman ini tetap dicetak sebagai lampiran bukti.</p>
+  @endunless
+  <p style="font-size:.82rem">Perbandingan harga dan kualitas dilakukan terhadap <b>2 (dua) Penyedia atau lebih</b> (Pasal 15 ayat 1); dapat dikecualikan bila barang/jasa hanya tersedia pada 1 Penyedia (Pasal 15 ayat 2).</p>
+  <table class="tbl" style="font-size:.78rem">
+    <thead><tr><th style="width:26%">Uraian</th><th class="num">Penyedia 1</th><th class="num">Penyedia 2</th><th class="num">Penyedia 3</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Nama Penyedia</td>
+        <td><span class="isi" contenteditable="true"></span></td>
+        <td><span class="isi" contenteditable="true"></span></td>
+        <td><span class="isi" contenteditable="true"></span></td>
+      </tr>
+      <tr>
+        <td>Harga Penawaran</td>
+        <td><span class="isi" contenteditable="true">Rp 0</span></td>
+        <td><span class="isi" contenteditable="true">Rp 0</span></td>
+        <td><span class="isi" contenteditable="true">Rp 0</span></td>
+      </tr>
+      <tr>
+        <td>Kualitas / Spesifikasi</td>
+        <td><span class="isi" contenteditable="true"></span></td>
+        <td><span class="isi" contenteditable="true"></span></td>
+        <td><span class="isi" contenteditable="true"></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:.82rem;margin-top:.6rem"><b>Kesimpulan:</b> barang/jasa yang ditetapkan adalah <span class="isi" contenteditable="true"></span> dengan nilai <span class="isi" contenteditable="true">Rp 0</span> — sesuai hasil perbandingan dan/atau hasil negosiasi (Pasal 17).</p>
+  <p style="font-size:.78rem">Dasar: Permendikdasmen No 15 Tahun 2026 Pasal 15–17. Penyedia wajib memiliki NPWP, identitas Penyedia, dan kemampuan menyediakan barang/jasa (Pasal 9).</p>
+
+  <div class="ttd3 mt-8">
+    <div>
+      {{ $tempat }}, <span class="isi" contenteditable="true">{{ $tglId }}</span><br>
+      PELAKSANA,<br><br><br><br>
+      <b><span class="isi" contenteditable="true"></span></b>
+    </div>
+    <div>
+      {{ $tempat }}, <span class="isi" contenteditable="true">{{ $tglId }}</span><br>
+      KEPALA SATUAN PENDIDIKAN,<br><br><br><br>
+      <b>{{ $kepsekNama }}</b><br>
+      {{ $kepsekNip }}
+    </div>
+    <div>
+      {{ $tempat }}, <span class="isi" contenteditable="true">{{ $tglId }}</span><br>
+      KETUA KOMITE,<br><br><br><br>
+      <b><span class="isi" contenteditable="true">{{ $komiteNama }}</span></b>
+    </div>
+  </div>
 </div>
 
 {{-- ================= 1) SURAT PESANAN (SP) ================= --}}
@@ -91,7 +253,7 @@
     <tfoot>
       <tr><td colspan="5" class="num"><b>Total Harga</b></td><td class="num"><b>{{ rp($totalHarga) }}</b></td></tr>
       <tr><td colspan="5" class="num">Biaya Pengiriman</td><td class="num"><span class="isi" contenteditable="true">Rp 0</span></td></tr>
-      <tr><td colspan="5" class="num">PPN (dipungut)</td><td class="num">{{ rp($pajak) }}</td></tr>
+      <tr><td colspan="5" class="num">PPN (dipungut)</td><td class="num">{{ rp($pajak) }}<div class="text-[10px] text-slate-400">tarif 12% sejak 2026 (11% sebelum 2026)</div></td></tr>
       <tr><td colspan="5" class="num"><b>Total Pembayaran</b></td><td class="num"><b>{{ rp($totalPembayaran) }}</b></td></tr>
       <tr><td colspan="6"><i>Terbilang: {{ ucfirst(terbilang((int) $totalPembayaran)).' rupiah' }}</i></td></tr>
     </tfoot>
@@ -305,7 +467,11 @@
       <tr><td>Nomor Telp.</td><td><span class="isi" contenteditable="true">{{ $penyediaTelp }}</span></td></tr>
       <tr><td>NPWP</td><td><span class="isi" contenteditable="true">{{ $penyediaNpwp }}</span></td></tr>
       <tr><td>Nama Perwakilan Penyedia</td><td><span class="isi" contenteditable="true"></span></td></tr>
-      <tr><th colspan="2" style="background:#e2e8f0">Berita Acara Negosiasi</th></tr>
+      <tr><th colspan="2" style="background:#e2e8f0">Dokumen Perencanaan (Persiapan Belanja)</th></tr>
+    <tr><td>Nomor</td><td>{{ $noPerencanaan }} — {{ $wajibDokumen ? 'WAJIB dilampirkan' : 'dikecualikan (nilai ≤ Rp1.000.000)' }}</td></tr>
+    <tr><th colspan="2" style="background:#e2e8f0">Bukti Perbandingan Harga</th></tr>
+    <tr><td>Nomor</td><td>{{ $noBanding }} — {{ $wajibDokumen ? 'WAJIB dilampirkan' : 'dikecualikan (nilai ≤ Rp1.000.000)' }}</td></tr>
+    <tr><th colspan="2" style="background:#e2e8f0">Berita Acara Negosiasi</th></tr>
       <tr><td>Nomor</td><td>{{ $noNego }}</td></tr>
       <tr><td>Tanggal Negosiasi</td><td>{{ $tglId }}</td></tr>
       <tr><td>Tanggal Terima</td><td><span class="isi" contenteditable="true">—</span></td></tr>

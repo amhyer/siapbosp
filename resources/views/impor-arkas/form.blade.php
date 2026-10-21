@@ -21,7 +21,7 @@
   <h3 class="card-title mb-1">🚀 Opsi 1 — Agen satu-klik (disarankan)</h3>
   <p class="page-desc mb-3">Unduh aplikasi kecil, jalankan di <b>laptop yang ada ARKAS-nya</b> — data langsung terkirim ke SiapBOSP tanpa ekspor manual.</p>
   @if($portabel)
-  <p class="text-[13px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2 mb-2">🖥️ <b>Agen Tarik ARKAS sudah terbundel di laptop ini</b> — cukup pakai pintasan <b>“Tarik Data ARKAS - SiapBOSP”</b> di Desktop (tutup aplikasi ARKAS dulu, boleh diulang kapan saja).</p>
+  <p class="text-[13px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2 mb-2">🖥️ <b>Agen Tarik ARKAS sudah terbundel di laptop ini</b> — pakai pintasan <b>“Tarik Data ARKAS - SiapBOSP”</b> di Desktop, atau <b>1 klik</b> langsung di dalam aplikasi: <a class="underline font-semibold" href="{{ route('profil.edit') }}">Utility → Profil → Tarik Data ARKAS</a> (tutup aplikasi ARKAS dulu, boleh diulang kapan saja).</p>
   @else
   <div class="flex flex-wrap gap-2 mb-3">
     <a href="{{ route('impor-arkas.unduhGui') }}" class="btn">⬇️ Unduh Aplikasi TarikArkas (±44 MB)</a>
@@ -54,8 +54,13 @@
 </div>
 <div class="card max-w-2xl border-slate-200">
   <h3 class="card-title mb-1">🧭 Pendamping ARKAS 4 (alat bantu)</h3>
-  <p class="page-desc mb-2">Halaman HTML mandiri: checklist persiapan pra-input, rekap pagu–rencana–realisasi, dan kumpulan tautan panduan resmi ARKAS 4. Data tersimpan otomatis di browser perangkat Anda — tanpa internet, tanpa dikirim ke mana pun.</p>
+  <p class="page-desc mb-2">Halaman HTML mandiri: checklist persiapan pra-input, rekap pagu–rencana–realisasi, <b>berita regulasi 2026</b> (Juknis 8/2026, BOSP Afirmasi, Permendikdasmen 15/2026, PPN 12%), dan kumpulan tautan panduan resmi ARKAS 4. Data tersimpan otomatis di browser perangkat Anda — tanpa internet, tanpa dikirim ke mana pun.</p>
   <a href="{{ asset('pendamping-arkas.html') }}" target="_blank" rel="noopener" class="btn2 btn-sm">🧭 Buka Pendamping ARKAS 4 ↗</a>
+</div>
+<div class="card max-w-2xl border-amber-200 !bg-amber-50/40">
+  <h3 class="card-title mb-1">🔍 Cek Ulang Integritas Impor</h3>
+  <p class="page-desc mb-2">Setelah ARKAS digalakkan ulang (pasca <b>Pergeseran / Perubahan RKAS</b>), bandingkan data ARKAS terbaru dengan pencatatan di SiapBOSP per bulan. Tak mengubah apa pun — hanya laporan selisih.</p>
+  <a href="{{ route('impor-arkas.cek-integritas') }}" class="btn2 btn">🔍 Buka Cek Integritas</a>
 </div>
 <div class="card max-w-2xl">
   <h3 class="card-title mb-2">ℹ️ Aturan impor</h3>

@@ -13,6 +13,24 @@
     <button class="btn2 btn whitespace-nowrap">Unggah & Buat Revisi</button>
   </form>
 </div>
+@include('rkas._juknis', ['juknis' => $juknis])
+@if($rekapSumber->isNotEmpty())
+<div class="card">
+  <h3 class="font-semibold text-slate-700 text-sm mb-1">💼 Anggaran per sumber dana <span class="text-[11px] font-normal text-slate-400">(revisi terbaru per sumber)</span></h3>
+  <div class="flex flex-wrap gap-2">
+    @foreach($rekapSumber as $sumber => $r)
+      <div class="border border-slate-200 rounded-lg px-3 py-2 min-w-[11rem]">
+        <div class="text-[11px] text-slate-500">{!! \App\Support\SumberDana::badge($sumber) !!}</div>
+        <div class="font-semibold text-slate-700">{{ rp($r['nilai']) }}</div>
+        <div class="text-[11px] text-slate-400">{{ $r['baris'] }} baris rincian</div>
+      </div>
+    @endforeach
+  </div>
+  @if($rekapSumber->keys()->contains(fn ($s) => \App\Support\SumberDana::kunci($s) === 'afirmasi'))
+    <p class="text-[11px] text-violet-700 mt-2">🌟 Tersedia sumber <b>BOSP Afirmasi</b> (ARKAS 4.2.16+, Permendikdasmen 8/2026 Pasal 46) — kode kegiatan khusus 06.33.x (Penguatan akses) &amp; 03.34.x (Penguatan mutu).</p>
+  @endif
+</div>
+@endif
 <div class="card overflow-x-auto">
   <table class="tbl">
     <thead><tr><th>Revisi</th><th>No RKAS</th><th>Jml Rincian</th><th class="num">Total</th><th>Status</th><th></th></tr></thead>

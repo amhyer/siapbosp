@@ -13,7 +13,16 @@ node tarik-arkas.js setup --server https://... --token XXX
 node tarik-arkas.js            # kirim tahun berjalan
 node tarik-arkas.js kirim --tahun 2025
 node tarik-arkas.js cek        # tes koneksi saja
+node tarik-arkas.js lokal --json --keluar out.xlsx --tahun 2025
+node tarik-arkas.js info --json                # cek ARKAS laptop ini
+node tarik-arkas.js lokal --json --db C:\...\arkas.db --keluar out.xlsx
 ```
+
+`lokal` hanya membaca ARKAS laptop ini dan menulis berkas Excel — tanpa
+server/token, dipakai tombol "Tarik Data ARKAS" di dalam aplikasi SiapBOSP
+portabel (`TarikArkasService`), yang mengimpornya sendiri lewat
+`ArkasImportService`. `--db` menggantikan path ARKAS bila env proses
+pemanggil kosong (`php artisan serve` mewarisi `$_ENV` yang bisa kosong).
 
 Konfigurasi: `%APPDATA%\SiapBOS-Agen\config.json` (server + token).
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CekIntegritasController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DinasController;
 use App\Http\Controllers\HapusDataController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\ReferensiController;
 use App\Http\Controllers\RekonsiliasiController;
 use App\Http\Controllers\RkasController;
+use App\Http\Controllers\TarikArkasController;
 use App\Http\Controllers\UnduhAplikasiController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -98,6 +100,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/impor-arkas/unduh-agen', [ImportArkasController::class, 'unduhAgen'])->name('impor-arkas.unduh');
         Route::get('/impor-arkas/unduh-gui', [ImportArkasController::class, 'unduhGui'])->name('impor-arkas.unduhGui');
         Route::post('/impor-arkas', [ImportArkasController::class, 'proses'])->name('impor-arkas.proses');
+        Route::get('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'form'])->name('impor-arkas.cek-integritas');
+        Route::post('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'jalankan'])->name('impor-arkas.cek-integritas.jalankan');
         Route::get('/unduh-aplikasi', [UnduhAplikasiController::class, 'unduh'])->name('unduh-aplikasi');
         Route::get('/unduh-pemasang', [UnduhAplikasiController::class, 'unduhPemasang'])->name('unduh-pemasang');
         Route::get('/unduh-identitas', [UnduhAplikasiController::class, 'unduhIdentitas'])->name('unduh-identitas');
@@ -148,6 +152,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/utility/profil', [ProfilController::class, 'edit'])->name('profil.edit');
         Route::put('/utility/profil', [ProfilController::class, 'update'])->name('profil.update');
+        Route::post('/utility/tarik-arkas', [TarikArkasController::class, 'tarik'])->name('tarik-arkas.tarik');
         Route::get('/utility/penandatangan', [PenandatanganController::class, 'index'])->name('penandatangan');
         Route::post('/utility/penandatangan', [PenandatanganController::class, 'store'])->name('penandatangan.store');
         Route::post('/utility/penandatangan/{penandatangan}/ttd', [PenandatanganController::class, 'unggahTtd'])->name('penandatangan.ttd');

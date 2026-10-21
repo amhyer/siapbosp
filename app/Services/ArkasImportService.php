@@ -129,6 +129,11 @@ class ArkasImportService
 
             $rekeningMap = Rekening::pluck('id', 'kode')->all();
             $pajakMap = RekeningPajak::pluck('id', 'kode')->all();
+            // Jenis sumber dana baru (BOSP Afirmasi, Lainnya) — pastikan ada
+            // walau master belum di-seed di instalasi lama.
+            foreach (['afirmasi' => 'BOSP Afirmasi', 'lainnya' => 'Lainnya (Banpem/Dana Lain)'] as $k => $n) {
+                BosType::firstOrCreate(['kode' => $k], ['nama' => $n]);
+            }
             $bosMap = BosType::pluck('id', 'kode')->all();
             $stageMap = Stage::where('tahun', $tahun)->orderBy('urutan')->pluck('id', 'urutan')->all();
 
@@ -361,6 +366,8 @@ class ArkasImportService
     public const SUMBER_MAP = [
         1 => 'reguler', 3 => 'bosda', 12 => 'kinerja',
         33 => 'silpa', 34 => 'silpa', 35 => 'silpa',
+        5 => 'lainnya', 6 => 'reguler',
+        11 => 'afirmasi', // BOS Afirmasi (ARKAS 4.2.16+ / Permendikdasmen 8/2026 Pasal 46)
     ];
 
     protected static function imporPelengkap($wb, School $sekolah, int $tahun, array $bosMap, array &$lap): void
@@ -1020,6 +1027,9 @@ class ArkasImportService
     protected static function bosTypeUntuk(?string $sumber, array $bosMap): ?int
     {
         $s = strtolower((string) $sumber);
+        if (str_contains($s, 'afirmasi')) {
+            return $bosMap['afirmasi'] ?? null;
+        }
         if (str_contains($s, 'reguler')) {
             return $bosMap['reguler'] ?? null;
         }
@@ -1031,6 +1041,9 @@ class ArkasImportService
         }
         if (str_contains($s, 'silpa')) {
             return $bosMap['silpa'] ?? null;
+        }
+        if (str_contains($s, 'lainnya') || str_contains($s, 'banpem')) {
+            return $bosMap['lainnya'] ?? null;
         }
 
         return null;

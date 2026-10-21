@@ -321,3 +321,94 @@ Paket `SiapBOSP-Portable-v12.zip` diuji end-to-end (diekstrak, dipasang via
     (12.381 entri) sebelum & sesudah pembuatan EXE.
   - Rutin pembaruan: `siapbos:paket-portable` → `siapbos:pemasang-exe` (EXE selalu memuat
     ZIP terkini).
+- **Tarik Data ARKAS 1-klik di dalam aplikasi (baru)** — kartu ⚡ di *Utility → Profil
+  Sekolah*, hanya di aplikasi portabel: status database ARKAS (NPSN + path), pilih tahun,
+  tombol **"⬇️ Tarik Data Sekarang"**. Alur: aplikasi menjalankan agen bundel
+  (`agen/TarikArkas/node.exe tarik.cjs lokal --json --tahun X --keluar tujuan.xlsx --db
+  C:\...Arkas\arkas.db`) → agen membaca ARKAS desktop (read-only) dan menulis Excel →
+  aplikasi mengimpornya langsung lewat `ArkasImportService` (sama dengan unggahan web —
+  idempoten) → ringkasan jumlah tampil di kartu. **Tanpa token API dan tanpa HTTP** ke
+  server sendiri — tak macet walau port berubah, dan tetap jalan walau token dirotasi.
+  Pengaman: NPSN ARKAS vs profil sekolah berbeda → tarik ditolak (data tidak tertukar);
+  route `POST /utility/tarik-arkas` (`tarik-arkas.tarik`, role operator/kepsek).
+- **Dua temuan nyata dari uji E2E tombol 1-klik** (instalan portabel dipasang, server
+  bundel disalahkan port, tarik data ARKAS asli 33 MB):
+  1. **`php artisan serve` memberi proses server env KOSONG** — Laravel ServeCommand
+     menurunkan `$_ENV` ke proses server, dan `variables_order` php bundel tidak memuat
+     "E" sehingga `$_ENV` kosong → `getenv()`, termasuk APPDATA/USERPROFILE, hilang di
+     dalam request. Diperbaiki: (a) php.ini bundel kini menates `variables_order = "EGPCS"`
+     (PaketPortable `isiPhpIni`); (b) svc tarik menghitung path DB berlapis
+     (APPDATA → USERPROFILE → **turunan dari lokasi pemasangan** `...\AppData\Local\...`)
+     dan selalu mengirim argumen `--db` eksplisit ke agen.
+  2. **Loop pembaca proses agen sempat spin di EOF** (select tetap menyatakan pipa
+     "readable" setelah proses mati) — kini keluar saat `proc_get_status` tak berjalan,
+     lalu buffer dihabiskan sekali.
+- **Hasil uji E2E tombol 1-klik (data ARKAS asli)**: kartu tampil dengan NPSN 40313912,
+  tarik tahun 2026 → **+82 transaksi kas, +266 RKAS, pajak diterima +14 / disetor +14,
+  194 baris kembar dilewati (aman diulang)**, kode rekening asing tercantum dengan saran
+  Master Rekening; hitungan database instalan diperiksa (96 trx = 82 + 14 setor, 266
+  rkas, 28 pajak); berkas Excel sementara otomatis terhapus.
+- **Agen** menambah mode `lokal --keluar X.xlsx` (JSON, tanpa server/token) dan
+  opsi `--db <path>`; dibundel ulang via esbuild (cache npx) dan dijahit ke
+  `TarikArkas-v1.0.0.zip` (68 entri utuh).
+
+## 16. Penyeselarasan regulasi 2026 (21 Oktober 2026)
+
+Enam item hasil riset regulasi resmi (pusat informasi Rumah Pendidikan,
+Kemendikdasmen) yang langsung diterapkan ke aplikasi:
+
+1. **Cek Juknis BOSP 2026 di halaman RKAS** — kartu "📐 Cek Juknis BOSP 2026"
+   (`app/Services/JuknisService.php`, partial `resources/views/rkas/_juknis.blade.php`).
+   Tiga batas komponen **Permendikdasmen No 8/2026 Pasal 42**, dihitung dari
+   **100% total pagu** (bukan 50% pagu seperti TA 2025):
+   - **Honor** maksimum 20% (dasmen negeri) / 40% (dasmen swasta) / 40% (PAUD &
+     Kesetaraan) — kode kegiatan `07.12.01–07.12.04`, rekening `5.1.02.02.01.0013`.
+   - **Buku** minimum 10% (dasmen & kesetaraan) / 5% (PAUD) — kode kegiatan
+     `03.02.02` & `05.02.02–05.02.07` (per jenjang), rekening `5.1.02.03.05.x`.
+   - **Sarana & Prasarana** maksimum 20% — kode kegiatan
+     `05.08.01/03/05/06/08/09/10/12`, rekening meubel modal `5.2.02.05.02.0001`.
+   Kartu menampilkan: anggaran, % pagu, batas nominal, sisa ruang (atau
+   kekurangan untuk batas minimum), dan status ✅/⚠️; catatan bila pagu belum
+   terisi atau baris tanpa kode kegiatan. Sumber: sifat sekolah (negeri/swasta)
+   & jenjang — dapat diisi di **Utility → Profil Sekolah** (kolom baru
+   `schools.sifat`, migrasi `2026_10_21_000001`).
+   - Klasifikasi memakai **kode kegiatan resmi** dari sheet ARKAS `Ref_Kode`
+     (ditambahkan ke ekspor agen: `Ref_Kode`, `Ref_Rekening`, `Ref_Sumber_Dana`)
+     → `rkas_details.kode_kegiatan` terisi saat impor (baik lewat file ARKAS
+     maupun tombol 1-klik), dengan fallback ke kode rekening.
+2. **Kartu "Berita 2026" di halaman pendamping** (`ARKAS4-Pendamping-Sekolah.html`
+   → disalin ke `public/pendamping-arkas.html`): tab baru berisi ringkasan
+   Juknis 8/2026, pengingat pembaruan **ARKAS 4.2.18 / MARKAS 2.2.15**,
+   BOSP Afirmasi (ARKAS 4.2.16+), penyesuaian **PPN 12%**, Permendikdasmen
+   15/2026, serta kendala selisih pasca pergeseran — lengkap dengan tautan
+   artikel resmi.
+3. **Dukungan BOSP Afirmasi** — `bos_types` baru `afirmasi` (migrasi
+   `2026_10_21_000002`), pemetaan `id_ref_sumber_dana` ARKAS **11 → affirmasi**,
+   **5 → lainnya**, **6 (BOSP PAUD Reguler) → reguler**; label & ikon sumber
+   dana (`app/Support/SumberDana.php`) dipakai pada rekap RKAS per sumber dana;
+   kode kegiatan Afirmasi (06.33.x / 03.34.x) dikenali lewat `Ref_Kode`.
+4. **PPN 12%** — tarif otomatis pada form input belanja berubah 11% → **12%**
+   (penyesuaian PPN 12% pada ARKAS & SiPLah); catatan tegas bahwa nilai pajak
+   transaksi lama (11%) tersimpan apa adanya dan tidak dihitung ulang, plus
+   penanda pada cetakan SPJ ("tarif 12% sejak 2026").
+5. **"🔍 Cek Ulang Integritas Impor"** (`app/Services/CekIntegritasService.php`,
+   `CekIntegritasController`) — membandingkan data ARKAS terbaru dengan
+   pencatatan SiapBOSP **per bulan** (jumlah baris & nilai; catatan lokal
+   dipisah), untuk kasus resmi "ketidaksesuaian anggaran vs realisasi pasca
+   pergeseran/perubahan". Di portabel: tarik langsung dari ARKAS laptop; di
+   server pusat: unggah file ekspor ARKAS. Tidak mengubah data apa pun —
+   hanya laporan + saran "jalankan Impor ARKAS lagi (idempoten)".
+6. **Paket SPJ sesuai Permendikdasmen No 15/2026** — paket SPJ kini 8 halaman:
+   **Ringkasan Kepatuhan** (6 bukti pelaporan Pasal 24 + status), **Dokumen
+   Perencanaan (KAK/RKA)** (Pasal 12) dan **Bukti Perbandingan Harga ≥ 2
+   penyedia** (Pasal 15), yang **dikecualikan otomatis bila belanja ≤
+   Rp1.000.000** (Pasal 12 ayat 4), plus catatan "pembayaran di luar SiPLah
+   dilakukan setelah barang diterima" (Pasal 18 ayat 5), pelaporan lewat sistem
+   RKA (Pasal 25–26) dan pengawasan komite (Pasal 31–33).
+   Sumber regulation: PDF `Permendikdasmen-no-15-tahun-2026.pdf` (peraturan.go.id).
+- Komponen master "Pelaksanaan Penerimaan Peserta Didik Baru" → **"Penerimaan
+  Murid Baru"** (migrasi `2026_10_21_000003`, sesuai Permendikdasmen 8/2026).
+- Pengujian: `CekJuknisTest` (8), `CekIntegritasTest` (6),
+  `SpjPermendikdasmen15Test` (2) — suite penuh 132 → **136 test hijau**.
+- Rutin pembaruan: `siapbos:paket-portable` → `siapbos:pemasang-exe` (EXE selalu
+  memuat ZIP terkini, termasuk agen dengan sheet master baru).

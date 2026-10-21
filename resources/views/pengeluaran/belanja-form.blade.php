@@ -39,7 +39,8 @@
     <thead><tr><th style="min-width:170px">Rekening Pajak</th><th style="width:100px">Tarif %</th><th style="min-width:160px">Kode Billing</th><th style="width:150px">Nilai Pajak (Rp)</th><th></th></tr></thead>
     <tbody></tbody>
   </table></div>
-  <p class="text-[11px] text-slate-400 mt-2">Tarif terisi otomatis (PPN 11% · PPh 22 1,5% · PPh 23 2% · PPh 4(2) 10% · PPh 21 5%) dari <b>total belanja</b> — bisa diubah manual. Pajak yang diterima wajib disetor via menu Setor Pajak (isikan NTPN).</p>
+  <p class="text-[11px] text-slate-400 mt-2">Tarif terisi otomatis (PPN <b>12%</b> · PPh 22 1,5% · PPh 23 2% · PPh 4(2) 10% · PPh 21 5%) dari <b>total belanja</b> — bisa diubah manual. Pajak yang diterima wajib disetor via menu Setor Pajak (isikan NTPN).</p>
+  <p class="text-[11px] text-amber-700 mt-1">ℹ️ PPN 12% berlaku untuk transaksi tahun 2026 ke atas (penyesuaian PPN 12% pada ARKAS &amp; SiPLah). Transaksi yang dicatat sebelum 2026 memakai tarif lama <b>PPN 11%</b> — nilainya tersimpan apa adanya di pencatatan dan <b>tidak dihitung ulang</b>, jadi riwayat tetap utuh saat diaudit.</p>
 </div>
 
 <div class="card">
@@ -61,7 +62,7 @@
 </tr></template>
 <template id="tplP"><tr>
   <td><select name="pajak_id[]" class="inp pjk" onchange="tarifOtomatis(this)"><option value="">— pilih —</option>
-    @foreach($pajaks as $p)<option value="{{ $p->id }}" data-tarif="{{ ['ppn'=>11,'pph22'=>1.5,'pph23'=>2,'pph42'=>10,'pph21'=>5][$p->kode] ?? 0 }}">{{ $p->nama }}</option>@endforeach
+    @foreach($pajaks as $p)<option value="{{ $p->id }}" data-tarif="{{ ['ppn'=>12,'pph22'=>1.5,'pph23'=>2,'pph42'=>10,'pph21'=>5][$p->kode] ?? 0 }}">{{ $p->nama }}</option>@endforeach
   </select></td>
   <td><input name="tarif_pajak[]" type="number" step="0.01" min="0" value="0" class="inp trf" oninput="hitungPajakRow(this)"></td>
   <td><input name="billing[]" class="inp" placeholder="kode billing"></td>

@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 // TarikArkas — agen satu-klik SiapBOSP.
-// Dibaca: %AppData%\Roaming\Arkas\arkas.db (read-only, tak diubah).
+// Dibaca: %AppData%\Roaming\Arkas\arkas.db (read-only, tak diubah; bisa
+// dialihkan lewat variabel lingkungan ARKAS_DB — berguna untuk uji).
 // Dikirim: file Excel ke {server}/api/v1/arkas-push (Bearer token sekolah).
 // Pakai (cukup klik 2x — tanpa argumen pun dipandu otomatis):
 //        TarikArkas.exe            (setup bila perlu, lalu kirim tahun berjalan)
 //        TarikArkas.exe kirim --tahun 2025
 //        TarikArkas.exe setup --server https://... --token XXX
 //        TarikArkas.exe cek        (tes koneksi, tanpa kirim)
+//        TarikArkas.exe lokal --keluar out.xlsx --tahun 2025   (mode JSON:
+//        hanya bangun Excel dari ARKAS laptop ini, tanpa server/token —
+//        dipakai tombol "Tarik Data ARKAS" di dalam aplikasi SiapBOSP)
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -23,17 +27,18 @@ function muatDb() {
 }
 
 const DB_KEY = 'K3md1kbudRIS3n4yan';
-const DB_PATH = path.join(os.homedir(), 'AppData', 'Roaming', 'Arkas', 'arkas.db');
+const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null; };
+const adaFlag = (n) => process.argv.includes(n);
+const JSON_MODE = process.argv.includes('--json');
+const cetak = (...a) => { if (!JSON_MODE) console.log(...a); };
+// Urutan prioritas: argumen --db (dari aplikasi SiapBOSP) > env ARKAS_DB > lokasi standar ARKAS.
+const DB_PATH = arg('--db') || process.env.ARKAS_DB
+  || path.join(os.homedir(), 'AppData', 'Roaming', 'Arkas', 'arkas.db');
 const CFG_DIR = path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'SiapBOS-Agen');
 const CFG_PATH = path.join(CFG_DIR, 'config.json');
 
 const bacaKonfig = () => (fs.existsSync(CFG_PATH) ? JSON.parse(fs.readFileSync(CFG_PATH, 'utf8')) : {});
 const simpanKonfig = (k) => { fs.mkdirSync(CFG_DIR, { recursive: true }); fs.writeFileSync(CFG_PATH, JSON.stringify(k, null, 2)); };
-
-const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null; };
-const adaFlag = (n) => process.argv.includes(n);
-const JSON_MODE = process.argv.includes('--json');
-const cetak = (...a) => { if (!JSON_MODE) console.log(...a); };
 
 const Q_KAS = (thn) => 'SELECT k.id_kas_umum AS id_kas_umum, k.id_kas_nota AS id_kas_nota, '
   + 'k.id_rapbs_periode AS id_rapbs_periode, k.soft_delete AS soft_delete, '
@@ -66,6 +71,12 @@ function bangunExcel(db, tahun) {
   isi('KAS_Umum', q(Q_KAS(tahun)));
   isi('Nota', q('SELECT * FROM kas_umum_nota LIMIT 10000'));
   isi('Pajak_NTPN', q('SELECT * FROM kas_umum_nota_pajak'));
+  // Master kode kegiatan (Ref_Kode) + master rekening (Ref_Rekening): sumber
+  // kode kegiatan resmi (05.08.x, 07.12.x, 05.02.x, 06.33.x dst) untuk cek
+  // Juknis 8/2026 dan label rekening.
+  isi('Ref_Kode', q('SELECT * FROM ref_kode LIMIT 20000'));
+  isi('Ref_Rekening', q('SELECT * FROM ref_rekening LIMIT 5000'));
+  isi('Ref_Sumber_Dana', q('SELECT * FROM ref_sumber_dana'));
   return wb;
 }
 
@@ -135,6 +146,25 @@ async function setupInteraktif(rl, serverArg, tokenArg) {
   return { server, token };
 }
 
+// Mode lokal (dipakai tombol "Tarik Data ARKAS" di dalam aplikasi SiapBOSP
+// portabel): bangun Excel ARKAS ke berkas — tanpa server, tanpa token.
+// Impor ke SiapBOSP dilakukan aplikasi sendiri setelah berkas jadi.
+async function bangunLokal(keluar, tahun) {
+  if (!fs.existsSync(DB_PATH)) throw new Error('Database ARKAS tidak ditemukan: ' + DB_PATH + '\nPastikan ARKAS sudah pernah dibuka di laptop ini (dan tutup ARKAS bila database terkunci).');
+  const Database = muatDb();
+  const db = new Database(DB_PATH, { readonly: true });
+  try {
+    db.pragma("cipher='sqlcipher'"); db.pragma('legacy=4'); db.pragma(`key='${DB_KEY}'`);
+    const npsn = db.prepare('SELECT npsn FROM mst_sekolah LIMIT 1').get();
+    const wb = bangunExcel(db, tahun);
+    const buf = await wb.xlsx.writeBuffer();
+    fs.writeFileSync(keluar, buf);
+    return { ok: true, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024) };
+  } finally {
+    try { db.close(); } catch (_) {}
+  }
+}
+
 async function kirim(server, token, tahun, npsnHarapan) {
   if (!fs.existsSync(DB_PATH)) throw new Error('Database ARKAS tidak ditemukan: ' + DB_PATH + '\nPastikan ARKAS sudah pernah dibuka di laptop ini (dan tutup ARKAS bila database terkunci).');
   const Database = muatDb();
@@ -196,6 +226,8 @@ async function tesKoneksi(server, token) {
         console.log(JSON.stringify({ ok: true, adaDb: fs.existsSync(DB_PATH), npsnFile: bacaNpsnLokal() }));
       } else if (cmd === 'tes') {
         console.log(JSON.stringify(await tesKoneksi(butuhFlag('--server'), butuhFlag('--token'))));
+      } else if (cmd === 'lokal') {
+        console.log(JSON.stringify(await bangunLokal(butuhFlag('--keluar'), parseInt(arg('--tahun') || new Date().getFullYear(), 10))));
       } else {
         const tahun = parseInt(arg('--tahun') || new Date().getFullYear(), 10);
         const lap = await kirim(butuhFlag('--server'), butuhFlag('--token'), tahun, arg('--npsn'));

@@ -46,17 +46,20 @@
   </form>
   @endif
 </div>
+@include('rkas._juknis', ['juknis' => $juknis])
 <div class="card overflow-x-auto">
   <table class="tbl">
-    <thead><tr><th>Kode</th><th>Rekening</th><th>Uraian</th><th>Satuan</th><th class="num">Banyak</th><th class="num">Harga</th><th class="num">Jumlah</th><th>Sumber</th></tr></thead>
+    <thead><tr><th>Kode</th><th>Kegiatan</th><th>Rekening</th><th>Uraian</th><th>Satuan</th><th class="num">Banyak</th><th class="num">Harga</th><th class="num">Jumlah</th><th>Sumber</th></tr></thead>
     <tbody>
       @foreach($h->details as $d)
-      <tr><td class="font-mono">{{ $d->rekening->kode }}</td><td>{{ $d->rekening->nama }}</td><td>{{ $d->uraian }}</td>
+      <tr><td class="font-mono">{{ $d->rekening->kode }}</td>
+        <td class="font-mono text-[11px] text-slate-500">{{ $d->kode_kegiatan ? \App\Services\JuknisService::normalisasi($d->kode_kegiatan) : '—' }}</td>
+        <td>{{ $d->rekening->nama }}</td><td>{{ $d->uraian }}</td>
         <td>{{ $d->satuan }}</td><td class="num">{{ $d->banyak }}</td><td class="num">{{ rp($d->harga_satuan) }}</td>
         <td class="num font-semibold">{{ rp($d->jumlah) }}</td><td>{{ $d->sumber_dana }}</td></tr>
       @endforeach
     </tbody>
-    <tfoot><tr class="font-bold"><td colspan="6" class="text-right">TOTAL</td><td class="num">{{ rp($h->details->sum('jumlah')) }}</td><td></td></tr></tfoot>
+    <tfoot><tr class="font-bold"><td colspan="7" class="text-right">TOTAL</td><td class="num">{{ rp($h->details->sum('jumlah')) }}</td><td></td></tr></tfoot>
   </table>
 </div>
 @endsection

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\TarikArkasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -9,15 +10,22 @@ class ProfilController extends Controller
 {
     public function edit()
     {
-        return view('utility.profil', ['sekolah' => auth()->user()->school]);
+        return view('utility.profil', [
+            'sekolah' => auth()->user()->school,
+            'tarik' => TarikArkasService::status(),
+        ]);
     }
 
     public function update(Request $r)
     {
         $data = $r->validate([
-            'nama' => 'required', 'jenjang' => 'required', 'desa' => 'nullable',
+            'nama' => 'required', 'jenjang' => 'required', 'sifat' => 'nullable|in:negeri,swasta',
+            'desa' => 'nullable',
             'kecamatan' => 'nullable', 'kab_kota' => 'nullable', 'provinsi' => 'nullable', 'alamat' => 'nullable',
         ]);
+        if (empty($data['sifat'])) {
+            unset($data['sifat']);
+        }
         auth()->user()->school->update($data);
 
         return back()->with('ok', 'Profil sekolah tersimpan.');

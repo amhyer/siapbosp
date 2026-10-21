@@ -34,7 +34,7 @@
             @endif
           @empty
             @if ($wajibPajak)
-              <span class="badge bg-amber-100 text-amber-800" title="Di ARKAS: belanja di atas Rp2 jt (bukan SIPLah) wajib memperhitungkan pajak (PPN)">≥ Rp2 jt — perlu pajak?</span>
+              <span class="badge bg-amber-100 text-amber-800" title="Di ARKAS: belanja di atas Rp2 jt (bukan SIPLah) wajib memperhitungkan pajak (PPN 12% sejak 2026)">≥ Rp2 jt — perlu pajak?</span>
             @elseif ($pakaiSiplah)
               <span class="text-emerald-600" title="Belanja SIPLah — pajak otomatis ditangani vendor">SIPLah ✓</span>
             @else

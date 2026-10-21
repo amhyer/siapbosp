@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\InfoNotif;
 use App\Services\Aktivitas;
 use App\Services\EmailNotif;
+use App\Services\JuknisService;
 use App\Services\RkasExportService;
 use Illuminate\Http\Request;
 
@@ -17,9 +18,33 @@ class RkasController extends Controller
     public function index()
     {
         $tahun = (int) session('tahun', now()->year);
-        $items = RkasHeader::with('details')->where('tahun', $tahun)->orderByDesc('revisi_ke')->get();
+        $items = RkasHeader::with('details.rekening')->where('tahun', $tahun)->orderByDesc('revisi_ke')->get();
 
-        return view('rkas.index', compact('items', 'tahun'));
+        // RKAS utama untuk cek juknis: revisi tertinggi yang bukan draft.
+        $utama = $items->first(fn ($h) => $h->status !== 'draft') ?? $items->first();
+        $sekolah = auth()->user()->school;
+        $juknis = ($utama && $sekolah)
+            ? JuknisService::cek($utama, $sekolah, $tahun) + [
+                'revisi_ke' => $utama->revisi_ke, 'status' => $utama->status,
+            ]
+            : null;
+
+        // Rekap per sumber dana — revisi terbaru per sumber (tak dijumlahkan
+        // ganda antar revisi).
+        $rekapSumber = collect();
+        foreach ($items as $h) {
+            foreach ($h->details->groupBy('sumber_dana') as $sumber => $rows) {
+                if ($rekapSumber->has($sumber)) {
+                    continue;
+                }
+                $rekapSumber->put($sumber, [
+                    'nilai' => (int) $rows->sum('jumlah'),
+                    'baris' => $rows->count(),
+                ]);
+            }
+        }
+
+        return view('rkas.index', compact('items', 'tahun', 'juknis', 'rekapSumber'));
     }
 
     public function create()
@@ -135,8 +160,14 @@ class RkasController extends Controller
     public function show(RkasHeader $rkasHeader)
     {
         $rkasHeader->load('details.rekening');
+        $sekolah = auth()->user()->school;
+        $juknis = $sekolah
+            ? JuknisService::cek($rkasHeader, $sekolah, (int) $rkasHeader->tahun) + [
+                'revisi_ke' => $rkasHeader->revisi_ke, 'status' => $rkasHeader->status,
+            ]
+            : null;
 
-        return view('rkas.show', ['h' => $rkasHeader]);
+        return view('rkas.show', ['h' => $rkasHeader, 'juknis' => $juknis]);
     }
 
     /** Unduh RKAS sebagai PDF resmi (A4 landscape). */

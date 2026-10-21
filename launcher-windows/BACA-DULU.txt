@@ -30,6 +30,9 @@ PAKAI SEHARI-HARI:
 2. TARIK DATA ARKAS: tutup dulu aplikasi ARKAS (wajib!), lalu klik
    pintasan "Tarik Data ARKAS - SiapBOSP". Boleh diulang kapan saja —
    data yang sama tidak akan menumpuk (idempoten).
+   Atau lebih singkat: di dalam aplikasi buka "Utility - Profil
+   Sekolah" -> tombol "Tarik Data ARKAS - 1 Klik" (tahun tinggal
+   dipilih, hasil langsung tampil di kartu yang sama).
 3. KIRIM KE WEBSITE PUSAT: klik "Sinkron ke Pusat - SiapBOSP".
    Butuh internet. Boleh diulang kapan saja — aman, tidak duplikat.
 4. Selesai: tutup jendela aplikasi + jendela "SiapBOSP-Server".

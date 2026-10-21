@@ -1,8 +1,13 @@
 <?php
+
 namespace Database\Seeders;
 
+use App\Models\BosType;
+use App\Models\Komponen;
+use App\Models\Rekening;
+use App\Models\RekeningPajak;
+use App\Models\Stage;
 use Illuminate\Database\Seeder;
-use App\Models\{BosType, Komponen, Rekening, RekeningPajak, Stage};
 
 /**
  * Master referensi idempoten (aman dijalankan berulang):
@@ -27,7 +32,7 @@ class MasterSeeder extends Seeder
 
         $kom = [];
         foreach ([
-            '01' => 'Pelaksanaan Penerimaan Peserta Didik Baru',
+            '01' => 'Pelaksanaan Penerimaan Murid Baru',
             '02' => 'Pengembangan Perpustakaan',
             '03' => 'Kegiatan Pembelajaran dan Ekstrakurikuler',
             '04' => 'Kegiatan Asesmen dan Evaluasi Pembelajaran',
