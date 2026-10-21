@@ -211,7 +211,8 @@ Paket Dokumen SPJ lengkap 5 dokumen, banner pengingat tenggat (pajak tgl 20 + tu
 Format BKU Semester: Buku Pembantu Rincian Objek Belanja + Rekapitulasi Realisasi,
 Bunga Bank + SiLPA eksplisit,
 konsolidasi laporan: Realisasi satu pintu (Komponen+%+CSV masuk ke format ARKAS),
-rename "LPJ & Tutup Buku per Tahap", taut silang BKU ↔ Daftar Kas Umum** —
+rename "LPJ & Tutup Buku per Tahap", taut silang BKU ↔ Daftar Kas Umum,
+penggabungan fitur dari v23 (lihat §13)** —
 lihat §11. Sisa (prioritas rendah), pilih kapan bila diminta:
 1. ~~Status Kertas Kerja~~ ✓ dasarnya sudah ada: RkasHeader punya alur lengkap
    `draft → diajukan → disetujui → disahkan → dikunci` berikut persetujuan Dinas (rkasSahkan/rkasRevisi) —
@@ -224,3 +225,31 @@ lihat §11. Sisa (prioritas rendah), pilih kapan bila diminta:
 5. ~~Bunga bank & SiLPA~~ ✓ sudah: kartu Bunga Bank di Pendapatan + rincian SiLPA pada panel BKU
    (saldo awal tahun otomatis membawa SiLPA tahun sebelumnya; tutup tahun berikutnya mengalir lagi).
    **Semua item penyelarasan ARKAS-4 yang terencana di §12 selesai.**
+
+## 13. Penggabungan cabang v23 (fitur Dinas & komunikasi)
+
+Aplikasi v23 adalah cabang sejajar dari basis kode yang sama, dengan fokus **pengelolaan Dinas
+& komunikasi** — fiturnya komplementer dan kini sudah **digabung penuh** ke aplikasi ini
+(dipilih gabung penuh, antrian 21 Okt 2026). Semuanya bersifat menambah; 2 migrasi baru tidak
+bentrok nomornya, dan progres ARKAS di §1–§12 tetap utuh:
+
+| Fitur (dari v23) | Wujud di aplikasi ini | Status |
+|---|---|---|
+| Aktivasi akun | `users.is_active` (Dinas bisa 🔇/🔊 akun); login ditolak bila akun/sekolah nonaktif + pesan jelas | ✅ |
+| Throttle login & jejak audit | maks. 5 gagal per 5 menit (email+IP); semua percobaan `auth-ok/gagal/blok` terekam `activity_logs` → halaman **🛡️ Keamanan** (statistik 24 jam + filter email) | ✅ |
+| Kelola pengguna Dinas | pada daftar 👥 Pengguna: ✏️ ubah identitas/peran/sekolah, 🔁 reset sandi (manual/acak + email), 🔇/🔊, 🗑 hapus (proteksi akun diri sendiri & akun Dinas terakhir) | ✅ |
+| Master Data Dinas | 🧱 **Master Data** (`/dinas/master`): rekening & komponen + **impor CSV** upsert aman + unduh contoh CSV; melengkapi master hasil Impor ARKAS | ✅ |
+| Notifikasi email | `EmailNotif` + antrean `KirimEmailNotif` — RKAS masuk/disahkan/perlu revisi, LPJ masuk/diterima/ditolak, tahap dibuka/ditutup, paket tahap baru, pengumuman, reset sandi. **Tidak pernah mengganggu alur utama** (queue/sync + try-catch); mode `log` tercatat di laravel.log; kartu 📧 + tombol kiriman email uji di Dashboard Dinas | ✅ |
+| Tanda tangan basah digital | `penandatangans.ttd_path` + `TtdGambar` (PNG dirapikan, disimpan privat) — otomatis tercetak di **LPJ cetak/PDF, RKAS PDF**, unggah/hapus di 📝 Penandatangan | ✅ |
+| LPJ Kumulatif (cakupan Tahap 1–N) | tombol **🔁 Mode Kumulatif** di LPJ & Tutup Buku per Tahap: kas, BKU, rekap & pajak berlaku kumulatif dengan label "Kumulatif Tahap 1–N" + saldo awal tahun (SILPA) — berlaku juga di PDF/Excel 4-sheet | ✅ |
+| Laporan Pajak Triwulan | 🧾 **Kertas Kerja Pajak Triwulan** (`/laporan/pajak-triwulan`): matriks dipungut (kode billing) vs disetor (NTPN) per jenis pajak per bulan + sisa kewajiban; unduh CSV | ✅ |
+| Buat paket tahap tahun baru | tombol **🗓️ Buat Paket Tahun** di Kontrol Tahap: idempoten membuat Tahap 1–5 (Tahap 1 langsung terbuka) + notifikasi semua sekolah | ✅ |
+
+Catatan teknis penggabungan:
+- **Arah**: v23 → aplikasi ini (yang lebih maju data & uji). Laporan
+  "Realisasi vs RKAS" native milik v23 **tidak dipulihkan** — fungsinya telah disatukan ke
+  **Realisasi Anggaran (ARKAS)** (lihat §11 baris "Realisasi satu pintu").
+- **Migrasi baru**: `2026_10_20_000001_add_is_active_to_users` & `000002_add_ttd_path_to_penandatangans`.
+- **Pengujian**: `tests/Feature/GabungV23Test.php` — 12 test (kelola akun, nonaktif login,
+  reset sandi, keamanan, impor master CSV, template, paket tahap idempoten, pajak triwulan
+  halaman+CSV, unggah/hapus TTD, email uji). Suite penuh **108 lulus, 2 gagal bawaan** §11.
