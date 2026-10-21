@@ -253,3 +253,22 @@ Catatan teknis penggabungan:
 - **Pengujian**: `tests/Feature/GabungV23Test.php` — 12 test (kelola akun, nonaktif login,
   reset sandi, keamanan, impor master CSV, template, paket tahap idempoten, pajak triwulan
   halaman+CSV, unggah/hapus TTD, email uji). Suite penuh **108 lulus, 2 gagal bawaan** §11.
+
+## 14. Aset pendamping: ARKAS4-Pendamping-Sekolah.html
+
+Alat bantu **satu file HTML** (bukan bagian aplikasi Laravel) persiapan input ke **aplikasi
+resmi ARKAS 4**: checklist 13 item pra-input, kertas kerja angka (pagu → rencana → realisasi
+dengan % + peringatan), rekap `.txt`, dan 7 tautan panduan resmi (portal ARKAS + pusat
+bantuan Rumah Pendidikan, termasuk panduan Kertas Kerja, Pengesahan, Pergeseran, Perubahan).
+Tersimpan otomatis via localStorage; tanpa jaringan; disclaimer independen + vocab "MARKAS"
+sesuai panduan resmi.
+
+- **Sumber**: `ARKAS4-Pendamping-Sekolah.html` (akar repo, ✍️ sumber utama yang diedit).
+- **Disajikan**: salinan di `public/pendamping-arkas.html` → buka langsung
+  `http://<server>/pendamping-arkas.html` dan **tautan "🧭 Pendamping ARKAS 4"** pada
+  halaman **Impor ARKAS** (bersama taut unduh aplikasi/pemasang) — ikut terbawa paket portabel.
+- **Audit 21 Okt 2026**: JS valid (node --check), 17 ID DOM terawat, 5 handler terdefinisi,
+  semua tautan `target=_blank rel=noopener`, artikel resmi diverifikasi hidup.
+- **Konten diperbarui 21 Okt 2026**: penekanan juknis — **minimal 50% dana tersedia untuk
+  Tahap 1** & **TA 2026 dua tahap salur (Permendikdasmen No 8/2026)** pada kartu 01/Alur
+  + item checklist ke-13; stamp sumber diperiksa sinc artikel (8 Sep 2026).

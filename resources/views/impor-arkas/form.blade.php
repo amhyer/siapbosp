@@ -43,6 +43,11 @@
     <button class="btn">⬆️ Proses Impor</button>
   </form>
 </div>
+<div class="card max-w-2xl border-slate-200">
+  <h3 class="card-title mb-1">🧭 Pendamping ARKAS 4 (alat bantu)</h3>
+  <p class="page-desc mb-2">Halaman HTML mandiri: checklist persiapan pra-input, rekap pagu–rencana–realisasi, dan kumpulan tautan panduan resmi ARKAS 4. Data tersimpan otomatis di browser perangkat Anda — tanpa internet, tanpa dikirim ke mana pun.</p>
+  <a href="{{ asset('pendamping-arkas.html') }}" target="_blank" rel="noopener" class="btn2 btn-sm">🧭 Buka Pendamping ARKAS 4 ↗</a>
+</div>
 <div class="card max-w-2xl">
   <h3 class="card-title mb-2">ℹ️ Aturan impor</h3>
   <ul class="list-disc pl-5 text-[13px] text-slate-600 space-y-1">
