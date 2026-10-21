@@ -1,0 +1,13 @@
+{
+    "name": "tarik-arkas",
+    "version": "1.0.0",
+    "description": "Agen satu-klik: tarik data ARKAS lokal dan kirim ke SiapBOSP.",
+    "type": "commonjs",
+    "bin": {
+        "tarik-arkas": "./tarik-arkas.js"
+    },
+    "dependencies": {
+        "better-sqlite3-multiple-ciphers": "^13.0.3",
+        "exceljs": "^4.4.0"
+    }
+}

@@ -1,0 +1,62 @@
+SiapBOSP — Aplikasi Bendahara di Laptop (versi pasang)
+======================================================
+
+Isi paket ini:
+  PASANG-SIAPBOSP.bat    <- klik 2x ini SEKALI untuk memasang
+  launcher-windows\      pemasang + pintasan + pengaturan
+  php\                   runtime PHP portable (sudah dibundel)
+  agen\                  agen Tarik ARKAS + Node (sudah dibundel)
+  app\, vendor\, ...     kode aplikasi
+
+TIDAK perlu install PHP / Node / Composer — semuanya sudah menyatu.
+
+Alternatif satu berkas: SiapBOSP-Setup-v12.exe (pemasang bergaya
+wizard: halaman berisi data sekolah & akun, progres, lalu selesai).
+
+CARA PASANG (sekali saja, ±2-3 menit):
+1. Klik 2x "PASANG-SIAPBOSP.bat".
+2. Isi nama bendahara, email login, dan kata sandi (min. 6 karakter).
+   CATAT kata sandi ini — dipakai untuk masuk aplikasi setiap hari.
+3. Tunggu selesai. Pintasan muncul di dua tempat:
+     - Desktop    : SiapBOSP, Tarik Data ARKAS, Sinkron ke Pusat
+     - Start Menu : menu "SiapBOSP" (termasuk "Hapus SiapBOSP")
+4. Folder hasil ekstrak ini boleh dihapus setelah pemasangan.
+   Aplikasi terpasang di: %LocalAppData%\Programs\SiapBOSP
+   (data lokal ada di dalam folder itu juga)
+
+PAKAI SEHARI-HARI:
+1. Klik pintasan "SiapBOSP" -> jendela aplikasi terbuka sendiri.
+   Jangan tutup jendela "SiapBOSP-Server" selama bekerja.
+2. TARIK DATA ARKAS: tutup dulu aplikasi ARKAS (wajib!), lalu klik
+   pintasan "Tarik Data ARKAS - SiapBOSP". Boleh diulang kapan saja —
+   data yang sama tidak akan menumpuk (idempoten).
+3. KIRIM KE WEBSITE PUSAT: klik "Sinkron ke Pusat - SiapBOSP".
+   Butuh internet. Boleh diulang kapan saja — aman, tidak duplikat.
+4. Selesai: tutup jendela aplikasi + jendela "SiapBOSP-Server".
+
+SYARAT:
+- Windows 10/11 64-bit. Untuk tampilan jendela aplikasi, tersedia
+  Chrome atau Edge (kalau tidak ada, memakai browser default).
+- Kalau Windows menampilkan peringatan saat pertama dibuka
+  ("Windows protected your PC"), pilih "More info" -> "Run anyway".
+  Itu karena berkas diunduh dari internet; pemasang sudah
+  membebaskan blokir otomatis.
+
+PENGATURAN (launcher-windows\server.conf):
+- SERVER_URL : biarkan http://127.0.0.1:8000 (aplikasi lokal).
+  Bila nanti mau memakai server hosting, ganti ke https://domain-anda.
+- PORT       : port server lokal (default 8000).
+- PHP_PATH   : biasanya TIDAK perlu diisi (PHP bundel dipakai otomatis).
+
+MENGHAPUS APLIKASI:
+- Lewat "Aplikasi & fitur" (Windows) atau pintasan "Hapus SiapBOSP"
+  di Start Menu / launcher-windows\Hapus-SiapBOSP.bat.
+- Muncul dialog pilihan: YA = cadangkan dulu data (database pembukuan
+  + lampiran) ke folder Documents, lalu hapus; TIDAK = hapus semua
+  tanpa cadangan; BATAL = urungkan.
+- Data yang sudah tersinkron ke website pusat tetap aman.
+
+CATATAN:
+- Setiap mengunduh paket dari website per akun, token sinkron pusat
+  ikut diperbarui (token lama otomatis nonaktif).
+- Ganti kata sandi kapan saja: menu Profil di aplikasi.

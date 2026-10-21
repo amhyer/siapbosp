@@ -1,0 +1,6 @@
+TARIK ARKAS (versi jendela) — SiapBOSP
+======================================
+1. Ekstrak ZIP ini, tutup aplikasi ARKAS.
+2. Klik 2x TarikArkas-GUI.exe.
+3. Isi Server + Token + Tahun → Tes Koneksi → Kirim Sekarang.
+Token: SiapBOSP → Utility → Profil → Token API (milik NPSN sekolah ini).

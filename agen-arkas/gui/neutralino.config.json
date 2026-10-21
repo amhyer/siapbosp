@@ -1,0 +1,41 @@
+{
+    "applicationId": "id.siapbosp.tarikarkas",
+    "version": "1.0.0",
+    "defaultMode": "window",
+    "port": 0,
+    "documentRoot": "/resources/",
+    "url": "/",
+    "enableServer": true,
+    "enableNativeAPI": true,
+    "tokenSecurity": "one-time",
+    "window": {
+        "title": "TarikArkas \u2014 SiapBOSP",
+        "width": 560,
+        "height": 680,
+        "minWidth": 480,
+        "minHeight": 600,
+        "center": true,
+        "resizable": true
+    },
+    "nativeAllowList": [
+        "app.*",
+        "os.execCommand",
+        "storage.*"
+    ],
+    "modes": {
+        "window": {
+            "nativeAllowList": [
+                "app.*",
+                "os.execCommand",
+                "storage.*"
+            ]
+        }
+    },
+    "cli": {
+        "binaryName": "TarikArkas-GUI",
+        "resourcesPath": "/resources/",
+        "clientLibrary": "/neutralino.js",
+        "binaryVersion": "6.10.0",
+        "clientVersion": "6.10.0"
+    }
+}

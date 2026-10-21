@@ -1,0 +1,7 @@
+email,password,role,name,school_npsn,school_name,panel
+superadmin@siapbosp.id,password,superadmin,Superadmin,,,"/dinas"
+dinas@siapbosp.id,password,dinas,Admin Dinas Pendidikan,,,"/dinas"
+operator@sekolah.demo,password,operator,Operator Satu,60100001,SD Negeri 012345 Mamajang,/dashboard
+kepsek@sekolah.demo,password,kepsek,Kepala Sekolah Satu,60100001,SD Negeri 012345 Mamajang,/dashboard
+operator2@sekolah.demo,password,operator,Operator Dua,60100002,SD Negeri 067890 Losari,/dashboard
+kepsek2@sekolah.demo,password,kepsek,Kepala Sekolah Dua,60100002,SD Negeri 067890 Losari,/dashboard
