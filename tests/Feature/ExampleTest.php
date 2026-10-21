@@ -16,5 +16,6 @@ class ExampleTest extends TestCase
 
         // Tamu diarahkan ke halaman login.
         $response->assertRedirect(route('login'));
+        $this->get('/login')->assertStatus(200);
     }
 }

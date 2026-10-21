@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Allocation;
 use App\Models\ArkasKode;
 use App\Models\BkuTutupBulan;
+use App\Models\BosType;
 use App\Models\KasTransaction;
 use App\Models\Penandatangan;
+use App\Models\Rekening;
 use App\Models\RkasHeader;
+use App\Models\Stage;
 use App\Services\KasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -50,14 +53,26 @@ class PembukuanController extends Controller
         $pendapatanTh = (int) KasTransaction::where('tahun', $tahun)->where('type', 'pendapatan')->sum('total');
         $belanjaTh = (int) KasTransaction::where('tahun', $tahun)->where('type', 'belanja')->sum('total');
         $pagu = (int) Allocation::where('tahun', $tahun)->sum('nilai');
-        // ala ARKAS: Total Dana Tersedia = SILPA terbawa tahun lalu + saluran tahun ini
         $silpaTahunLalu = KasService::ledger($sid, $tahun)['saldoAwalTahun'];
         $danaTersedia = $silpaTahunLalu + $pendapatanTh;
         $bisaBuka = auth()->user()->role === 'kepsek';
         $bisaDianggarkanUlang = max(0, $pagu - $belanjaTh);
 
+        // Pajak belum lapor per bulan (status "Sudah Selesai — Belum Lapor Pajak" ala ARKAS 4 Bab XVIII)
+        $pajakBelumPerBulan = DB::table('kas_taxes as p')
+            ->join('kas_transactions as t', 'p.kas_transaction_id', '=', 't.id')
+            ->where('t.school_id', $sid)
+            ->where('t.tahun', $tahun)
+            ->where('p.status', 'belum')
+            ->selectRaw('substr(t.tanggal, 1, 7) as ym, sum(p.nilai) as j')
+            ->groupBy('ym')
+            ->pluck('j', 'ym');
+
         // Grid 12 bulan: status per bulan ala ARKAS (agregasi PHP — portable semua driver)
-        $terkunciMap = BkuTutupBulan::bulanTerkunci($sid, $tahun);
+        $tutupRecords = BkuTutupBulan::withoutGlobalScope('school')
+            ->where('school_id', $sid)->where('tahun', $tahun)->get()->keyBy('bulan');
+        $terkunciMap = $tutupRecords->keys()->all();
+
         $masukBulan = [];
         $keluarBulan = [];
         $trxPertama = null;
@@ -79,25 +94,32 @@ class PembukuanController extends Controller
         $bulanKini = now()->format('Y-m');
         $bulanGrid = [];
         for ($m = 1; $m <= 12; $m++) {
-            $kunci = str_pad((string) $m, 2, '0', STR_PAD_LEFT); // '01'..'12'
+            $kunci = str_pad((string) $m, 2, '0', STR_PAD_LEFT);
             $ym = $tahun.'-'.$kunci;
             [$nIn, $masuk] = $masukBulan[$kunci] ?? [0, 0];
             [$nOut, $keluar] = $keluarBulan[$kunci] ?? [0, 0];
             $n = $nIn + $nOut;
+            $pajakBelum = (int) ($pajakBelumPerBulan[$ym] ?? 0);
             $status = match (true) {
+                in_array($ym, $terkunciMap, true) && $pajakBelum > 0 => 'belum-pajak',
                 in_array($ym, $terkunciMap, true) => 'tertutup',
                 $n > 0 && $ym < $bulanKini => 'selesai',
                 $n > 0 || $ym === $bulanKini => 'draf',
                 $firstAktif !== null && $ym < $firstAktif => 'tanpa-dana',
                 default => 'kosong',
             };
-            $bulanGrid[] = ['ym' => $ym, 'nama' => $namaBulan[$m], 'masuk' => (int) $masuk,
-                'keluar' => (int) $keluar, 'n' => $n, 'status' => $status, 'now' => $ym === $bulanKini];
+            $bulanGrid[] = [
+                'ym' => $ym, 'nama' => $namaBulan[$m], 'masuk' => (int) $masuk,
+                'keluar' => (int) $keluar, 'n' => $n, 'status' => $status,
+                'pajak_belum' => $pajakBelum, 'now' => $ym === $bulanKini,
+            ];
         }
+
+        $infoTutup = $tutupRecords[$bulan] ?? null;
 
         return view('pembukuan.bku', compact('rows', 'bulan', 'saldoAwal', 'tahun', 'kodeNama',
             'saldoSekarang', 'pendapatanTh', 'belanjaTh', 'pagu', 'danaTersedia', 'bisaDianggarkanUlang',
-            'bulanGrid', 'terkunciMap', 'bisaBuka', 'silpaTahunLalu'));
+            'bulanGrid', 'terkunciMap', 'bisaBuka', 'silpaTahunLalu', 'infoTutup'));
     }
 
     public function bkuCetak()
@@ -106,12 +128,9 @@ class PembukuanController extends Controller
         [$rows, $saldoAwal, $tahun] = $this->hitungBulan($bulan);
         $penandatangan = Penandatangan::orderBy('id')->get();
         $sid = auth()->user()->school_id;
-        // Saldo tunai/bank awal & akhir bulan (gaya ARKAS: dua baris saldo + box Ditutup).
         $mulai = $bulan.'-01';
         $tunaiAwal = 0;
         $bankAwal = 0;
-        $tunaiAkhir = 0;
-        $bankAkhir = 0;
         foreach (KasService::ledger($sid, null)['items'] as $it) {
             $tgl = $it['trx']->tanggal->format('Y-m-d');
             if ($tgl < $mulai) {
@@ -126,15 +145,15 @@ class PembukuanController extends Controller
             $tunaiAkhir += $dt;
             $bankAkhir += $db;
         }
-        // Kop: sumber dana dominan + revisi RKAS terakhir (gaya "BOSP Reguler Perubahan Revisi Ke 1").
         $domBos = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
             ->selectRaw('bos_type_id, sum(total) j')->groupBy('bos_type_id')->orderByDesc('j')->first();
         $kopSumber = $domBos?->bosType?->nama ?? 'BOSP Reguler';
         $revisiKe = (int) RkasHeader::where('school_id', $sid)->where('tahun', $tahun)->max('revisi_ke');
         $kodeNama = ArkasKode::peta($sid, $tahun);
+        $isDraft = ! BkuTutupBulan::terkunciBulan($sid, $bulan);
 
         return view('pembukuan.bku-cetak', compact('rows', 'bulan', 'saldoAwal', 'tahun', 'penandatangan',
-            'tunaiAwal', 'bankAwal', 'tunaiAkhir', 'bankAkhir', 'kopSumber', 'revisiKe', 'kodeNama'));
+            'tunaiAwal', 'bankAwal', 'tunaiAkhir', 'bankAkhir', 'kopSumber', 'revisiKe', 'kodeNama', 'isDraft'));
     }
 
     public function bkuCsv()
@@ -164,15 +183,14 @@ class PembukuanController extends Controller
         }, "bku_{$bulan}.csv", ['Content-Type' => 'text/csv']);
     }
 
-    /** Register resmi Kas Tunai / Kas Bank per bulan (gaya pembantu Simakda). */
-    /** Register resmi Kas Tunai / Kas Bank per bulan (gaya pembantu Simakda). */
+    /** Register resmi Kas Tunai / Kas Bank per bulan. */
     public function register()
     {
         $jenis = request('jenis', 'tunai');
         abort_unless(in_array($jenis, ['tunai', 'bank']), 404);
         $bulan = request('bulan', now()->format('Y-m'));
         $tahunAktif = (int) session('tahun', now()->year);
-        $l = KasService::ledger(auth()->user()->school_id, null); // semua tahun → SILPA otomatis masuk
+        $l = KasService::ledger(auth()->user()->school_id, null);
         $saldoAwal = 0;
         $rows = [];
         foreach ($l['items'] as $it) {
@@ -202,11 +220,7 @@ class PembukuanController extends Controller
         return view('pembukuan.kas', ['items' => $mutasi, 'saldo' => $l, 'tahun' => $tahun]);
     }
 
-    /**
-     * 📚 Format BKU Semester ala ARKAS: Buku Pembantu Rincian Objek Belanja.
-     * Pengeluaran rupel per kode rekening sepanjang semester dengan saldo
-     * kumulatif; rekening diawali saldo pengeluaran sebelum semester.
-     */
+    /** 📚 Format BKU Semester ala ARKAS: Buku Pembantu Rincian Objek Belanja. */
     public function bukuPembantu(Request $r)
     {
         [$semester, $tahun, $awal, $akhir] = $this->persiapanSemester($r);
@@ -219,7 +233,6 @@ class PembukuanController extends Controller
             ->select('d.nilai', 't.tanggal', 't.no_bukti', 't.keterangan', 'rk.kode', 'rk.nama')
             ->orderBy('rk.kode')->orderBy('t.tanggal')->orderBy('t.id')->get();
 
-        // Kelompokkan per rekening; transaksi sebelum semester = saldo pengeluaran awal.
         $kelompok = [];
         foreach ($dets as $d) {
             $kode = $d->kode ?: '—';
@@ -238,7 +251,6 @@ class PembukuanController extends Controller
         }
         ksort($kelompok);
 
-        // Saldo kumulatif per baris sesuai gaya Buku Pembantu ARKAS.
         $totalMutasi = 0;
         $kelompok = array_map(function ($g) use (&$totalMutasi) {
             $saldo = (int) $g['awalSaldo'];
@@ -275,7 +287,6 @@ class PembukuanController extends Controller
             ->groupBy('rk.kode', 'rk.nama')->orderBy('rk.kode')->get()
             ->pluck('j', 'kode');
 
-        // Pagu per rekening diambil dari RKAS aktif (revisi terakhir) bila ada.
         $header = RkasHeader::where('school_id', $sid)->where('tahun', $tahun)
             ->where('status', '!=', 'draft')->orderByDesc('revisi_ke')->first();
         $anggaran = collect();
@@ -288,7 +299,6 @@ class PembukuanController extends Controller
                 ->mapWithKeys(fn ($x) => [$x->kode => (object) ['nama' => $x->nama, 'anggaran' => (int) $x->j]]);
         }
 
-        // Gabungkan: semua rekening yang punya anggaran ATAU realisasi.
         $rows = $anggaran->keys()->merge($realisasi->keys())->unique()->sort()->values()
             ->map(fn ($kode) => [
                 'kode' => $kode,
@@ -313,7 +323,42 @@ class PembukuanController extends Controller
             'sumRealisasi', 'sekolah', 'penandatangan'));
     }
 
-    /** Satu pintu persiapan cetak semester: par (semester, tahun, tanggal awal, akhir). */
+    /** 📄 Format BKU Resmi ke-4 ala ARKAS 4 Bab XXI: Surat Pernyataan Tanggung Jawab Mutlak (SPTJM). */
+    public function sptjm(Request $r)
+    {
+        [$semester, $tahun, $awal, $akhir] = $this->persiapanSemester($r);
+        $sid = auth()->user()->school_id;
+        $sekolah = auth()->user()->school;
+        $penandatangan = Penandatangan::orderBy('id')->get();
+        $kepsek = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'kepala'));
+        $bendahara = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'bendahara'));
+
+        $ledgerTh = KasService::ledger($sid, $tahun);
+        $saldoAwal = 0;
+        $penerimaan = 0;
+        $pengeluaran = 0;
+        foreach (KasService::ledger($sid, null)['items'] as $it) {
+            $tgl = $it['trx']->tanggal->format('Y-m-d');
+            $delta = $it['dTunai'] + $it['dBank'];
+            if ($tgl < $awal) {
+                $saldoAwal += $delta;
+            } elseif ($tgl <= $akhir) {
+                if ($delta > 0) {
+                    $penerimaan += $delta;
+                } else {
+                    $pengeluaran += -$delta;
+                }
+            }
+        }
+        $sisaKas = $saldoAwal + $penerimaan - $pengeluaran;
+        $nomorSurat = $r->query('nomor', sprintf('421/%03d/SPTJM-BOSP/%d', $semester, $tahun));
+
+        return view('pembukuan.sptjm', compact(
+            'semester', 'tahun', 'awal', 'akhir', 'sekolah', 'kepsek', 'bendahara',
+            'saldoAwal', 'penerimaan', 'pengeluaran', 'sisaKas', 'nomorSurat'
+        ));
+    }
+
     private function persiapanSemester(Request $r): array
     {
         $tahun = (int) session('tahun', now()->year);
@@ -324,7 +369,6 @@ class PembukuanController extends Controller
         return [$semester, $tahun, $awal, $akhir];
     }
 
-    /** Rentang tanggal semester (awal & akhir inklusif): 1 = Januari–Juni, 2 = Juli–Desember. */
     private function rentangSemester(int $semester, int $tahun): array
     {
         return $semester === 1
@@ -332,22 +376,126 @@ class PembukuanController extends Controller
             : [$tahun.'-07-01', $tahun.'-12-31'];
     }
 
-    /** 🔒 Tutup BKU satu bulan (ala ARKAS) — semua catatan/muhapus bulan itu terkunci. */
+    /**
+     * 🔒 Tutup BKU satu bulan (ala ARKAS 4 Bab XVII):
+     * - Bulan sebelum penerimaan dana pertama tahun berjalan dianggap otomatis selesai.
+     * - Bulan sejak penerimaan dana pertama wajib ditutup berurutan (kronologis).
+     * - Mendukung pencatatan Bunga Bank/Jasa Giro & Pajak Bunga/Biaya Admin Bank saat penutupan bulan.
+     * - Menandai status `belum_lapor_pajak` apabila masih terdapat pajak bulan itu yang belum disetor NTPN.
+     */
     public function tutupBulan(Request $r)
     {
-        $bulan = $r->validate(['bulan' => 'required|date_format:Y-m'])['bulan'];
+        $data = $r->validate([
+            'bulan' => 'required|date_format:Y-m',
+            'bunga_bank' => 'nullable|numeric|min:0',
+            'pajak_bunga' => 'nullable|numeric|min:0',
+        ]);
+        $bulan = $data['bulan'];
         $tahun = (int) substr($bulan, 0, 4);
-        $ada = KasTransaction::where('tahun', $tahun)->exists();
-        if (! $ada) {
+        $sid = auth()->user()->school_id;
+
+        $trxPertama = KasTransaction::where('tahun', $tahun)->orderBy('tanggal')->value('tanggal');
+        if (! $trxPertama) {
             return back()->with('error', 'Belum ada transaksi pada tahun itu, bulan tidak perlu ditutup.');
         }
-        BkuTutupBulan::firstOrCreate(
-            ['tahun' => $tahun, 'bulan' => $bulan],
-            ['ditutup_oleh' => auth()->user()->name]
-        ); // log tercatat otomatis via event BkuTutupBulan::created
-        $nama = Carbon::parse($bulan.'-01')->translatedFormat('F Y');
 
-        return redirect()->route('bku', ['bulan' => $bulan])->with('ok', "BKU bulan {$nama} sudah DITUTUP — seluruh transaksi bulan itu terkunci.");
+        // Validasi kronologis ala ARKAS 4: cek apakah ada bulan sebelumnya sejak bulan aktif pertama yang belum ditutup
+        $ymPertama = Carbon::parse($trxPertama)->format('Y-m');
+        if ($bulan > $ymPertama) {
+            $terkunci = BkuTutupBulan::bulanTerkunci($sid, $tahun);
+            $cursor = Carbon::parse($ymPertama.'-01');
+            $target = Carbon::parse($bulan.'-01');
+            while ($cursor->lt($target)) {
+                $ymCek = $cursor->format('Y-m');
+                if (! in_array($ymCek, $terkunci, true)) {
+                    $nmCek = $cursor->copy()->locale('id')->translatedFormat('F Y');
+
+                    return back()->with('error', "BKU wajib ditutup secara berurutan (kronologis sesuai ARKAS 4): tutup bulan {$nmCek} terlebih dahulu.");
+                }
+                $cursor->addMonth();
+            }
+        }
+
+        $bunga = max(0, (int) ($data['bunga_bank'] ?? 0));
+        $pajakBunga = max(0, (int) ($data['pajak_bunga'] ?? 0));
+        $tglAkhirBulan = Carbon::parse($bulan.'-01')->endOfMonth()->format('Y-m-d');
+        $nama = Carbon::parse($bulan.'-01')->locale('id')->translatedFormat('F Y');
+
+        if ($bunga > 0 && ! BkuTutupBulan::terkunciBulan($sid, $bulan)) {
+            $stage = Stage::where('tahun', $tahun)->where('is_open', true)->orderBy('urutan')->first();
+            $bos = BosType::firstOrCreate(['kode' => 'reguler'], ['nama' => 'BOS Reguler']);
+            $rekBunga = Rekening::firstOrCreate(
+                ['kode' => '8.1.03.01.01.0001'],
+                ['nama' => 'Pendapatan Jasa Giro / Bunga Bank BOSP', 'tipe' => 'pendapatan']
+            );
+            $trxBunga = KasTransaction::create([
+                'tahun' => $tahun,
+                'type' => 'pendapatan',
+                'no_bku' => KasService::nextNoBku($sid, $tglAkhirBulan),
+                'tanggal' => $tglAkhirBulan,
+                'bos_type_id' => $bos->id,
+                'stage_id' => $stage?->id,
+                'metode_bayar' => 'transfer',
+                'keterangan' => 'Bunga Bank / Jasa Giro '.$nama,
+                'total' => $bunga,
+                'created_by' => auth()->id(),
+            ]);
+            $trxBunga->details()->create([
+                'rekening_id' => $rekBunga->id,
+                'uraian' => $trxBunga->keterangan,
+                'nilai' => $bunga,
+            ]);
+        }
+
+        if ($pajakBunga > 0 && ! BkuTutupBulan::terkunciBulan($sid, $bulan)) {
+            $stage = Stage::where('tahun', $tahun)->where('is_open', true)->orderBy('urutan')->first();
+            $bos = BosType::firstOrCreate(['kode' => 'reguler'], ['nama' => 'BOS Reguler']);
+            $rekAdmin = Rekening::firstOrCreate(
+                ['kode' => '5.1.02.02.01.0059'],
+                ['nama' => 'Pajak Bunga / Biaya Administrasi Rekening Bank BOSP', 'tipe' => 'belanja']
+            );
+            $trxAdmin = KasTransaction::create([
+                'tahun' => $tahun,
+                'type' => 'belanja',
+                'no_bku' => KasService::nextNoBku($sid, $tglAkhirBulan),
+                'tanggal' => $tglAkhirBulan,
+                'bos_type_id' => $bos->id,
+                'stage_id' => $stage?->id,
+                'metode_bayar' => 'transfer',
+                'keterangan' => 'Pajak Bunga / Biaya Administrasi Bank '.$nama,
+                'total' => $pajakBunga,
+                'created_by' => auth()->id(),
+            ]);
+            $trxAdmin->details()->create([
+                'rekening_id' => $rekAdmin->id,
+                'uraian' => $trxAdmin->keterangan,
+                'nilai' => $pajakBunga,
+            ]);
+        }
+
+        $belumPajak = DB::table('kas_taxes as p')
+            ->join('kas_transactions as t', 'p.kas_transaction_id', '=', 't.id')
+            ->where('t.school_id', $sid)
+            ->whereRaw('substr(t.tanggal, 1, 7) = ?', [$bulan])
+            ->where('p.status', 'belum')
+            ->exists();
+
+        BkuTutupBulan::updateOrCreate(
+            ['school_id' => $sid, 'tahun' => $tahun, 'bulan' => $bulan],
+            [
+                'ditutup_oleh' => auth()->user()->name,
+                'bunga_bank' => $bunga,
+                'pajak_bunga' => $pajakBunga,
+                'belum_lapor_pajak' => $belumPajak,
+            ]
+        );
+
+        $pesan = "BKU bulan {$nama} sudah DITUTUP — seluruh transaksi bulan itu terkunci.";
+        $warn = $belumPajak
+            ? "Status BKU {$nama}: Belum Lapor Pajak — masih ada pajak bulan ini yang belum disetor NTPN-nya."
+            : null;
+
+        return redirect()->route('bku', ['bulan' => $bulan])->with('ok', $pesan)->with('warning', $warn);
     }
 
     /** 🔓 Buka kembali BKU satu bulan — khusus Kepala Sekolah. */
@@ -357,7 +505,7 @@ class PembukuanController extends Controller
             return back()->with('error', 'Hanya Kepala Sekolah yang dapat membuka kembali bulan BKU.');
         }
         $bulan = $r->validate(['bulan' => 'required|date_format:Y-m'])['bulan'];
-        BkuTutupBulan::where('tahun', (int) substr($bulan, 0, 4))->where('bulan', $bulan)->delete(); // log via event deleted
+        BkuTutupBulan::where('tahun', (int) substr($bulan, 0, 4))->where('bulan', $bulan)->delete();
 
         $nama = Carbon::parse($bulan.'-01')->translatedFormat('F Y');
 
