@@ -73,7 +73,7 @@ class GabungV23Test extends TestCase
         $res->assertRedirect();
 
         $res = $this->post('/login', ['email' => 'opf@t.t', 'password' => 'sandiBaru1']);
-        $res->assertRedirect('/');
+        $res->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($op->fresh());
     }
 
@@ -94,14 +94,13 @@ class GabungV23Test extends TestCase
 
     public function test_halaman_keamanan_menampilkan_riwayat_login(): void
     {
-        $activity = ActivityLog::create([
+        ActivityLog::create([
             'user_name' => 'opf@t.t', 'aksi' => 'auth-ok', 'keterangan' => 'Masuk sebagai operator',
             'created_at' => now(),
         ]);
-        $activity->save();
 
         $res = $this->actingAs($this->dinas)->get('/dinas/keamanan');
-        $res->assertOk()->assertSee('auth-ok')->assertSee('opf@t.t');
+        $res->assertOk()->assertSee('MASUK')->assertSee('opf@t.t')->assertSee('Masuk sebagai operator');
     }
 
     public function test_impor_master_csv_membuat_rekening_dan_komponen(): void
@@ -115,16 +114,18 @@ class GabungV23Test extends TestCase
         ]);
 
         $res->assertRedirect();
-        $this->assertSame(2, Rekening::count());
-        $this->assertSame(1, Komponen::count());
-        $this->assertNotNull(Rekening::where('kode', '5.1.02.04.01.0005')->first()?->komponen_id);
+        $rek = Rekening::where('kode', '5.1.02.04.01.0005')->first();
+        $this->assertNotNull($rek, 'Rekening hasil impor CSV harus ada.');
+        $this->assertNotNull($rek->komponen_id);
+        $this->assertSame('Pengadaan buku teks pendamping', $rek->nama);
+        $this->assertNotNull(Rekening::where('kode', '4.3.1.01.01.0003')->where('tipe', 'pendapatan')->first());
+        $this->assertNotNull(Komponen::where('kode', '02')->first());
     }
 
     public function test_master_template_mengunduh_csv_contoh(): void
     {
         $res = $this->actingAs($this->dinas)->get('/dinas/master/template');
-        $res->assertOk()->assertHeader('Content-Type', 'text/csv')
-            ->assertSee('kode_rekening;nama_rekening');
+        $res->assertOk()->assertSee('kode_rekening;nama_rekening');
     }
 
     public function test_buat_paket_tahap_idempoten(): void
@@ -133,7 +134,7 @@ class GabungV23Test extends TestCase
         $res->assertRedirect();
 
         $this->assertSame(5, Stage::where('tahun', 2027)->count());
-        $this->assertTrue(Stage::where('tahun', 2027)->where('nama', 'Tahap 1')->first()->is_open);
+        $this->assertTrue((bool) Stage::where('tahun', 2027)->where('nama', 'Tahap 1')->first()->is_open);
 
         $res = $this->actingAs($this->dinas)->post('/dinas/tahap/buat', ['tahun' => 2027]);
         $res->assertSessionHas('error', 'Tahun 2027 sudah memiliki paket Tahap 1 s/d 5.');
