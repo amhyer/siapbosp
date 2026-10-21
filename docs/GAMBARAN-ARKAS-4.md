@@ -97,7 +97,7 @@
 - **Status BKU bukanAktif (X.7)**: KK belum disahkan; dana belum diterima (tunggu konfirmasi BOS Salur);
   belakangan belum dikonfirmasi; **saldos per tahun bermasalah** (laporan tahun sebelumnya belum dikonfirmasi —
   sesuai Juknis BOSP 2023 BKU tahun berjalan baru bisa aktif setelah laporan tahun lalu selesai);
-  gangguan sinkronisasi。
+  gangguan sinkronisasi.
 - **Status laporan bulan**: `Draf` (setelah diterima dana; otomatis tersimpan lokal), `Sudah Selesai`
   (bulan-bulan sebelum penerimaan dana otomatis "tertutup"), setelah Tutup BKU: `Sudah Selesai`;
   status tambahan: **Belum Lapor Pajak** dan **Aktif - Lewat Batas Lapor** (lewat tenggat pelaporan →
@@ -279,4 +279,45 @@ sesuai panduan resmi.
   semua tautan `target=_blank rel=noopener`, artikel resmi diverifikasi hidup.
 - **Konten diperbarui 21 Okt 2026**: penekanan juknis — **minimal 50% dana tersedia untuk
   Tahap 1** & **TA 2026 dua tahap salur (Permendikdasmen No 8/2026)** pada kartu 01/Alur
-  + item checklist ke-13; stamp sumber diperiksa sinc artikel (8 Sep 2026).
+  + item checklist ke-13; stamp "Sumber diperiksa 21 Oktober 2026 (artikel resmi terakhir 8 September 2026)".
+
+## 15. Uji penuh app portabel & perapihannya (21 Okt 2026)
+
+Paket `SiapBOSP-Portable-v12.zip` diuji end-to-end (diekstrak, dipasang via
+`launcher-windows/Pasang-SiapBOSP.bat` mode `SIPBOS_*`, server bundel menyala, diklik-2x via HTTP):
+
+- **Fungsi lulus semua**: status pasang awal/akhir, pemasangan (22 migrasi, master
+  56 rekening + 5 pajak + 5 tahap, akun bendahara, `agen.conf` otomatis), login web 200,
+  **23 halaman inti 200** (termasuk PDF/XLSX LPJ dari data kosong), Node agen v24 tersedia,
+  `Sync-Pusat` memberi pesan jelas tanpa identitas, pendamping html 200.
+- **Perbaikan GUI hasil audit ini**:
+  1. **Tautan 404 di portable disembunyikan** — kartu "Opsi 0 (unduh paket/pemasang)" dan
+     tautan agen ZIP di *Impor ARKAS* tampil hanya di server pusat; di laptop portabel diganti
+     catatan "Agen sudah terbundel → pakai pintasan Tarik Data ARKAS";
+     `UnduhAplikasiController::isPortable()` + redirect ramah (bukan 404) bila dibuka langsung.
+  2. **`APP_DEBUG=false`** di template `.env.portable` (pembangun paket) — stack trace tidak
+     tampil ke operator di laptop sekolah.
+  3. **Kata sandi pemasang tersembunyi** — `Pasang-SiapBOSP.bat` memakai
+     `Read-Host -AsSecureString` (PowerShell) dengan cadangan prompt biasa.
+- **Paket dibangun ulang**: `php artisan siapbos:paket-portable` → 73.2 MB (10.570 berkas,
+  PHP 27 berkas, agen 40 berkas) dan diverifikasi ekstrak → bat-pasang → server → HTTP.
+- **Pemasang satu-berkas EXE kini dibangun dari repo** — perintah baru
+  `php artisan siapbos:pemasang-exe` (sumber: `app/Console/Commands/PemasangExe.php`):
+  - Pola SFX sederhana tanpa dependensi: `csc.exe` bawaan Windows membangun kulit EXE kecil
+    (±24 KB, ikon SiapBOSP, program ekstraksi C#), lalu payload ZIP dijahit DI BELAKANG EXE
+    ditutup trailer `[int64 panjang][magic "SIAPBOSPACK"]` → `SiapBOSP-Setup-v12.exe` 73.2 MB.
+  - Saat diklik 2x: payload diekstrak ke `%TEMP%\SiapBOSP-Setup`, `akun-sekolah.conf` di
+    sebelah EXE (unduhan "Unduh Identitas") disuntik otomatis → pasang tanpa menanya NPSN;
+    `PASANG-SIAPBOSP.bat` dijalankan; folder payload dibersihkan setelah selesai.
+  - **Bug terungkap dari uji EXE** (berlaku juga untuk alat ekstrak mana pun yang membuang
+    folder kosong): entri folder kosong ZIP (`bootstrap/cache`, `storage/framework/*`) tidak
+    dibuat → artisan gagal boot ("bootstrap/cache must be present and writable"). Diperbaiki
+    dua lapis: (a) ekstraktor C# kini membuat folder untuk entri folder; (b) `Pasang-SiapBOSP.bat`
+    menjamin folder wajib (`bootstrap\cache`, `storage\framework\{views,cache,sessions}`,
+    `storage\logs`) sebelum artisan pertama berjalan.
+  - **Uji E2E EXE lulus**: identitas di samping EXE terbaca (SD Uji EXE), instal penuh
+    (`.env`, `database.sqlite`, token `agen.conf`), exit 0, folder payload bersih,
+    server instalan menyala (HTTP 302 → login). Integritas ZIP diverifikasi utuh
+    (12.381 entri) sebelum & sesudah pembuatan EXE.
+  - Rutin pembaruan: `siapbos:paket-portable` → `siapbos:pemasang-exe` (EXE selalu memuat
+    ZIP terkini).
