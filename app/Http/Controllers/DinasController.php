@@ -670,8 +670,9 @@ class DinasController extends Controller
     public function penggunaReset(Request $r, User $user)
     {
         $data = $r->validate(['password' => 'nullable|string|min:6']);
-        $acak = empty($data['password']);
-        $sandi = $data['password'] ?: ucfirst(Str::camel(Str::random(6))).random_int(100, 999).'!';
+        $inputSandi = $data['password'] ?? null;
+        $acak = empty($inputSandi);
+        $sandi = $inputSandi ?: ucfirst(Str::camel(Str::random(6))).random_int(100, 999).'!';
         $user->update(['password' => $sandi]);
         Aktivitas::catat('pengguna', "Sandi akun {$user->email} direset Dinas");
         EmailNotif::kirim(collect([$user]), 'Kata sandi akun Anda di-reset', [

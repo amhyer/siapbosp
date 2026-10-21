@@ -1,17 +1,34 @@
 @extends('layouts.app', ['title' => 'Dashboard'])
-@section('subtitle', 'Ringkasan kas, serapan, dan aktivitas tahun ' . $tahun)
+@section('subtitle', 'Ringkasan kas, serapan, tenggat BOSP 2026, dan aktivitas tahun ' . $tahun)
 @section('content')
 <div class="page-head">
   <div>
-    <p class="page-desc">Posisi kas terakhir, status pajak, dan progres per tahap penyaluran.</p>
+    <p class="page-desc">Posisi kas terakhir, kepatuhan Permendikdasmen No. 8 Tahun 2026, status pajak, dan progres per tahap penyaluran.</p>
   </div>
   <div class="flex flex-wrap gap-2">
+    <a href="{{ route('perencanaan.index') }}" class="btn2 btn-sm">🧭 PBD → RKT</a>
     <a href="{{ route('belanja.create') }}" class="btn btn-sm">➕ Input Belanja</a>
     <a href="{{ route('laporan.tahap') }}" class="btn2 btn-sm">🖨️ LPJ per Tahap</a>
   </div>
 </div>
 
-{{-- ============ PENGINGAT TENGGAT (pajak tgl 20 · tutup BKU akhir bulan) ============ --}}
+{{-- ============ PENGINGAT TENGGAT PASAL 59 PERMENDIKDASMEN 8/2026 + PAJAK TGL 20 + TUTUP BKU ============ --}}
+@if(!empty($statusTenggat) && $statusTenggat['tahap1_terlambat'])
+<div class="card border-l-4 border-rose-600 bg-rose-50/70 flex flex-wrap items-center gap-3 text-sm">
+  <span class="text-xl">🚨</span>
+  <div class="flex-1 min-w-[16rem] leading-snug text-rose-900">
+    <b>Peringatan Pasal 59 Permendikdasmen No. 8 Tahun 2026:</b>
+    <span> {{ $statusTenggat['pesan'] }}</span>
+  </div>
+  <a href="{{ route('bku', ['bulan' => $tahun . '-06']) }}" class="btn btn-sm bg-rose-600">Tutup BKU Tahap I →</a>
+</div>
+@elseif(!empty($statusTenggat))
+<div class="card border-l-4 border-emerald-500 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+  <span>⚖️ <b>Tenggat Pelaporan BOSP (Pasal 59 Permendikdasmen No. 8/2026):</b> Tahap I maks. <b>31 Juli {{ $tahun }}</b> (potongan 2% Ags · 3% Sep · 4% 1–25 Okt) · Tahunan maks. <b>31 Januari {{ $tahun + 1 }}</b>.</span>
+  @if($statusTenggat['tahap1_tuntas'])<span class="badge bg-emerald-100 text-emerald-700">✓ BKU Tahap I Tuntas</span>@endif
+</div>
+@endif
+
 @if ($pajakBelum > 0 && now()->day >= 12 && now()->day <= 20)
 <div class="card border-l-4 border-amber-500 flex flex-wrap items-center gap-3 text-sm">
   <span class="text-xl">⏰</span>
@@ -32,6 +49,25 @@
   <a href="{{ route('bku', ['bulan' => $bkuTerbuka]) }}" class="btn btn-sm">Buka BKU →</a>
 </div>
 @endif
+
+{{-- ============ RINGKASAN KEPATUHAN KERTAS KERJA RKAS TERHADAP JUKNIS 2026 ============ --}}
+@if(!empty($ringkasanJuknis) && !empty($rkasAktif))
+<div class="card flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <div class="text-xs font-bold uppercase tracking-wider text-indigo-600">📋 Kertas Kerja Aktif · {{ $rkasAktif->labelJenis() }} (Revisi ke-{{ $rkasAktif->revisi_ke }})</div>
+    <div class="text-xs text-slate-500 mt-0.5">{{ $ringkasanJuknis['aturan']['label_aturan'] }} · Belum Dianggarkan: <b>{{ rp($ringkasanJuknis['belum_dianggarkan']) }}</b> · Tahap 1: <b>{{ $ringkasanJuknis['tahap1_pct'] }}%</b></div>
+  </div>
+  <div class="flex flex-wrap gap-2 items-center text-xs">
+    @if($ringkasanJuknis['aturan']['mode'] === 'reguler')
+      <span class="badge {{ $ringkasanJuknis['proporsi']['buku']['ok'] ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">📚 Buku {{ $ringkasanJuknis['proporsi']['buku']['pct'] }}% (min {{ $ringkasanJuknis['aturan']['buku_min_pct'] }}%)</span>
+      <span class="badge {{ $ringkasanJuknis['proporsi']['sarpras']['ok'] ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">🛠️ Sarpras {{ $ringkasanJuknis['proporsi']['sarpras']['pct'] }}% (maks {{ $ringkasanJuknis['aturan']['sarpras_max_pct'] }}%)</span>
+      <span class="badge {{ $ringkasanJuknis['proporsi']['honor']['ok'] ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">👩‍🏫 Honor {{ $ringkasanJuknis['proporsi']['honor']['pct'] }}% (maks {{ $ringkasanJuknis['aturan']['honor_max_pct'] }}%)</span>
+    @endif
+    <a href="{{ route('rkas.salinArkas', $rkasAktif) }}" class="btn2 btn-sm">📋 Salin ke ARKAS 4</a>
+  </div>
+</div>
+@endif
+
 {{-- ============ BARIS 1: KARTU UTAMA DENGAN PERSENTASE ============ --}}
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
@@ -95,8 +131,8 @@
       <div class="bg-slate-50 rounded-lg py-2"><div class="font-bold {{ $pajakBelum>0?'text-amber-600':'text-slate-400' }} text-sm">{{ rp($pajakBelum) }}</div>Belum setor</div>
     </div>
     @if($pajakBelum > 0)
-      <div class="mt-3 text-[10px] text-slate-500 leading-snug">Zona pajak ARKAS: setor & lapor <b>paling lambat tgl 20</b> bulan berikutnya — bukti lapor = NTPN.</div>
-      <a href="{{ route('setorpajak.index') }}" class="mt-1 btn w-full justify-center text-xs">➜ Segera Setor & Lapor Pajak</a>
+      <div class="mt-3 text-[10px] text-slate-500 leading-snug">Zona pajak ARKAS: setor &amp; lapor <b>paling lambat tgl 20</b> bulan berikutnya — bukti lapor = NTPN.</div>
+      <a href="{{ route('setorpajak.index') }}" class="mt-1 btn w-full justify-center text-xs">➜ Segera Setor &amp; Lapor Pajak</a>
     @endif
   </div>
 

@@ -4,32 +4,57 @@
   $terkunciBulanIni = in_array($bulan, $terkunciMap, true);
   $tglBulan = \Carbon\Carbon::parse($bulan.'-01');
   $serapan = $pagu > 0 ? min(100, round($belanjaTh / $pagu * 100)) : 0;
-  $statusWarna = ['tertutup' => 'bg-rose-100 border-rose-300 text-rose-700',
+  $statusWarna = [
+    'belum-pajak' => 'bg-amber-100 border-amber-400 text-amber-900',
+    'tertutup' => 'bg-rose-100 border-rose-300 text-rose-700',
     'selesai' => 'bg-slate-100 border-slate-300 text-slate-600',
     'draf' => 'bg-indigo-50 border-indigo-300 text-indigo-700',
     'tanpa-dana' => 'bg-emerald-50 border-emerald-200 text-emerald-600',
-    'kosong' => 'bg-white border-slate-200 text-slate-400'];
-  $statusTeks = ['tertutup' => '🔒 Tertutup', 'selesai' => 'Sudah Selesai',
-    'draf' => 'Draf BKU', 'tanpa-dana' => 'Belum Ada Dana', 'kosong' => 'Belum Aktif'];
+    'kosong' => 'bg-white border-slate-200 text-slate-400',
+  ];
+  $statusTeks = [
+    'belum-pajak' => '⚠️ Belum Lapor Pajak',
+    'tertutup' => '🔒 Sudah Selesai',
+    'selesai' => 'Sudah Selesai',
+    'draf' => 'Draf BKU',
+    'tanpa-dana' => 'Tanpa Dana (Otomatis Selesai)',
+    'kosong' => 'Belum Aktif',
+  ];
 @endphp
 <div class="flex flex-wrap justify-between items-center gap-2">
   <form class="flex gap-2 items-center text-sm">
     <span class="text-slate-500">Bulan:</span>
     <input type="month" name="bulan" value="{{ $bulan }}" class="inp !w-auto" onchange="this.form.submit()">
   </form>
-  <div class="flex gap-2">
+  <div class="flex flex-wrap gap-2 items-center">
     @unless ($terkunciBulanIni)
-    <form method="post" action="{{ route('bku.tutup') }}"
-          onsubmit="return confirm('Tutup BKU {{ $tglBulan->translatedFormat('F Y') }}? Semua catatan bulan ini akan terkunci (Kepala Sekolah yang boleh membuka kembali).')">
-      @csrf <input type="hidden" name="bulan" value="{{ $bulan }}">
-      <button class="btn bg-slate-700">🔒 Tutup BKU Bulan Ini</button>
-    </form>
+    <details class="relative">
+      <summary class="btn bg-slate-800 cursor-pointer list-none">🔒 Tutup BKU Bulan Ini</summary>
+      <form method="post" action="{{ route('bku.tutup') }}"
+            class="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl p-3.5 z-40 space-y-2.5 text-xs"
+            onsubmit="return confirm('Tutup BKU {{ $tglBulan->translatedFormat('F Y') }} secara berurutan sesuai ARKAS 4?')">
+        @csrf
+        <input type="hidden" name="bulan" value="{{ $bulan }}">
+        <div class="font-bold text-slate-800 text-sm">🔒 Tutup BKU {{ $tglBulan->translatedFormat('F Y') }}</div>
+        <p class="text-slate-500 leading-snug">Sesuai ARKAS 4 Bab XVII, BKU ditutup berurutan dari bulan penerimaan dana pertama. Masukkan Bunga Bank &amp; Pajak/Admin Bank akhir bulan (isi 0 bila nihil):</p>
+        <div>
+          <label class="font-semibold text-slate-600">Bunga Bank / Jasa Giro (Rp)</label>
+          <input type="number" min="0" value="0" name="bunga_bank" class="inp mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-600">Pajak Bunga / Biaya Admin Bank (Rp)</label>
+          <input type="number" min="0" value="0" name="pajak_bunga" class="inp mt-1">
+        </div>
+        <button class="btn w-full justify-center">Simpan &amp; Tutup BKU</button>
+      </form>
+    </details>
     @endunless
     <a href="{{ route('bku.csv') }}?bulan={{ $bulan }}" class="btn2 btn">⬇ Ekspor CSV</a>
-    <a href="{{ route('bku.cetak') }}?bulan={{ $bulan }}" target="_blank" class="btn2 btn">🖨️ Halaman Cetak</a>
+    <a href="{{ route('bku.cetak') }}?bulan={{ $bulan }}" target="_blank" class="btn2 btn">🖨️ Cetak BKU</a>
     @php $semSekarang = (int) $tglBulan->format('n') <= 6 ? 1 : 2 @endphp
-    <a href="{{ route('pembukuan.bukuPembantu', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📚 Buku Pembantu (Semester {{ $semSekarang }})</a>
-    <a href="{{ route('pembukuan.rekapRealisasi', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📊 Rekap Realisasi (Semester {{ $semSekarang }})</a>
+    <a href="{{ route('pembukuan.bukuPembantu', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📚 Buku Pembantu (Sem {{ $semSekarang }})</a>
+    <a href="{{ route('pembukuan.rekapRealisasi', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📊 Rekap Realisasi (Sem {{ $semSekarang }})</a>
+    <a href="{{ route('pembukuan.sptjm', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📄 SPTJM (Sem {{ $semSekarang }})</a>
     <a href="{{ route('laporan-arkas.kas-umum', ['bulan' => (int) $tglBulan->format('n')]) }}" target="_blank" class="btn2 btn">🔎 Detail Nota: Daftar Kas Umum</a>
   </div>
 </div>
@@ -38,7 +63,12 @@
 <div class="card !border-2 !border-rose-300 bg-rose-50 flex flex-wrap items-center justify-between gap-2">
   <div>
     <div class="font-bold text-rose-800">🔒 BKU {{ $tglBulan->translatedFormat('F Y') }} — TERTUTUP</div>
-    <div class="text-xs text-rose-700">Semua pencatatan, pengubahan, dan penghapusan transaksi bulan ini terkunci — sama seperti BKU bulanan ARKAS.</div>
+    <div class="text-xs text-rose-700">
+      Semua pencatatan, pengubahan, dan penghapusan transaksi bulan ini terkunci — sama seperti BKU bulanan ARKAS 4.
+      @if(!empty($infoTutup) && ($infoTutup->bunga_bank > 0 || $infoTutup->pajak_bunga > 0))
+        (Bunga Bank: <b>{{ rp($infoTutup->bunga_bank) }}</b> · Pajak/Admin Bank: <b>{{ rp($infoTutup->pajak_bunga) }}</b>)
+      @endif
+    </div>
   </div>
   @if ($bisaBuka)
   <form method="post" action="{{ route('bku.buka') }}">
@@ -95,14 +125,13 @@
 
 {{-- Grid 12 bulan ala ARKAS: status BKU tiap bulan --}}
 <div class="card">
-  <div class="font-semibold text-slate-700 mb-2 text-sm">🗓️ Status BKU per Bulan {{ $tahun }} <span class="text-xs text-slate-400 font-normal">— klik bulan untuk membukanya</span></div>
+  <div class="font-semibold text-slate-700 mb-2 text-sm">🗓️ Status BKU per Bulan {{ $tahun }} <span class="text-xs text-slate-400 font-normal">— wajib ditutup berurutan dari bulan penerimaan dana pertama</span></div>
   <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
     @foreach ($bulanGrid as $b)
     <a href="{{ route('bku', ['bulan' => $b['ym']]) }}"
-       class="border-2 rounded-lg p-2 text-center block hover:shadow transition {{ $statusWarna[$b['status']] }} @if($b['now']) ring-2 ring-indigo-400 @endif"
-       @if ($b['status'] === 'tertutup') title="BKU bulan ini sudah ditutup" @endif>
+       class="border-2 rounded-lg p-2 text-center block hover:shadow transition {{ $statusWarna[$b['status']] ?? 'bg-white' }} @if($b['now']) ring-2 ring-indigo-400 @endif">
       <div class="text-xs font-semibold">{{ $b['nama'] }}{{ $b['now'] ? ' • bulan ini' : '' }}</div>
-      <div class="text-[10px] mt-0.5">{{ $statusTeks[$b['status']] }}</div>
+      <div class="text-[10px] mt-0.5">{{ $statusTeks[$b['status']] ?? $b['status'] }}</div>
       @if ($b['n'])
       <div class="text-[10px] mt-0.5 opacity-80">↑{{ rp($b['masuk']) }} ↓{{ rp($b['keluar']) }}</div>
       @endif

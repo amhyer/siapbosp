@@ -304,6 +304,44 @@ class ArkasImportService
 
     // ==================== RAPBS → RKAS ====================
 
+    /**
+     * Revisi anggaran aktif terbaru per sumber dana.
+     *
+     * ARKAS menyimpan beberapa revisi RKAS per tahun (tiap revisi punya pagu
+     * penuh). Hanya revisi TERAKHIR yang dipakai — kalau semua dijumlahkan,
+     * pagu ikut terduplikasi (terbukti: 3 revisi × Rp342,9 jt = Rp905,5 jt).
+     *
+     * @return array<int,array{id_anggaran:string,nama:string,jumlah:int}> kunci id_ref_sumber_dana
+     */
+    protected static function anggaranTerpilih($wb, int $tahun): array
+    {
+        try {
+            $aggs = self::sheetAssoc($wb, 'Anggaran');
+        } catch (\RuntimeException) {
+            return [];
+        }
+        $aktif = array_values(array_filter($aggs, fn ($a) => (int) ($a['tahun_anggaran'] ?? 0) === $tahun
+            && (string) ($a['soft_delete'] ?? '') !== '1' && (string) ($a['is_aktif'] ?? '') === '1'));
+        if (! $aktif) {
+            return [];
+        }
+        usort($aktif, fn ($a, $b) => strcmp((string) ($a['last_update'] ?? ''), (string) ($b['last_update'] ?? '')));
+        $perSumber = [];
+        foreach ($aktif as $a) {
+            $perSumber[(int) ($a['id_ref_sumber_dana'] ?? 0)] = $a;
+        }
+        $terpilih = [];
+        foreach ($perSumber as $sumberId => $a) {
+            $terpilih[$sumberId] = [
+                'id_anggaran' => trim((string) ($a['id_anggaran'] ?? '')),
+                'nama' => (string) ($a['sumber_dana'] ?? 'BOS Reguler') ?: 'BOS Reguler',
+                'jumlah' => (int) ($a['jumlah'] ?? 0),
+            ];
+        }
+
+        return $terpilih;
+    }
+
     protected static function imporRkas($wb, School $sekolah, int $userId, int $tahun, array $rekeningMap, array &$lap, array $rapbsKeg = [], array $volTahap = []): void
     {
         try {
@@ -315,6 +353,25 @@ class ArkasImportService
             return;
         }
         $rows = array_values(array_filter($rows, fn ($r) => (int) ($r['tahun_anggaran'] ?? 0) === $tahun && (string) ($r['soft_delete'] ?? '') !== '1'));
+
+        // Hanya revisi RKAS terbaru per sumber dana yang diimpor.
+        $terpilih = self::anggaranTerpilih($wb, $tahun);
+        if ($terpilih) {
+            $idAktif = array_column($terpilih, 'id_anggaran');
+            $idAktif = array_filter($idAktif, fn ($v) => $v !== '');
+            if ($idAktif) {
+                $sebelum = count($rows);
+                $rows = array_values(array_filter($rows, function ($r) use ($idAktif) {
+                    $id = trim((string) ($r['id_anggaran'] ?? ''));
+
+                    return $id === '' || in_array($id, $idAktif, true);
+                }));
+                $selisih = $sebelum - count($rows);
+                if ($selisih > 0) {
+                    $lap['alasan_lewat'][] = 'RKAS: '.$selisih.' baris dari revisi lama diabaikan — dipakai revisi terbaru per sumber dana.';
+                }
+            }
+        }
 
         $header = RkasHeader::withoutGlobalScope('school')
             ->where('school_id', $sekolah->id)->where('tahun', $tahun)
@@ -357,6 +414,19 @@ class ArkasImportService
                     'sumber_dana' => (string) ($r['sumber_dana'] ?? 'BOS Reguler') ?: 'BOS Reguler']
             );
             $lap[$d->wasRecentlyCreated ? 'dibuat' : 'diperbarui']['rkas']++;
+        }
+
+        // Bersihkan baris dari revisi lama (hanya pada header draf impor).
+        // Tanpa ini pagu & anggaran terduplikasi (3 revisi ARKAS = 3× pagu).
+        if ($rows) {
+            $tersimpan = RkasDetail::where('rkas_header_id', $header->id)
+                ->whereNotNull('arkas_id')->where('arkas_id', 'like', 'rapbs:%')->pluck('arkas_id')->all();
+            $dipakai = array_map(fn ($r) => 'rapbs:'.($r['id_rapbs'] ?? ''), $rows);
+            $basi = array_values(array_diff($tersimpan, $dipakai));
+            if ($basi) {
+                RkasDetail::where('rkas_header_id', $header->id)->whereIn('arkas_id', $basi)->delete();
+                $lap['alasan_lewat'][] = 'RKAS: '.count($basi).' baris dari revisi lama dihapus dari draf (revisi terbaru ARKAS yang dipakai).';
+            }
         }
     }
 
@@ -426,25 +496,16 @@ class ArkasImportService
         } catch (\RuntimeException) {
         }
 
-        // Pagu dari Anggaran (aktif, revisi terakhir per sumber). Hanya isi yang
+        // Pagu dari Anggaran (revisi aktif terbaru per sumber). Hanya isi yang
         // belum ada — pagu Dinas tak ditimpa; selisih dilaporkan.
         try {
-            $aggs = array_values(array_filter(
-                self::sheetAssoc($wb, 'Anggaran'),
-                fn ($a) => (int) ($a['tahun_anggaran'] ?? 0) === $tahun
-                    && (string) ($a['soft_delete'] ?? '') !== '1' && (string) ($a['is_aktif'] ?? '') === '1'
-            ));
-            usort($aggs, fn ($a, $b) => strcmp((string) ($a['last_update'] ?? ''), (string) ($b['last_update'] ?? '')));
-            $perSumber = [];
-            foreach ($aggs as $a) {
-                $perSumber[(int) ($a['id_ref_sumber_dana'] ?? 0)] = $a;
-            }
+            $perSumber = self::anggaranTerpilih($wb, $tahun);
             foreach ($perSumber as $sumberId => $a) {
                 $kodeBos = self::SUMBER_MAP[$sumberId] ?? null;
                 if (! $kodeBos || ! isset($bosMap[$kodeBos])) {
                     continue;
                 }
-                $nilai = (int) ($a['jumlah'] ?? 0);
+                $nilai = (int) $a['jumlah'];
                 $eksis = Allocation::where('school_id', $sekolah->id)
                     ->where('tahun', $tahun)->where('bos_type_id', $bosMap[$kodeBos])
                     ->whereNull('stage_id')->first();

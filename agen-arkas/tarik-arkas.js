@@ -67,6 +67,7 @@ function bangunExcel(db, tahun) {
     baris.forEach((r) => s.addRow(r));
   };
   isi('Sekolah', q('SELECT * FROM mst_sekolah'));
+  isi('Anggaran', q(`SELECT a.*, (SELECT nama_sumber_dana FROM ref_sumber_dana s WHERE s.id_ref_sumber_dana = a.id_ref_sumber_dana) AS sumber_dana FROM anggaran a WHERE a.tahun_anggaran = ${tahun} LIMIT 5000`));
   isi('RAPBS', q(`SELECT r.*, a.tahun_anggaran, (SELECT nama_sumber_dana FROM ref_sumber_dana s WHERE s.id_ref_sumber_dana = a.id_ref_sumber_dana) AS sumber_dana FROM rapbs r LEFT JOIN anggaran a ON a.id_anggaran = r.id_anggaran WHERE a.tahun_anggaran = ${tahun} ORDER BY r.kode_rekening LIMIT 20000`));
   isi('KAS_Umum', q(Q_KAS(tahun)));
   isi('Nota', q('SELECT * FROM kas_umum_nota LIMIT 10000'));

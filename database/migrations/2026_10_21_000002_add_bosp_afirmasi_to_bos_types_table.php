@@ -15,7 +15,7 @@ return new class extends Migration
     {
         foreach ([
             'afirmasi' => 'BOSP Afirmasi',
-            'lainnya' => 'Lainnya (Banpem/Dana Lain)',
+            'lainnya' => 'Sumber Dana Lainnya',
         ] as $kode => $nama) {
             BosType::firstOrCreate(['kode' => $kode], ['nama' => $nama]);
         }

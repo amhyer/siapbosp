@@ -2,7 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\{Rekening, RekeningPajak, School, Stage, User};
+use App\Console\Commands\PasangLokal;
+use App\Models\Rekening;
+use App\Models\RekeningPajak;
+use App\Models\School;
+use App\Models\Stage;
+use App\Models\User;
 use App\Support\KonfigLokal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -85,8 +90,8 @@ class PasangLokalTest extends TestCase
         $this->assertSame($s->id, $u->school_id);
         $this->assertTrue(Hash::check('rahasia123', $u->password));
 
-        $this->assertSame(56, Rekening::count());
-        $this->assertSame(5, RekeningPajak::count());
+        $this->assertSame(59, Rekening::count());
+        $this->assertSame(6, RekeningPajak::count());
         $this->assertSame(5, Stage::where('tahun', 2026)->count());
 
         $conf = KonfigLokal::baca($this->dir.DIRECTORY_SEPARATOR.'agen.conf');
@@ -106,7 +111,7 @@ class PasangLokalTest extends TestCase
 
         $this->assertSame(1, School::where('npsn', '90000001')->count());
         $this->assertSame(1, User::where('email', 'bendahara@uji.lokal')->count());
-        $this->assertSame(56, Rekening::count());
+        $this->assertSame(59, Rekening::count());
         $this->assertSame(30, Stage::count());
         $this->assertNotSame($token1, $conf2['TOKEN']);
         $this->assertSame(
@@ -149,7 +154,7 @@ class PasangLokalTest extends TestCase
             'database.connections.sqlite.database' => 'database/database.sqlite',
         ]);
 
-        $cmd = new \App\Console\Commands\PasangLokal();
+        $cmd = new PasangLokal;
         $metode = new \ReflectionMethod($cmd, 'pathDatabase');
         $metode->setAccessible(true);
 

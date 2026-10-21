@@ -34,7 +34,7 @@ class SpjPermendikdasmen15Test extends TestCase
 
         $this->sekolah = School::create([
             'npsn' => '90000007', 'nama' => 'SD Negeri Uji SPJ', 'jenjang' => 'SD',
-            'sifat' => 'negeri', 'kecamatan' => 'Mamajang', 'kab_kota' => 'Kota Makassar',
+            'status_sekolah' => 'negeri', 'kecamatan' => 'Mamajang', 'kab_kota' => 'Kota Makassar',
         ]);
         $this->operator = User::create([
             'name' => 'Operator SPJ', 'email' => 'spj@tes.test', 'password' => 'password',

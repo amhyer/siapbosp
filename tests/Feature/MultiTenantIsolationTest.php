@@ -21,11 +21,17 @@ class MultiTenantIsolationTest extends TestCase
     use RefreshDatabase;
 
     private School $sekolahA;
+
     private School $sekolahB;
+
     private User $operatorA;
+
     private User $operatorB;
+
     private User $dinas;
+
     private KasTransaction $trx;
+
     private KasTransaction $trxB;
 
     protected function setUp(): void
@@ -94,6 +100,7 @@ class MultiTenantIsolationTest extends TestCase
 
         $this->assertSame($this->sekolahA->id, (int) $baru->school_id);
         // 2 transaksi bawaan setUp + 1 transaksi baru = 3.
+        $this->assertSame(2, KasTransaction::count());
         $this->assertSame(3, KasTransaction::withoutGlobalScope('school')->count());
     }
 
@@ -117,7 +124,7 @@ class MultiTenantIsolationTest extends TestCase
     {
         // Route binding memakai global scope → transaksi sekolah B 404 untuk operator A.
         $this->actingAs($this->operatorA)
-            ->get('/pengeluaran/belanja/' . $this->trxB->id)
+            ->get('/pengeluaran/belanja/'.$this->trxB->id)
             ->assertStatus(404);
 
         $this->actingAs($this->operatorA);
@@ -129,7 +136,7 @@ class MultiTenantIsolationTest extends TestCase
     {
         $this->actingAs($this->operatorA);
 
-        $response = $this->get('/pembukuan/bku.csv?bulan=' . now()->format('Y-m'));
+        $response = $this->get('/pembukuan/bku.csv?bulan='.now()->format('Y-m'));
         $response->assertStatus(200);
 
         $isi = $response->streamedContent();

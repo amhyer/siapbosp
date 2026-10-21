@@ -8,6 +8,7 @@ use App\Models\BkuTutupBulan;
 use App\Models\KasTransaction;
 use App\Models\RkasHeader;
 use App\Models\Stage;
+use App\Services\JuknisBosp2026Service;
 use App\Services\KasService;
 use Illuminate\Support\Facades\DB;
 
@@ -18,13 +19,13 @@ class DashboardController extends Controller
         $u = auth()->user();
         $tahun = (int) session('tahun', now()->year);
         $sid = $u->school_id;
+        $sekolah = $u->school;
 
         // === Kas & anggaran ===
         $saldo = KasService::saldo($sid, $tahun);
         $pagu = (int) Allocation::where('tahun', $tahun)->sum('nilai');
         $pendapatan = (int) KasTransaction::where('tahun', $tahun)->where('type', 'pendapatan')->sum('total');
         $belanja = (int) KasTransaction::where('tahun', $tahun)->where('type', 'belanja')->sum('total');
-        // Rentang tanggal (bukan to_char) agar portable antar driver (pgsql, sqlite, mysql).
         $bulanIni = (int) KasTransaction::where('tahun', $tahun)->where('type', 'belanja')
             ->where('tanggal', '>=', now()->format('Y-m').'-01')
             ->where('tanggal', '<', now()->modify('first day of next month')->format('Y-m-d'))->sum('total');
@@ -71,7 +72,7 @@ class DashboardController extends Controller
         }
         $maxBulan = max(1, max($perBulan));
 
-        // === Serapan per komponen (anggaran vs realisasi) untuk grafik interaktif ===
+        // === Serapan per komponen (anggaran vs realisasi) ===
         $realKomponen = DB::table('kas_details as d')
             ->join('kas_transactions as t', 'd.kas_transaction_id', '=', 't.id')
             ->leftJoin('rekenings as r', 'd.rekening_id', '=', 'r.id')
@@ -80,7 +81,8 @@ class DashboardController extends Controller
             ->selectRaw("coalesce(k.nama, '(tanpa komponen)') nama, sum(d.nilai) j")
             ->groupBy(DB::raw("coalesce(k.nama, '(tanpa komponen)')"))->pluck('j', 'nama');
         $rkasAktif = RkasHeader::where('school_id', $sid)->where('tahun', $tahun)
-            ->where('status', '!=', 'draft')->orderByDesc('revisi_ke')->first();
+            ->where('status', '!=', 'draft')->orderByDesc('revisi_ke')->first()
+            ?? RkasHeader::where('school_id', $sid)->where('tahun', $tahun)->orderByDesc('revisi_ke')->first();
         $anggKomponen = $rkasAktif ? DB::table('rkas_details as rd')
             ->leftJoin('rekenings as r', 'rd.rekening_id', '=', 'r.id')
             ->leftJoin('komponens as k', 'r.komponen_id', '=', 'k.id')
@@ -94,16 +96,21 @@ class DashboardController extends Controller
         $terbaru = KasTransaction::where('tahun', $tahun)->orderByDesc('tanggal')->orderByDesc('id')->take(7)->get();
         $pengumuman = Announcement::latest()->take(3)->get();
 
-        // === Pengingat tenggat: pajak (tgl 20) & tutup BKU (akhir bulan) ===
+        // === Pengingat tenggat BKU, Permendikdasmen No. 8 Tahun 2026 Pasal 59, & Kepatuhan Proporsi RKAS ===
         $bulannyaAda = DB::table('kas_transactions')->where('school_id', $sid)->where('tahun', $tahun)
             ->pluck('tanggal')->map(fn ($t) => substr((string) $t, 0, 7))->unique()->sort()->values();
         $kunci = BkuTutupBulan::bulanTerkunci($sid, $tahun);
         $bkuTerbuka = $bulannyaAda->first(fn ($m) => ! in_array($m, $kunci));
 
+        $statusTenggat = JuknisBosp2026Service::statusTenggatPelaporan($sid, $tahun);
+        $ringkasanJuknis = ($rkasAktif && $sekolah)
+            ? JuknisBosp2026Service::reviewKertasKerja($rkasAktif, $sekolah)
+            : null;
+
         return view('dashboard', compact(
             'saldo', 'pagu', 'pendapatan', 'belanja', 'bulanIni', 'serapan', 'diterimaPct', 'tunaiPct', 'bankPct',
             'pajakTerima', 'pajakSudah', 'pajakBelum', 'pajakPct', 'topRekening', 'perTahap', 'perBulan', 'maxBulan',
-            'terbaru', 'pengumuman', 'tahun', 'serapanKomponen', 'bkuTerbuka'
+            'terbaru', 'pengumuman', 'tahun', 'serapanKomponen', 'bkuTerbuka', 'statusTenggat', 'ringkasanJuknis', 'rkasAktif'
         ));
     }
 }
