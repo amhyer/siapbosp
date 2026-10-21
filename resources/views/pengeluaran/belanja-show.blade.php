@@ -1,7 +1,7 @@
 @extends('layouts.app', ['title' => 'Detail Belanja #' . $t->no_bku])
 @section('content')
 <div class="mb-3 flex gap-2">
-  <a href="{{ route('belanja.kwitansi', $t) }}" class="btn2 btn text-sm">🧾 Cetak Kwitansi</a>
+  <a href="{{ route('belanja.kwitansi', $t) }}" data-cetak="Kwitansi" class="btn2 btn text-sm">🧾 Cetak Kwitansi</a>
   <a href="{{ route('belanja.spj', $t) }}" class="btn2 btn text-sm">🗂️ Paket Dokumen SPJ</a>
   <a href="{{ route('belanja.index') }}" class="btn2 btn text-sm">← Daftar Belanja</a>
 </div>

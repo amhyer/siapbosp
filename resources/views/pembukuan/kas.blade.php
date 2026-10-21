@@ -1,8 +1,8 @@
 @extends('layouts.app', ['title' => 'Kas Tunai & Kas Bank'])
 @section('content')
 <div class="flex gap-2 flex-wrap">
-  <a href="{{ route('pembukuan.register', ['jenis' => 'tunai']) }}" class="btn2 btn text-sm">🖨️ Register Kas Tunai</a>
-  <a href="{{ route('pembukuan.register', ['jenis' => 'bank']) }}" class="btn2 btn text-sm">🖨️ Register Kas Bank</a>
+  <a href="{{ route('pembukuan.register', ['jenis' => 'tunai']) }}" data-cetak="Register Kas Tunai" class="btn2 btn text-sm">🖨️ Register Kas Tunai</a>
+  <a href="{{ route('pembukuan.register', ['jenis' => 'bank']) }}" data-cetak="Register Kas Bank" class="btn2 btn text-sm">🖨️ Register Kas Bank</a>
   @if(($saldo['saldoAwalTahun'] ?? 0) > 0)
   <span class="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg px-3 py-2">ℹ️ Saldo awal dibawa dari tahun lalu (SILPA): <b>{{ rp($saldo['saldoAwalTahun']) }}</b></span>
   @endif

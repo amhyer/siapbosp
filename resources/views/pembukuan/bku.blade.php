@@ -50,11 +50,11 @@
     </details>
     @endunless
     <a href="{{ route('bku.csv') }}?bulan={{ $bulan }}" class="btn2 btn">⬇ Ekspor CSV</a>
-    <a href="{{ route('bku.cetak') }}?bulan={{ $bulan }}" target="_blank" class="btn2 btn">🖨️ Cetak BKU</a>
+    <a href="{{ route('bku.cetak') }}?bulan={{ $bulan }}" data-cetak="Cetak BKU" class="btn2 btn">🖨️ Cetak BKU</a>
     @php $semSekarang = (int) $tglBulan->format('n') <= 6 ? 1 : 2 @endphp
-    <a href="{{ route('pembukuan.bukuPembantu', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📚 Buku Pembantu (Sem {{ $semSekarang }})</a>
-    <a href="{{ route('pembukuan.rekapRealisasi', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📊 Rekap Realisasi (Sem {{ $semSekarang }})</a>
-    <a href="{{ route('pembukuan.sptjm', ['semester' => $semSekarang]) }}" target="_blank" class="btn2 btn">📄 SPTJM (Sem {{ $semSekarang }})</a>
+    <a href="{{ route('pembukuan.bukuPembantu', ['semester' => $semSekarang]) }}" data-cetak="Buku Pembantu" class="btn2 btn">📚 Buku Pembantu (Sem {{ $semSekarang }})</a>
+    <a href="{{ route('pembukuan.rekapRealisasi', ['semester' => $semSekarang]) }}" data-cetak="Rekap Realisasi" class="btn2 btn">📊 Rekap Realisasi (Sem {{ $semSekarang }})</a>
+    <a href="{{ route('pembukuan.sptjm', ['semester' => $semSekarang]) }}" data-cetak="SPTJM" class="btn2 btn">📄 SPTJM (Sem {{ $semSekarang }})</a>
     <a href="{{ route('laporan-arkas.kas-umum', ['bulan' => (int) $tglBulan->format('n')]) }}" target="_blank" class="btn2 btn">🔎 Detail Nota: Daftar Kas Umum</a>
   </div>
 </div>

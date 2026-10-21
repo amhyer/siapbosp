@@ -49,7 +49,7 @@
   </div>
 
   <div class="flex flex-wrap gap-2">
-    <a href="{{ route('laporan-arkas.penutupan-kas-cetak') }}?bulan={{ $tahun.'-'.str_pad($bulan,2,'0',STR_PAD_LEFT) }}" target="_blank" class="btn2 btn">🖨️ Cetak Register + Berita Acara</a>
+    <a href="{{ route('laporan-arkas.penutupan-kas-cetak') }}?bulan={{ $tahun.'-'.str_pad($bulan,2,'0',STR_PAD_LEFT) }}" data-cetak="Register & Berita Acara" class="btn2 btn">🖨️ Cetak Register + Berita Acara</a>
   </div>
 </div>
 @endsection
