@@ -12,6 +12,16 @@ REM    Hapus-SiapBOSP.bat --senyap
 REM ============================================================
 setlocal EnableDelayedExpansion
 
+REM --- jalankan dari salinan di %TEMP% agar folder aplikasi bisa dihapus utuh
+REM     tanpa memutus pembacaan skrip ini oleh cmd ---
+if not defined SIPBOS_HAPUS_SALINAN (
+  copy /y "%~f0" "%TEMP%\SiapBOSP-Hapus.cmd" >nul 2>nul
+  if exist "%TEMP%\SiapBOSP-Hapus.cmd" (
+    set "SIPBOS_HAPUS_SALINAN=1"
+    cmd /c ""%TEMP%\SiapBOSP-Hapus.cmd" %*" & set "KODE=!errorlevel!" & del /q "%TEMP%\SiapBOSP-Hapus.cmd" >nul 2>nul & exit /b !KODE!
+  )
+)
+
 set "DEST=%LocalAppData%\Programs\SiapBOSP"
 if defined SIPBOS_DEST set "DEST=!SIPBOS_DEST!"
 set "SENYAP="
@@ -53,12 +63,12 @@ powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { (
 REM --- cadangkan data bila diminta ---
 set "CAP="
 if defined BACKUP (
-  echo  Mencadangkan data (database + lampiran)...
+  echo  Mencadangkan data - database + lampiran...
   set "TUJUAN_CADANGAN=%USERPROFILE%\Documents"
   if defined SIPBOS_BACKUP set "TUJUAN_CADANGAN=!SIPBOS_BACKUP!"
   for /f %%a in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd-HHmmss"') do set "STAMP=%%a"
   set "CAP=!TUJUAN_CADANGAN!\SiapBOSP-Backup-!STAMP!.zip"
-  powershell -NoProfile -Command "try { $p=@(); if (Test-Path -LiteralPath '!DEST!\database') { $p += Join-Path '!DEST!' 'database' }; if (Test-Path -LiteralPath '!DEST!\storage\app') { $p += Join-Path '!DEST!' 'storage\app' }; if (Test-Path -LiteralPath '!DEST!\.env') { $p += Join-Path '!DEST!' '.env' }; if ($p.Count -eq 0) { Write-Output 'TIDAK-ADA-DATA'; exit 0 }; if (-not (Test-Path -LiteralPath '!TUJUAN_CADANGAN!')) { New-Item -ItemType Directory -Path '!TUJUAN_CADANGAN!' -Force | Out-Null }; Compress-Archive -Path $p -DestinationPath '!CAP!' -Force; exit 0 } catch { Write-Output ('CADANGAN-GAGAL: ' + $_.Exception.Message); exit 1 }"
+  powershell -NoProfile -Command "try { $p=@(); if (Test-Path -LiteralPath '!DEST!\database') { $p += Join-Path '!DEST!' 'database' }; if (Test-Path -LiteralPath '!DEST!\storage') { $p += Join-Path '!DEST!' 'storage' }; if (Test-Path -LiteralPath '!DEST!\.env') { $p += Join-Path '!DEST!' '.env' }; if ($p.Count -eq 0) { Write-Output 'TIDAK-ADA-DATA'; exit 0 }; if (-not (Test-Path -LiteralPath '!TUJUAN_CADANGAN!')) { New-Item -ItemType Directory -Path '!TUJUAN_CADANGAN!' -Force | Out-Null }; Compress-Archive -Path $p -DestinationPath '!CAP!' -Force; exit 0 } catch { Write-Output ('CADANGAN-GAGAL: ' + $_.Exception.Message); exit 1 }"
   if errorlevel 1 (
     set "CAP="
     echo.
@@ -84,7 +94,7 @@ if not defined SIPBOS_DEST (
     powershell -NoProfile -Command "Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'SiapBOSP.lnk') -Force -ErrorAction SilentlyContinue; Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Tarik Data ARKAS - SiapBOSP.lnk') -Force -ErrorAction SilentlyContinue; Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Sinkron ke Pusat - SiapBOSP.lnk') -Force -ErrorAction SilentlyContinue; Remove-Item (Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'Microsoft\Windows\Start Menu\Programs\SiapBOSP') -Recurse -Force -ErrorAction SilentlyContinue"
   )
 ) else (
-  echo  (mode uji: pintasan nyata tidak disentuh)
+  echo  [mode uji] pintasan nyata tidak disentuh
 )
 
 REM --- hapus entri "Aplikasi & fitur" + log pemasangan ---
@@ -94,20 +104,14 @@ if not defined SIPBOS_DEST (
 )
 
 REM --- hapus folder aplikasi ---
-if exist "!DEST!" rmdir /s /q "!DEST!" 2>nul
-if exist "!DEST!" (
-  echo  Sebagian berkas masih terkunci - menunggu 3 detik lalu mencoba lagi...
-  powershell -NoProfile -Command "Start-Sleep -Seconds 3" >nul 2>nul
-  rmdir /s /q "!DEST!" 2>nul
-)
-
+REM     Dijalankan oleh proses PowerShell terpisah 2 detik setelah skrip ini
+REM     selesai, supaya cmd tidak kehilangan berkas skripnya sendiri saat folder
+REM     (termasuk berkas .bat ini) dihapus. Helper mencoba ulang sampai 10 kali
+REM     dan menampilkan pesan bila masih ada berkas yang terkunci.
 echo.
-if exist "!DEST!" (
-  echo  [CATATAN] Sebagian berkas belum terhapus - kemungkinan masih terbuka.
-  echo  Tutup semua jendela SiapBOSP lalu jalankan lagi Hapus-SiapBOSP.bat.
-) else (
-  echo  Selesai. SiapBOSP sudah dihapus dari laptop ini.
-)
+echo  Menghapus folder aplikasi...
+start "" /b powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; for ($i = 0; $i -lt 10; $i++) { if (-not (Test-Path -LiteralPath '!DEST!')) { break }; try { Remove-Item -LiteralPath '!DEST!' -Recurse -Force -ErrorAction Stop } catch { Start-Sleep -Seconds 1 } }; if ((-not $env:SIPBOS_DEST) -and (Test-Path -LiteralPath '!DEST!')) { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Sebagian berkas SiapBOSP tidak bisa dihapus. Tutup semua jendela aplikasi, lalu jalankan lagi Hapus-SiapBOSP.bat.', 'Hapus SiapBOSP', 'OK', 'Warning') }"
+echo  Selesai. SiapBOSP akan dihapus dari laptop ini dalam beberapa detik.
 if defined CAP if exist "!CAP!" echo  Cadangan data Anda: !CAP!
 if not defined SENYAP pause
-endlocal
+exit /b 0

@@ -242,6 +242,8 @@ bentrok nomornya, dan progres ARKAS di §1–§12 tetap utuh:
 | Notifikasi email | `EmailNotif` + antrean `KirimEmailNotif` — RKAS masuk/disahkan/perlu revisi, LPJ masuk/diterima/ditolak, tahap dibuka/ditutup, paket tahap baru, pengumuman, reset sandi. **Tidak pernah mengganggu alur utama** (queue/sync + try-catch); mode `log` tercatat di laravel.log; kartu 📧 + tombol kiriman email uji di Dashboard Dinas | ✅ |
 | Tanda tangan basah digital | `penandatangans.ttd_path` + `TtdGambar` (PNG dirapikan, disimpan privat) — otomatis tercetak di **LPJ cetak/PDF, RKAS PDF**, unggah/hapus di 📝 Penandatangan | ✅ |
 | LPJ Kumulatif (cakupan Tahap 1–N) | tombol **🔁 Mode Kumulatif** di LPJ & Tutup Buku per Tahap: kas, BKU, rekap & pajak berlaku kumulatif dengan label "Kumulatif Tahap 1–N" + saldo awal tahun (SILPA) — berlaku juga di PDF/Excel 4-sheet | ✅ |
+| Buat paket tahap tahun baru | tombol **🗓️ Buat Paket Tahun** di Kontrol Tahap: **jumlah tahap fleksibel 2–5 (default 5)** — ikut aturan juknis TA 2026 *dua tahap salur* (Permendikdasmen No 8/2026); idempoten + notifikasi sekolah | ✅ |
+| Cek juknis 50% Tahap 1 | 💡 kartu **Cek juknis 50%** di Kontrol Tahap: belanja tercatat tahap pertama vs pagu aktif per sekolah (✓ ≥50% / ⚠ <50% / pagu belum ada) — pengingat bantu, bukan blokir | ✅ |
 | Laporan Pajak Triwulan | 🧾 **Kertas Kerja Pajak Triwulan** (`/laporan/pajak-triwulan`): matriks dipungut (kode billing) vs disetor (NTPN) per jenis pajak per bulan + sisa kewajiban; unduh CSV | ✅ |
 | Buat paket tahap tahun baru | tombol **🗓️ Buat Paket Tahun** di Kontrol Tahap: idempoten membuat Tahap 1–5 (Tahap 1 langsung terbuka) + notifikasi semua sekolah | ✅ |
 
@@ -250,9 +252,15 @@ Catatan teknis penggabungan:
   "Realisasi vs RKAS" native milik v23 **tidak dipulihkan** — fungsinya telah disatukan ke
   **Realisasi Anggaran (ARKAS)** (lihat §11 baris "Realisasi satu pintu").
 - **Migrasi baru**: `2026_10_20_000001_add_is_active_to_users` & `000002_add_ttd_path_to_penandatangans`.
-- **Pengujian**: `tests/Feature/GabungV23Test.php` — 12 test (kelola akun, nonaktif login,
-  reset sandi, keamanan, impor master CSV, template, paket tahap idempoten, pajak triwulan
-  halaman+CSV, unggah/hapus TTD, email uji). Suite penuh **108 lulus, 2 gagal bawaan** §11.
+- **Pengujian**: `tests/Feature/GabungV23Test.php` — 14 test (kelola akun, nonaktif login,
+  reset sandi, keamanan, impor master CSV **+ render halaman Master**, template, paket tahap
+  idempoten **(jumlah fleksibel 2–5)**, **kartu cek juknis 50%**, halaman+CSV pajak triwulan,
+  unggah/hapus TTD, email uji, **tinjau LPJ halaman Dinas**). Suite penuh **110 lulus, 2 gagal bawaan** §11.
+- **QA smoke semua halaman (21 Okt 2026)**: 79 rute GET dikunjungi via hasil kunjungan
+  terotentikasi (guest, operator sekolah, dinas) — **79/79 status 200/302 tanpa 500**.
+  Dua bug hasil merge tertangkap & diperbaiki: relasi `Komponen::rekenings()` hilang
+  (halaman Master 500) dan `lpjShow` yang belum meneruskan `kumulatif`/`cakupan`
+  (tinjau LPJ Dinas 500 §13-gabung view `lpj-cetak`).
 
 ## 14. Aset pendamping: ARKAS4-Pendamping-Sekolah.html
 

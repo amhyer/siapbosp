@@ -264,7 +264,7 @@ internal static class Bootstrap
 
         ProcessStartInfo info = new ProcessStartInfo();
         info.FileName = "cmd.exe";
-        info.Arguments = "/d /s /c \"\"PASANG-SIAPBOSP.bat\" >> \"" + LogPath + "\" 2>&1\"";
+        info.Arguments = "/d /s /c \"\"PASANG-SIAPBOSP.bat\" < NUL >> \"" + LogPath + "\" 2>&1\"";
         info.WorkingDirectory = Dest;
         info.UseShellExecute = false;
         info.CreateNoWindow = true;
@@ -276,18 +276,29 @@ internal static class Bootstrap
         info.EnvironmentVariables["SIPBOS_BUKA"] = "N";
 
         Process proc = Process.Start(info);
+        DateTime batas = DateTime.UtcNow.AddMinutes(20);
         if (denganTail)
         {
             while (!proc.WaitForExit(200))
             {
                 BuntutiLog(ref offset);
+                if (DateTime.UtcNow > batas)
+                {
+                    Hentikan(proc);
+                    return -2;
+                }
             }
             proc.WaitForExit();
             BuntutiLog(ref offset);
         }
         else
         {
-            proc.WaitForExit();
+            int sisa = (int)Math.Max(1000, (batas - DateTime.UtcNow).TotalMilliseconds);
+            if (!proc.WaitForExit(sisa))
+            {
+                Hentikan(proc);
+                return -2;
+            }
             try
             {
                 using (FileStream fs = new FileStream(LogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
@@ -307,6 +318,21 @@ internal static class Bootstrap
         }
 
         return proc.ExitCode;
+    }
+
+    private static void Hentikan(Process proc)
+    {
+        Catat("[GAGAL] Pemasangan melebihi batas waktu (20 menit) - proses dihentikan.");
+        try
+        {
+            ProcessStartInfo pi = new ProcessStartInfo("taskkill.exe", "/pid " + proc.Id + " /t /f");
+            pi.UseShellExecute = false;
+            pi.CreateNoWindow = true;
+            Process.Start(pi).WaitForExit(10000);
+        }
+        catch
+        {
+        }
     }
 
     private static void BuntutiLog(ref long offset)

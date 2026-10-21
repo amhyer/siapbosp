@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ActivityLog;
 use App\Models\Komponen;
+use App\Models\LpjSubmission;
 use App\Models\Penandatangan;
 use App\Models\Rekening;
 use App\Models\School;
@@ -120,6 +121,12 @@ class GabungV23Test extends TestCase
         $this->assertSame('Pengadaan buku teks pendamping', $rek->nama);
         $this->assertNotNull(Rekening::where('kode', '4.3.1.01.01.0003')->where('tipe', 'pendapatan')->first());
         $this->assertNotNull(Komponen::where('kode', '02')->first());
+
+        // halaman master harus merender relasi komponen↔rekening tanpa error
+        $this->actingAs($this->dinas)->get('/dinas/master')
+            ->assertOk()
+            ->assertSee('Rekening Belanja')
+            ->assertSee('Pengembangan Perpustakaan');
     }
 
     public function test_master_template_mengunduh_csv_contoh(): void
@@ -137,7 +144,37 @@ class GabungV23Test extends TestCase
         $this->assertTrue((bool) Stage::where('tahun', 2027)->where('nama', 'Tahap 1')->first()->is_open);
 
         $res = $this->actingAs($this->dinas)->post('/dinas/tahap/buat', ['tahun' => 2027]);
-        $res->assertSessionHas('error', 'Tahun 2027 sudah memiliki paket Tahap 1 s/d 5.');
+        $res->assertSessionHas('error', 'Tidak ada tahap baru yang dibuat — tahun 2027 sudah memiliki paket Tahap 1 s/d 5.');
+
+        // Jumlah tahap fleksibel (TA 2026 = dua tahap salur)
+        $this->actingAs($this->dinas)->post('/dinas/tahap/buat', ['tahun' => 2028, 'jumlah' => 2]);
+        $this->assertSame(2, Stage::where('tahun', 2028)->count());
+        $this->assertTrue((bool) Stage::where('tahun', 2028)->where('nama', 'Tahap 2')->first()->is_open === false);
+    }
+
+    public function test_kontrol_tahap_punya_kartu_cek_juknis(): void
+    {
+        Stage::create(['tahun' => 2026, 'nama' => 'Tahap 1', 'urutan' => 1, 'is_open' => true]);
+
+        $res = $this->actingAs($this->dinas)->get('/dinas/tahap');
+        $res->assertOk()
+            ->assertSee('Cek juknis 50%')
+            ->assertSee('SMP F')
+            ->assertSee('pagu belum ada');
+    }
+
+    public function test_dinas_bisa_meninjau_halaman_lpj_sekolah(): void
+    {
+        $stage = Stage::create(['tahun' => 2027, 'nama' => 'Tahap 1', 'urutan' => 1, 'is_open' => true]);
+        $sub = LpjSubmission::withoutGlobalScopes()->create([
+            'school_id' => $this->sekolah->id, 'stage_id' => $stage->id, 'tahun' => 2027,
+            'status' => 'dikirim', 'dikirim_oleh' => 'Op F',
+        ]);
+
+        $res = $this->actingAs($this->dinas)->get("/dinas/lpj/{$sub->id}");
+        $res->assertOk()
+            ->assertSee('Tahap 1')
+            ->assertSee('Kembali ke LPJ Masuk');
     }
 
     public function test_halaman_pajak_triwulan_dan_csv_terbuka(): void

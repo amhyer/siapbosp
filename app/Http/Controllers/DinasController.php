@@ -198,8 +198,25 @@ class DinasController extends Controller
     public function tahap()
     {
         $tahun = $this->tahun();
+        $tahap1 = Stage::where('tahun', $tahun)->orderBy('urutan')->first();
+        $cekJuknis = collect();
+        if ($tahap1) {
+            $sekolahs = School::orderBy('nama')->get();
+            foreach ($sekolahs as $s) {
+                $ring = RingkasanService::sekolah($s, $tahun);
+                $pagu = (int) $ring->pagu;
+                $belanja1 = (int) KasTransaction::withoutGlobalScope('school')
+                    ->where('school_id', $s->id)->where('tahun', $tahun)
+                    ->where('stage_id', $tahap1->id)->where('type', 'belanja')->sum('total');
+                $cekJuknis[] = (object) [
+                    'sekolah' => $s, 'pagu' => $pagu, 'belanja1' => $belanja1,
+                    'persen' => $pagu > 0 ? (int) round($belanja1 / $pagu * 100) : null,
+                ];
+            }
+        }
 
-        return view('dinas.tahap', ['stages' => Stage::where('tahun', $tahun)->orderBy('urutan')->get(), 'tahun' => $tahun]);
+        return view('dinas.tahap', ['stages' => Stage::where('tahun', $tahun)->orderBy('urutan')->get(),
+            'tahun' => $tahun, 'tahap1' => $tahap1, 'cekJuknis' => $cekJuknis]);
     }
 
     public function tahapToggle(Stage $stage)
@@ -315,7 +332,7 @@ class DinasController extends Controller
     public function lpjShow(LpjSubmission $sub)
     {
         [$stages, $stage, $items, $bkuRows, $saldoAwal, $totalMasuk, $totalKeluar,
-            $totalBelanja, $rekapRekening, $rekapPajak, $tahun] =
+            $totalBelanja, $rekapRekening, $rekapPajak, $tahun, $kumulatif, $cakupan] =
             LpjService::data($sub->school_id, $sub->tahun, $sub->stage_id);
         $sekolah = $sub->school;
         $penandatangan = Penandatangan::withoutGlobalScope('school')
@@ -324,7 +341,7 @@ class DinasController extends Controller
 
         return view('laporan.lpj-cetak', compact('stages', 'stage', 'items', 'bkuRows', 'saldoAwal',
             'totalMasuk', 'totalKeluar', 'totalBelanja', 'rekapRekening', 'rekapPajak',
-            'tahun', 'sekolah', 'penandatangan', 'review'));
+            'tahun', 'sekolah', 'penandatangan', 'review', 'kumulatif', 'cakupan'));
     }
 
     /** Dinas mengunduh LPJ sekolah sebagai PDF arsip. */
@@ -572,12 +589,17 @@ class DinasController extends Controller
         return back()->with('ok', 'Pengumuman dihapus.');
     }
 
-    /** Buat paket 5 tahap untuk tahun yang dipilih (idempoten — tahap yang sudah ada tidak digandakan). */
+    /** Buat paket tahap untuk tahun yang dipilih — jumlah fleksibel 2–5 (default 5; TA 2026 juknis memakai dua tahap salur), idempoten — tahap yang sudah ada tidak digandakan. */
     public function tahapBuat(Request $r)
     {
-        $th = (int) $r->validate(['tahun' => 'required|integer|min:2020|max:'.(now()->year + 3)])['tahun'];
+        $data = $r->validate([
+            'tahun' => 'required|integer|min:2020|max:'.(now()->year + 3),
+            'jumlah' => 'nullable|integer|min:2|max:5',
+        ]);
+        $th = (int) $data['tahun'];
+        $jumlah = max(2, min(5, (int) ($data['jumlah'] ?? 5)));
         $dibuat = 0;
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= $jumlah; $i++) {
             $ada = Stage::where('tahun', $th)->where('nama', "Tahap $i")->exists();
             if ($ada) {
                 continue;
@@ -586,7 +608,7 @@ class DinasController extends Controller
             $dibuat++;
         }
         if ($dibuat === 0) {
-            return back()->with('error', "Tahun {$th} sudah memiliki paket Tahap 1 s/d 5.");
+            return back()->with('error', "Tidak ada tahap baru yang dibuat — tahun {$th} sudah memiliki paket Tahap 1 s/d {$jumlah}.");
         }
         session(['tahun' => $th]);
         Aktivitas::catat('tahap', "Paket tahap tahun {$th} dibuat ({$dibuat} tahap)");
