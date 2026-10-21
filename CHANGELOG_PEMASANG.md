@@ -24,7 +24,7 @@
    - Dialog **Ya/Tidak/Batal**: Ya = cadangkan dulu, Tidak = hapus semua, Batal = urungkan.
    - Cadangan: `Documents\SiapBOSP-Backup-<yyyyMMdd-HHmmss>.zip` berisi `database\`, `storage\app\`, `.env` (mode `--senyap` mencadangkan otomatis; `SIPBOS_BACKUP` bisa menimpa folder tujuan untuk uji).
    - Menutup aplikasi yang masih berjalan (php.exe/cmd.exe milik folder ini, tidak menutup proses lain).
-   - Membersihkan pintasan Desktop + Start Menu, entri registri, log, lalu folder aplikasi (retry bila berkas terkunci).
+   - Membersihkan pintasan Desktop + Start Menu, entri registri, dan log; skrip menyalin dirinya ke `%TEMP%` lebih dulu agar folder aplikasi bisa dihapus utuh, lalu penghapusan folder dijadwalkan lewat proses terpisah (coba ulang hingga 10 kali + pesan bila masih terkunci).
 7. **Perbaikan penting saat uji** — `JalankanBat` kini menjalankan `PASANG-SIAPBOSP.bat` dengan **`< NUL`** (semua `pause`/`set /p` tidak pernah menggantung di konsol tersembunyi) + **batas waktu 20 menit** (taskkill `/t /f` bila lewat, lapor kode −2).
 8. **Unduhan per akun di website** (sudah ada sebelumnya, dicatat di sini karena changelog utama berganti):
    - `/unduh-pemasang` → EXE generik; `/unduh-identitas` → `akun-sekolah.conf` (token API baru tiap unduh, token lama nonaktif); `/unduh-aplikasi` (ZIP ber-identitas) tetap ada.
