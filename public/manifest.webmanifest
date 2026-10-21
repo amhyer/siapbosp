@@ -1,0 +1,16 @@
+{
+  "name": "SiapBOSP — Akuntansi Dana BOSP",
+  "short_name": "SiapBOSP",
+  "description": "Sistem Akuntansi Dana BOSP multi sekolah: perencanaan, pembukuan, dan pelaporan.",
+  "lang": "id",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon", "purpose": "any" }
+  ]
+}
