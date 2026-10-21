@@ -39,5 +39,6 @@
 </head>
 <body>
 @yield('content')
+@include('layouts._cetak-preview')
 </body>
 </html>

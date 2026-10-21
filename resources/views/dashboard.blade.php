@@ -8,7 +8,7 @@
   <div class="flex flex-wrap gap-2">
     <a href="{{ route('perencanaan.index') }}" class="btn2 btn-sm">🧭 PBD → RKT</a>
     <a href="{{ route('belanja.create') }}" class="btn btn-sm">➕ Input Belanja</a>
-    <a href="{{ route('laporan.tahap') }}" class="btn2 btn-sm">🖨️ LPJ per Tahap</a>
+    <a href="{{ route('laporan.tahap') }}" data-cetak="LPJ per Tahap" class="btn2 btn-sm">🖨️ LPJ per Tahap</a>
   </div>
 </div>
 

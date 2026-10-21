@@ -166,12 +166,20 @@ Paket `SiapBOSP-Portable-v12.zip` diuji end-to-end (diekstrak, dipasang via
 Tombol cetak di dalam aplikasi **tak lagi membuka tab HTML** — halaman cetak dimuat di iframe
 tersembunyi lalu **dialog cetak browser langsung dibuka** (pengguna tetap di halaman asalnya):
 
-- Helper global `window.siapbosCetakPreview(url)` di `layouts/app.blade.php` + penangkap klik
-  pada elemen `a[data-cetak]` (fallback: buka tab baru bila iframe gagal).
-- Tombol yang jadi preview: **Buku Pembantu (Semester)**, **Rekap Realisasi (Semester)**,
-  **SPTJM**, **Cetak BKU** (halaman BKU), **Cetak Register + Berita Acara** (Penutupan Kas),
-  **Register Kas Tunai/Bank**, dan **Kwitansi**.
+- Helper global `window.siapbosCetakPreview(url)` (partial `layouts/_cetak-preview.blade.php`,
+  dimuat di **layouts app & print**) + penangkap klik pada elemen `a[data-cetak]`
+  (fallback: buka tab baru bila iframe gagal).
+- **Audit seluruh halaman cetak** — 10 view `layouts.print` diperiksa; tombol ber-intent cetak
+  diubah jadi preview:
+  - Halaman BKU: **Cetak BKU**, **Buku Pembantu (Semester)**, **Rekap Realisasi (Semester)**, **SPTJM**
+  - Dashboard: **LPJ per Tahap**
+  - Kas Tunai/Bank: **Register Kas Tunai**, **Register Kas Bank**
+  - Belanja: **Kwitansi**
+  - Penutupan Kas: **Cetak Register + Berita Acara**
+  - Halaman LPJ per Tahap: **LPJ Lengkap** (tombol di dalam halaman cetak)
 - **Pengecualian:** halaman **SPJ** tetap dibuka sebagai halaman biasa karena isiannya
-  (76 field *contenteditable*) harus diklik & diisi pengguna — tak bisa disembunyikan di iframe.
-- Pengujian: `PreviewCetakTest` (3) — memastikan atribut `data-cetak` ada, helper termuat, dan
-  halaman cetak tetap dapat diakses langsung (mis. untuk skenario bookmark/print manual).
+  (78 field *contenteditable*) harus diklik & diisi pengguna — tak bisa disembunyikan di iframe.
+- Link `target="_blank"` yang tersisa memang navigasi, bukan cetak: halaman Pending ARKAS 4
+  (alat bantu HTML mandiri) dan **Detail Nota: Daftar Kas Umum** (halaman data aplikasi).
+- Pengujian: `PreviewCetakTest` (5) — atribut `data-cetak`, helper termuat di kedua layout,
+  dan halaman cetak tetap dapat diakses langsung (mis. untuk bookmark/print manual).

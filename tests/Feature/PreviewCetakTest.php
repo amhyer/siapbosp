@@ -63,4 +63,24 @@ class PreviewCetakTest extends TestCase
             ->assertOk()
             ->assertSee('BUKU PEMBANTU RINCIAN OBJEK BELANJA');
     }
+
+    public function test_dashboard_memakai_preview_untuk_lpj_per_tahap(): void
+    {
+        $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-cetak="LPJ per Tahap"', $html);
+    }
+
+    /** Halaman cetak (layouts.print) juga memuat helper preview —
+     *  supaya tombol di dalamnya (mis. "LPJ Lengkap") jadi preview, bukan
+     *  membuka tab HTML baru. */
+    public function test_layout_cetak_memuat_helper_preview(): void
+    {
+        $html = $this->withSession(['tahun' => 2025])
+            ->get('/pembukuan/buku-pembantu?semester=2')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('siapbosCetakPreview', $html);
+    }
 }

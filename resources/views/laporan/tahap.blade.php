@@ -8,7 +8,7 @@
     </select>
   </form>
   <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
-  <a href="{{ route('laporan.lpj', ['stage' => $stageId]) }}" style="background:#eef2ff;border-color:#c7d2fe">📦 LPJ Lengkap</a>
+  <a href="{{ route('laporan.lpj', ['stage' => $stageId]) }}" data-cetak="LPJ Lengkap" style="background:#eef2ff;border-color:#c7d2fe">📦 LPJ Lengkap</a>
   <a href="{{ route('laporan.lpj.zip', ['stage' => $stageId]) }}" style="background:#ecfdf5;border-color:#6ee7b7">⬇️ Paket ZIP</a>
   <a href="{{ route('laporan.lpj.pdf', ['stage' => $stageId]) }}" style="background:#fef2f2;border-color:#fca5a5;font-weight:700">📕 PDF Asli</a>
   <a href="{{ route('laporan.lpj.xlsx', ['stage' => $stageId]) }}" style="background:#f0fdf4;border-color:#86efac;font-weight:700">📗 Excel 4 Sheet</a>
