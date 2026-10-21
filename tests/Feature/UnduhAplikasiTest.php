@@ -20,9 +20,8 @@ class UnduhAplikasiTest extends TestCase
 
     private User $operator;
 
-    private string $induk;
-
-    private ?string $cadangan = null;
+    /** Folder semu untuk artefak paket — test tidak pernah menyentuh berkas build asli. */
+    private string $dirPaket;
 
     protected function setUp(): void
     {
@@ -36,26 +35,23 @@ class UnduhAplikasiTest extends TestCase
             'role' => 'operator', 'school_id' => $this->sekolah->id,
             'api_token' => hash('sha256', 'token-lama'),
         ]);
-        $this->induk = storage_path('app/paket/SiapBOSP-Portable-v12.zip');
-        // Amankan artefak asli bila ada (jangan hapus hasil build sungguhan).
-        if (is_file($this->induk)) {
-            $this->cadangan = $this->induk.'.cadangan-test';
-            @unlink($this->cadangan);
-            rename($this->induk, $this->cadangan);
-        }
-        @mkdir(dirname($this->induk), 0777, true);
-        $zip = new ZipArchive();
-        $zip->open($this->induk, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $this->dirPaket = sys_get_temp_dir().'/siapbosp-paket-uji-'.uniqid();
+        mkdir($this->dirPaket, 0777, true);
+        config(['siapbos.paket_dir' => $this->dirPaket]);
+
+        $zip = new ZipArchive;
+        $zip->open($this->dirPaket.'/SiapBOSP-Portable-v12.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE);
         $zip->addFromString('SiapBOSP/launcher-windows/server.conf', "SERVER_URL=http://127.0.0.1:8000\n");
         $zip->close();
     }
 
     protected function tearDown(): void
     {
-        @unlink($this->induk);
-        if ($this->cadangan && is_file($this->cadangan)) {
-            rename($this->cadangan, $this->induk);
+        foreach ((array) glob($this->dirPaket.'/*') as $f) {
+            @unlink($f);
         }
+        @rmdir($this->dirPaket);
         parent::tearDown();
     }
 
@@ -67,7 +63,7 @@ class UnduhAplikasiTest extends TestCase
 
         $tmp = tempnam(sys_get_temp_dir(), 'uji').'.zip';
         file_put_contents($tmp, $res->streamedContent());
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $this->assertTrue($zip->open($tmp));
         $conf = $zip->getFromName('SiapBOSP/launcher-windows/akun-sekolah.conf');
         $this->assertStringContainsString('NPSN=90000001', $conf);
@@ -83,7 +79,7 @@ class UnduhAplikasiTest extends TestCase
 
     public function test_tanpa_berkas_induk_404(): void
     {
-        @unlink($this->induk);
+        @unlink($this->dirPaket.'/SiapBOSP-Portable-v12.zip');
         $this->actingAs($this->operator)->get('/unduh-aplikasi')->assertNotFound();
     }
 
@@ -113,14 +109,7 @@ class UnduhAplikasiTest extends TestCase
 
     public function test_unduh_pemasang_menyajikan_exe_dan_404_tanpa_berkas(): void
     {
-        $exe = storage_path('app/paket/SiapBOSP-Setup-v12.exe');
-        $cadangan = null;
-        if (is_file($exe)) {
-            $cadangan = $exe.'.cadangan-test';
-            @unlink($cadangan);
-            rename($exe, $cadangan);
-        }
-        @mkdir(dirname($exe), 0777, true);
+        $exe = $this->dirPaket.'/SiapBOSP-Setup-v12.exe';
 
         try {
             file_put_contents($exe, 'ISI-EXE-UJIAN');
@@ -133,9 +122,6 @@ class UnduhAplikasiTest extends TestCase
             $this->actingAs($this->operator)->get('/unduh-pemasang')->assertNotFound();
         } finally {
             @unlink($exe);
-            if ($cadangan && is_file($cadangan)) {
-                rename($cadangan, $exe);
-            }
         }
     }
 }

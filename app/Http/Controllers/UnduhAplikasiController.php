@@ -30,13 +30,24 @@ class UnduhAplikasiController extends Controller
         return is_file(base_path('php/php.exe'));
     }
 
+    /**
+     * Folder artefak paket unduhan.
+     *
+     * Bisa dialihkan lewat `config('siapbos.paket_dir')` — dipakai pengujian
+     * agar memakai folder semu sendiri dan tidak menyentuh berkas build asli.
+     */
+    protected function dirPaket(): string
+    {
+        return config('siapbos.paket_dir', storage_path('app/paket'));
+    }
+
     public function unduh()
     {
         $u = auth()->user();
         if (! $u->school_id) {
             return back()->with('error', 'Akun Anda tidak terikat ke sekolah mana pun.');
         }
-        $induk = storage_path('app/paket/'.self::BERKAS_INDUK);
+        $induk = $this->dirPaket().'/'.self::BERKAS_INDUK;
         if (! is_file($induk)) {
             if (self::isPortable()) {
                 return back()->with('error', 'Anda memakai aplikasi portabel di laptop ini — paket pemasangan tidak ikut di dalamnya. Unduh paket dari website pusat SiapBOSP bila akan memasang di laptop lain.');
@@ -72,7 +83,7 @@ class UnduhAplikasiController extends Controller
         if (! $u->school_id) {
             return back()->with('error', 'Akun Anda tidak terikat ke sekolah mana pun.');
         }
-        $exe = storage_path('app/paket/'.self::BERKAS_PEMASANG);
+        $exe = $this->dirPaket().'/'.self::BERKAS_PEMASANG;
         if (! is_file($exe)) {
             if (self::isPortable()) {
                 return back()->with('error', 'Anda memakai aplikasi portabel di laptop ini — pemasang EXE tidak ikut di dalamnya. Unduh pemasang dari website pusat SiapBOSP bila akan memasang di laptop lain.');
