@@ -24,6 +24,12 @@ class UnduhAplikasiController extends Controller
 
     public const BERKAS_PEMASANG = 'SiapBOSP-Setup-v12.exe';
 
+    /** Laptop ini menjalankan aplikasi portabel (folder "php" bundel ikut pemasangan) — unduhan paket disembunyikan/dipandu ulang. */
+    public static function isPortable(): bool
+    {
+        return is_file(base_path('php/php.exe'));
+    }
+
     public function unduh()
     {
         $u = auth()->user();
@@ -31,7 +37,12 @@ class UnduhAplikasiController extends Controller
             return back()->with('error', 'Akun Anda tidak terikat ke sekolah mana pun.');
         }
         $induk = storage_path('app/paket/'.self::BERKAS_INDUK);
-        abort_unless(is_file($induk), 404, 'Paket aplikasi belum tersedia di server. Hubungi Dinas.');
+        if (! is_file($induk)) {
+            if (self::isPortable()) {
+                return back()->with('error', 'Anda memakai aplikasi portabel di laptop ini — paket pemasangan tidak ikut di dalamnya. Unduh paket dari website pusat SiapBOSP bila akan memasang di laptop lain.');
+            }
+            abort(404, 'Paket aplikasi belum tersedia di server. Hubungi Dinas.');
+        }
 
         $sekolah = $u->school;
         $conf = $this->identitas($u, $this->rotasiToken($u));
@@ -62,7 +73,12 @@ class UnduhAplikasiController extends Controller
             return back()->with('error', 'Akun Anda tidak terikat ke sekolah mana pun.');
         }
         $exe = storage_path('app/paket/'.self::BERKAS_PEMASANG);
-        abort_unless(is_file($exe), 404, 'Pemasang EXE belum tersedia di server — pakai cara ZIP dulu. Hubungi Dinas.');
+        if (! is_file($exe)) {
+            if (self::isPortable()) {
+                return back()->with('error', 'Anda memakai aplikasi portabel di laptop ini — pemasang EXE tidak ikut di dalamnya. Unduh pemasang dari website pusat SiapBOSP bila akan memasang di laptop lain.');
+            }
+            abort(404, 'Pemasang EXE belum tersedia di server — pakai cara ZIP dulu. Hubungi Dinas.');
+        }
 
         return response()->download($exe, self::BERKAS_PEMASANG);
     }

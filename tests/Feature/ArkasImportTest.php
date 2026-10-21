@@ -172,7 +172,10 @@ class ArkasImportTest extends TestCase
 
     public function test_halaman_impor_bisa_dibuka_operator(): void
     {
-        $this->actingAs($this->operatorA)->get('/impor-arkas')->assertStatus(200);
+        $res = $this->actingAs($this->operatorA)->get('/impor-arkas');
+        $res->assertStatus(200)
+            // Di lingkungan non-portabel, unduhan paket harus tampil (laptop portabel menyembunyikannya sendiri).
+            ->assertSee('Cara lama (ZIP)');
     }
 
     public function test_tombol_unduh_agen_mengembalikan_zip(): void

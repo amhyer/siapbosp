@@ -71,7 +71,16 @@ set "EMAIL=!SIPBOS_EMAIL!"
 if "!EMAIL!"=="" set /p "EMAIL=Email untuk login   [!NPSN!@siapbosp.lokal]: "
 if "!EMAIL!"=="" set "EMAIL=!NPSN!@siapbosp.lokal"
 set "SANDI=!SIPBOS_SANDI!"
-if "!SANDI!"=="" set /p "SANDI=Kata sandi min 6    : "
+if "!SANDI!"=="" (
+  REM Kata sandi diselipkan (tidak terlihat saat mengetik) lewat Read-Host tersembunyi; hasil ditulis ke berkas sementara lalu dihapus.
+  powershell -NoProfile -Command "$k=Read-Host 'Kata sandi min 6' -AsSecureString; $b=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($k); $s=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); [IO.File]::WriteAllText((Join-Path $env:TEMP 'siapbosp-sandi.txt'), $s)" >nul 2>nul
+  if exist "%TEMP%\siapbosp-sandi.txt" (
+    set /p "SANDI=" <"%TEMP%\siapbosp-sandi.txt"
+    del /q "%TEMP%\siapbosp-sandi.txt" >nul 2>nul
+  )
+  REM Cadangan bila mekanisme tersembunyi gagal: prompt biasa.
+  if "!SANDI!"=="" set /p "SANDI=Kata sandi tidak tersembunyi, ketik di sini min 6 : "
+)
 if "!SANDI!"=="" (
   echo  [GAGAL] Kata sandi wajib diisi.
   pause

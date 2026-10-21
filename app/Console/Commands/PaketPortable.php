@@ -313,7 +313,7 @@ class PaketPortable extends Command
 APP_NAME=SiapBOSP
 APP_ENV=local
 APP_KEY=
-APP_DEBUG=true
+APP_DEBUG=false
 APP_URL=http://127.0.0.1:8000
 APP_TIMEZONE=Asia/Makassar
 LOG_CHANNEL=single

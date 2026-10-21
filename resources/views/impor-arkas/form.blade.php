@@ -1,6 +1,10 @@
 @extends('layouts.app', ['title' => 'Impor ARKAS'])
 @section('subtitle', 'Tarik data dari laptop ARKAS — sekali klik, atau unggah manual')
 @section('content')
+@php
+    $portabel = \App\Http\Controllers\UnduhAplikasiController::isPortable();
+@endphp
+@if(! $portabel)
 <div class="card max-w-2xl border-emerald-200 !bg-emerald-50/50">
   <h3 class="card-title mb-1">💻 Opsi 0 — Aplikasi SiapBOSP di laptop (baru)</h3>
   <p class="page-desc mb-2">Pasang SiapBOSP di <b>laptop bendahara</b> — sudah berisi PHP & agen ARKAS (tak perlu install apa pun). Dua cara:</p>
@@ -12,9 +16,13 @@
   <p class="text-[13px] text-slate-600 mb-2"><b>Cara lama (ZIP):</b> <a class="underline" href="{{ route('unduh-aplikasi') }}">⬇️ Unduh SiapBOSP Portable</a> → ekstrak → klik <code class="font-mono">PASANG-SIAPBOSP.bat</code> sekali.</p>
   <p class="text-[12px] text-amber-700">⚠️ Unduhan <b>Identitas</b> (dan ZIP) membuat <b>token API baru</b> — token lama (termasuk di agen TarikArkas) otomatis nonaktif. Pakai berkas hasil unduhan yang paling baru.</p>
 </div>
+@endif
 <div class="card max-w-2xl border-indigo-200 !bg-indigo-50/50">
   <h3 class="card-title mb-1">🚀 Opsi 1 — Agen satu-klik (disarankan)</h3>
   <p class="page-desc mb-3">Unduh aplikasi kecil, jalankan di <b>laptop yang ada ARKAS-nya</b> — data langsung terkirim ke SiapBOSP tanpa ekspor manual.</p>
+  @if($portabel)
+  <p class="text-[13px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2 mb-2">🖥️ <b>Agen Tarik ARKAS sudah terbundel di laptop ini</b> — cukup pakai pintasan <b>“Tarik Data ARKAS - SiapBOSP”</b> di Desktop (tutup aplikasi ARKAS dulu, boleh diulang kapan saja).</p>
+  @else
   <div class="flex flex-wrap gap-2 mb-3">
     <a href="{{ route('impor-arkas.unduhGui') }}" class="btn">⬇️ Unduh Aplikasi TarikArkas (±44 MB)</a>
     <a href="{{ route('impor-arkas.unduh') }}" class="btn2 btn-sm">versi teks (BAT)</a>
@@ -24,6 +32,7 @@
     <li>Ekstrak ZIP di laptop ARKAS, tutup aplikasi ARKAS.</li>
     <li>Klik 2x <code class="font-mono">TarikArkas-GUI.exe</code> → isi server + token + tahun → Tes Koneksi → Kirim. Agen memeriksa token milik NPSN yang sama dengan ARKAS laptop ini.</li>
   </ol>
+  @endif
 </div>
 <div class="card max-w-2xl">
   <h3 class="card-title mb-1">📤 Opsi 2 — Unggah Excel manual</h3>
