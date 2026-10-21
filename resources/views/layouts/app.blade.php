@@ -39,8 +39,10 @@
 {{-- Definisi grup menu sekolah (label, rute, status aktif) --}}
 @php
   $menuSekolah = [
-    ['label'=>'📝 Perencanaan','open'=>request()->is('rkas*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>[
-      ['RKAS-BOSP', route('rkas.index'), request()->is('rkas*')],
+    ['label'=>'📝 Perencanaan','open'=>request()->is('perencanaan*')||request()->is('rkas*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>[
+      ['🧭 PBD → RKM → RKT', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
+      ['🏷️ Standar Harga (SSH/SBU)', route('perencanaan.ssh'), request()->routeIs('perencanaan.ssh*')],
+      ['RKAS-BOSP (Kertas Kerja)', route('rkas.index'), request()->is('rkas*')],
       ['⬆️ Impor ARKAS', route('impor-arkas.form'), request()->is('impor-arkas*')],
       ['🗺️ HPP Pemetaan', route('hpp.index'), request()->is('hpp*')],
     ]],
@@ -54,8 +56,9 @@
       ['Setor Pajak / Utang', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
     ]],
     ['label'=>'📒 Pembukuan','open'=>request()->is('pembukuan*')||request()->is('rekonsiliasi*'),'items'=>[
-      ['BKU', route('bku'), request()->routeIs('bku')],
+      ['BKU Bulanan', route('bku'), request()->routeIs('bku')],
       ['Kas Tunai & Bank', route('kas'), request()->routeIs('kas')],
+      ['📄 SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
       ['🔍 Rekonsiliasi ARKAS', route('rekonsiliasi.form'), request()->is('rekonsiliasi*')],
     ]],
     ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*'),'items'=>[
@@ -92,7 +95,7 @@
         <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl shadow-sm">🎓</span>
         <span>
           <span class="block text-[17px] font-bold leading-tight text-white">SiapBOSP</span>
-          <span class="block text-[11px] leading-tight text-slate-400">Akuntansi Dana BOSP Sekolah</span>
+          <span class="block text-[11px] leading-tight text-slate-400">Akuntansi Dana BOSP · ARKAS 4</span>
         </span>
       </a>
       <button type="button" class="rounded-lg p-1.5 text-xl text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" onclick="toggleSidebar(false)" aria-label="Tutup menu">✕</button>
@@ -229,7 +232,7 @@
         @yield('content')
       </div>
       <footer class="nonprint mt-8 border-t border-slate-200 pt-4 pb-2 text-center text-[11px] text-slate-400">
-        SiapBOSP · Sistem Akuntansi Dana BOSP · Tahun Anggaran {{ $tahunAktif }} · Zona WITA
+        SiapBOSP · Sistem Akuntansi Dana BOSP · Selaras ARKAS 4 v4.3.0 &amp; Permendikdasmen No. 8 Tahun 2026 · TA {{ $tahunAktif }}
       </footer>
     </main>
   </div>

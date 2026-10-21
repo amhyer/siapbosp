@@ -1,13 +1,20 @@
 <?php
+
 namespace Database\Seeders;
 
+use App\Models\BosType;
+use App\Models\Komponen;
+use App\Models\Rekening;
+use App\Models\RekeningPajak;
+use App\Models\Stage;
+use App\Models\StandarHarga;
 use Illuminate\Database\Seeder;
-use App\Models\{BosType, Komponen, Rekening, RekeningPajak, Stage};
 
 /**
  * Master referensi idempoten (aman dijalankan berulang):
- * jenis BOS, komponen, rekening (termasuk 44 kode ARKAS 2025),
- * jenis pajak, dan tahap 2023–2028.
+ * jenis BOSP lengkap ARKAS 4 v4.3.0 (Reguler, Kinerja, SiLPA Kinerja, Afirmasi, BOSDA, Lainnya),
+ * 12 komponen penggunaan BOSP, rekening ARKAS, jenis pajak nasional & daerah (SSPD),
+ * standar harga referensi (SSH/SBU), dan tahap 2023–2028.
  *
  * Dipakai DatabaseSeeder (pusat/demo) DAN pemasangan lokal
  * (siapbos:pasang-lokal) — satu sumber data.
@@ -19,8 +26,11 @@ class MasterSeeder extends Seeder
         foreach ([
             'reguler' => 'BOS Reguler',
             'kinerja' => 'BOS Kinerja',
+            'silpa_kinerja' => 'SiLPA BOSP Kinerja',
+            'afirmasi' => 'BOSP Afirmasi',
             'bosda' => 'BOSP Daerah',
             'silpa' => 'SILPA Tahun Sebelumnya',
+            'lainnya' => 'Sumber Dana Lainnya',
         ] as $k => $n) {
             BosType::updateOrCreate(['kode' => $k], ['nama' => $n]);
         }
@@ -45,6 +55,8 @@ class MasterSeeder extends Seeder
 
         Rekening::updateOrCreate(['kode' => '4.3.1.01.01.0001'], ['nama' => 'Pendapatan Hibah BOS — Pemerintah Pusat', 'tipe' => 'pendapatan']);
         Rekening::updateOrCreate(['kode' => '4.3.1.01.01.0002'], ['nama' => 'Pendapatan Hibah BOSP — Pemerintah Daerah', 'tipe' => 'pendapatan']);
+        Rekening::updateOrCreate(['kode' => '8.1.03.01.01.0001'], ['nama' => 'Pendapatan Jasa Giro / Bunga Bank BOSP', 'tipe' => 'pendapatan']);
+
         foreach ([
             ['5.1.01.02.01.0001', 'Belanja Honorarium GTK bukan ASN', '12'],
             ['5.1.02.04.01.0001', 'Belanja Alat Tulis Kantor (ATK)', '05'],
@@ -56,7 +68,7 @@ class MasterSeeder extends Seeder
             ['5.1.06.09.03.0001', 'Belanja Pelatihan/Perjadin Pengembangan Guru', '06'],
             ['5.2.01.05.01.0002', 'Belanja Modal Alat Multimedia Pembelajaran', '09'],
             ['5.1.02.04.01.0021', 'Belanja Bahan Bacaan Buku Perpustakaan', '02'],
-            // Master ARKAS 2025 (44 kode aktif; 2 menimpa kode lama ke nama standar ARKAS)
+            // Master ARKAS 4 (kode aktif standar nasional)
             ['5.1.02.01.01.0001', 'Belanja Bahan-Bahan Bangunan dan Konstruksi', '08'],
             ['5.1.02.01.01.0005', 'Belanja Bahan-Bahan Baku Praktek KBM', '03'],
             ['5.1.02.01.01.0008', 'Belanja Bahan-Bahan/Bibit Tanaman', '03'],
@@ -101,6 +113,8 @@ class MasterSeeder extends Seeder
             ['5.2.02.06.01.0001', 'Belanja Modal Peralatan Studio Audio', '09'],
             ['5.2.02.06.01.0002', 'Belanja Modal Peralatan Studio Video dan Film', '09'],
             ['5.2.02.10.01.0001', 'Belanja Modal Komputer Jaringan', '09'],
+            ['5.2.05.01.01.0001', 'Belanja Modal Buku Umum / Koleksi Perpustakaan', '02'],
+            ['5.2.05.01.01.0002', 'Belanja Modal Buku Pelajaran Kurikulum Nasional', '02'],
         ] as [$k, $n, $c]) {
             Rekening::updateOrCreate(['kode' => $k], ['nama' => $n, 'tipe' => 'belanja', 'komponen_id' => $kom[$c]->id]);
         }
@@ -111,8 +125,32 @@ class MasterSeeder extends Seeder
             'pph22' => 'PPh Pasal 22',
             'pph23' => 'PPh Pasal 23',
             'pph42' => 'PPh Pasal 4 Ayat 2',
+            'sspd' => 'Pajak Daerah / SSPD (Restoran/Mamin 10%)',
         ] as $k => $n) {
             RekeningPajak::updateOrCreate(['kode' => $k], ['nama' => $n]);
+        }
+
+        // Referensi Standar Harga (SSH/SBU) bawaan Dinas sebagai contoh batas harga ARKAS 4
+        foreach ([
+            ['5.1.02.01.01.0024', 'SSH-ATK-001', 'Kertas HVS F4/A4 75 gsm', 'Rim 500 lembar SNI', 'rim', 65000, 'ssh'],
+            ['5.2.05.01.01.0002', 'SSH-BUKU-001', 'Buku Teks Utama Kurikulum Nasional', 'HET Kemendikdasmen', 'eksemplar', 45000, 'modal'],
+            ['5.2.05.01.01.0001', 'SSH-BUKU-002', 'Buku Pengayaan Literasi & Numerasi', 'Katalog SIBI terkurasi', 'eksemplar', 75000, 'modal'],
+            ['5.1.02.01.01.0052', 'SBU-MAMIN-001', 'Konsumsi Rapat Dinas / KKG / Kombel', 'Nasi kotak + kudapan SBU Daerah', 'kotak', 45000, 'sbu'],
+            ['5.1.02.03.03.0010', 'SSH-SAR-001', 'Cat Tembok Interior Ruang Kelas 25 kg', 'Pemeliharaan ringan sarpras', 'pail', 850000, 'ssh'],
+            ['5.2.02.10.01.0001', 'SSH-TIK-001', 'Laptop/Chromebook Pembelajaran Asesmen', 'Minimal RAM 8GB SSD 256GB TKDN', 'unit', 9500000, 'modal'],
+            ['5.1.02.02.01.0013', 'SBU-HON-001', 'Honorarium Guru Non-ASN (Ber-NUPTK)', 'Sesuai SK Penugasan & SBU Daerah', 'orang/bulan', 1500000, 'sbu'],
+        ] as [$rekKode, $kodeBrg, $nama, $spek, $satuan, $batas, $kat]) {
+            StandarHarga::updateOrCreate(
+                ['school_id' => null, 'kode_barang' => $kodeBrg],
+                [
+                    'kode_rekening' => $rekKode,
+                    'nama_barang' => $nama,
+                    'spesifikasi' => $spek,
+                    'satuan' => $satuan,
+                    'batas_harga' => $batas,
+                    'kategori' => $kat,
+                ]
+            );
         }
 
         foreach (range(2023, 2028) as $y) {

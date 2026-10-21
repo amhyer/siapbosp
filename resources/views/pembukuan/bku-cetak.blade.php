@@ -7,6 +7,14 @@
   $tglAkhir = \Carbon\Carbon::parse($bulan)->endOfMonth()->translatedFormat('d F Y');
   $hariIni = \Carbon\Carbon::parse($bulan)->endOfMonth()->translatedFormat('l d F Y');
 @endphp
+@if(!empty($isDraft))
+<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:50">
+  <span style="font-size:110px;font-weight:900;letter-spacing:.25em;color:rgba(225,29,72,.13);transform:rotate(-28deg);user-select:none">DRAFT</span>
+</div>
+<div class="nonprint" style="background:#fff1f2;border:1px solid #fda4af;color:#9f1239;padding:8px 12px;border-radius:6px;margin-bottom:10px;font-size:12px">
+  ⚠️ <b>Watermark DRAFT aktif</b> (sesuai ARKAS 4 Bab XXI): BKU bulan ini belum ditutup. Lakukan <b>Tutup BKU Bulan Ini</b> terlebih dahulu agar tanda air DRAFT hilang.
+</div>
+@endif
 <div class="toolbar nonprint"><button onclick="window.print()">🖨️ Cetak / Simpan PDF</button><a href="{{ route('bku', ['bulan' => $bulan]) }}">← Kembali ke BKU</a></div>
 <div class="kop">
   <div style="font-weight:800;letter-spacing:.35em">BUKU KAS UMUM</div>
@@ -51,12 +59,13 @@
 @php
   $kepsek = $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'kepala') !== false);
   $bendahara = $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'bendahara') !== false);
+  $namaKomite = $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'komite') !== false)?->nama ?? $sekolah->nama_komite ?? '( ……………………… )';
 @endphp
 <div class="ttd">
   <div class="ttd-grid" style="grid-template-columns:1fr 1fr 1fr">
     <div><div style="margin-bottom:4rem">Menyetujui,<br>Kepala Sekolah</div><div style="font-weight:700;text-decoration:underline">{{ $kepsek->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $kepsek->nip ?? '…' }}</div></div>
     <div><div style="margin-bottom:4rem">{{ $sekolah->kab_kota ?? '' }}, {{ $tglAkhir }}<br>Bendahara</div><div style="font-weight:700;text-decoration:underline">{{ $bendahara->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $bendahara->nip ?? '…' }}</div></div>
-    <div><div style="margin-bottom:4rem"><br>Komite Sekolah</div><div style="font-weight:700;text-decoration:underline">{{ $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'komite') !== false)?->nama ?? '( ……………………… )' }}</div><div>&nbsp;</div></div>
+    <div><div style="margin-bottom:4rem"><br>Komite Sekolah</div><div style="font-weight:700;text-decoration:underline">{{ $namaKomite }}</div><div>&nbsp;</div></div>
   </div>
 </div>
 @endsection

@@ -85,8 +85,8 @@ class PasangLokalTest extends TestCase
         $this->assertSame($s->id, $u->school_id);
         $this->assertTrue(Hash::check('rahasia123', $u->password));
 
-        $this->assertSame(56, Rekening::count());
-        $this->assertSame(5, RekeningPajak::count());
+        $this->assertSame(59, Rekening::count());
+        $this->assertSame(6, RekeningPajak::count());
         $this->assertSame(5, Stage::where('tahun', 2026)->count());
 
         $conf = KonfigLokal::baca($this->dir.DIRECTORY_SEPARATOR.'agen.conf');
@@ -106,7 +106,7 @@ class PasangLokalTest extends TestCase
 
         $this->assertSame(1, School::where('npsn', '90000001')->count());
         $this->assertSame(1, User::where('email', 'bendahara@uji.lokal')->count());
-        $this->assertSame(56, Rekening::count());
+        $this->assertSame(59, Rekening::count());
         $this->assertSame(30, Stage::count());
         $this->assertNotSame($token1, $conf2['TOKEN']);
         $this->assertSame(
