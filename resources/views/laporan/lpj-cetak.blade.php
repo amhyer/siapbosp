@@ -1,5 +1,6 @@
-@extends('layouts.print', ['title' => 'LPJ ' . ($cakupan ?? $stage->nama) . ' ' . $tahun])
+@extends('layouts.app', ['title' => 'LPJ ' . ($cakupan ?? $stage->nama) . ' ' . $tahun])
 @section('content')
+<div class="dokumen">
 @php
   $kepsek = $penandatangan->firstWhere('jabatan', 'Kepala Sekolah') ?? $penandatangan->first(fn($p) => stripos($p->jabatan, 'kepala') !== false);
   $bendahara = $penandatangan->first(fn($p) => stripos($p->jabatan, 'bendahara') !== false) ?? $penandatangan->skip(1)->first();
@@ -193,4 +194,5 @@
   </table>
   @include('laporan.ttd')
 </section>
+</div>
 @endsection

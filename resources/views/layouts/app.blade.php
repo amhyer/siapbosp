@@ -28,6 +28,31 @@
       .badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.72rem;font-weight:600}
     </style>
 @endif
+<style>
+  /* Aturan cetak untuk halaman aplikasi: kerangka (sidebar, header, footer,
+     pesan flash) disembunyikan, isi dokumen tetap tercetak rapi. */
+  @media print{
+    .nonprint{display:none !important}
+    body{background:#fff !important;color:#0f172a !important}
+    main{padding:0 !important;max-width:none !important}
+    .card{box-shadow:none !important}
+    @page{size:A4;margin:1.5cm}
+  }
+  /* Halaman dokumen (SPTJM, LPJ per Tahap) yang tampil dengan kerangka aplikasi
+     tapi tetap berformat dokumen resmi saat dicetak. */
+  .dokumen{background:#fff;max-width:62rem;margin:0 auto;padding:1.2rem;border-radius:.8rem;box-shadow:0 1px 3px rgb(15 23 42/.08)}
+  .dokumen .kop{border-bottom:3px double #0f172a;padding-bottom:.6rem;margin-bottom:1rem;text-align:center}
+  .dokumen .tbl th,.dokumen .tbl td{border:1px solid #94a3b8;padding:.32rem .5rem;vertical-align:top}
+  .dokumen .tbl th{background:#f1f5f9}
+  .dokumen .toolbar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+  .dokumen .toolbar a,.dokumen .toolbar button{border:1px solid #cbd5e1;background:#fff;border-radius:.5rem;padding:.4rem .8rem;font-size:.82rem;text-decoration:none;color:#0f172a;cursor:pointer}
+  .dokumen .ttd{display:flex;justify-content:flex-end;margin-top:2rem}
+  .dokumen .ttd-grid{display:grid;grid-template-columns:1fr 1fr;gap:3.5rem;text-align:center;font-size:.82rem}
+  .dokumen .pg{break-before:page}
+  @media print{
+    .dokumen{box-shadow:none !important;padding:0 !important;max-width:none !important;border-radius:0}
+  }
+</style>
 @stack('head')
 </head>
 <body class="bg-slate-100 text-slate-800">
@@ -219,12 +244,12 @@
     </header>
 
     <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6">
-      <div class="nonprint space-y-5">
-        @if(session('ok')) <div class="alert alert-ok" role="status">✅<span>{{ session('ok') }}</span></div> @endif
-        @if(session('warning')) <div class="alert alert-warn" role="status">⚠️<span>{{ session('warning') }}</span></div> @endif
-        @if(session('error')) <div class="alert alert-err" role="alert">⛔<span>{{ session('error') }}</span></div> @endif
+      <div class="space-y-5">
+        @if(session('ok')) <div class="alert alert-ok nonprint" role="status">✅<span>{{ session('ok') }}</span></div> @endif
+        @if(session('warning')) <div class="alert alert-warn nonprint" role="status">⚠️<span>{{ session('warning') }}</span></div> @endif
+        @if(session('error')) <div class="alert alert-err nonprint" role="alert">⛔<span>{{ session('error') }}</span></div> @endif
         @if($errors->any())
-          <div class="alert alert-err" role="alert">
+          <div class="alert alert-err nonprint" role="alert">
             <span>⛔</span>
             <ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
           </div>

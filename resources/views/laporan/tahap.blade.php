@@ -1,5 +1,6 @@
-@extends('layouts.print', ['title' => 'LPJ & Tutup Buku per Tahap'])
+@extends('layouts.app', ['title' => 'LPJ & Tutup Buku per Tahap'])
 @section('content')
+<div class="dokumen">
 <div class="toolbar nonprint">
   <form style="display:flex;gap:.5rem;align-items:center;font-size:.82rem" method="get">
     <span>Tahap:</span>
@@ -95,5 +96,6 @@
     <div><div style="margin-bottom:4rem">Mengetahui,<br>Kepala Sekolah</div><div style="font-weight:700;text-decoration:underline">{{ $kepsek->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $kepsek->nip ?? '…' }}</div></div>
     <div><div style="margin-bottom:4rem">{{ $sekolah->kab_kota ?? '' }}, {{ now()->translatedFormat('d F Y') }}<br>Bendahara</div><div style="font-weight:700;text-decoration:underline">{{ $bendahara->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $bendahara->nip ?? '…' }}</div></div>
   </div>
+</div>
 </div>
 @endsection

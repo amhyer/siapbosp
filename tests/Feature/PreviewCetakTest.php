@@ -83,4 +83,23 @@ class PreviewCetakTest extends TestCase
 
         $this->assertStringContainsString('siapbosCetakPreview', $html);
     }
+
+    /**
+     * Halaman yang定番の dari sidebar (LPJ per Tahap, SPTJM) harus memakai
+     * kerangka aplikasi — sidebar, header, dan menu — bukan halaman HTML polos.
+     * Isinya tetap berformat dokumen saat dicetak (wrapper .dokumen + aturan
+     *
+     * @media print).
+     */
+    public function test_halaman_dokumen_memakai_kerangka_aplikasi_bukan_html_polos(): void
+    {
+        foreach (['/laporan/tahap', '/pembukuan/sptjm'] as $url) {
+            $html = $this->withSession(['tahun' => 2025])->get($url)->assertOk()->getContent();
+
+            $this->assertStringContainsString('id="sidebar"', $html, $url.' harus menampilkan sidebar');
+            $this->assertStringContainsString('RKAS-BOSP (Kertas Kerja)', $html, $url.' harus menampilkan menu aplikasi');
+            $this->assertStringContainsString('class="dokumen"', $html, $url.' harus membungkus isi sebagai dokumen');
+            $this->assertStringContainsString('@media print', $html, $url.' harus punya aturan cetak');
+        }
+    }
 }

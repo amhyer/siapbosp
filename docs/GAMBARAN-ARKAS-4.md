@@ -181,5 +181,21 @@ tersembunyi lalu **dialog cetak browser langsung dibuka** (pengguna tetap di hal
   (78 field *contenteditable*) harus diklik & diisi pengguna — tak bisa disembunyikan di iframe.
 - Link `target="_blank"` yang tersisa memang navigasi, bukan cetak: halaman Pending ARKAS 4
   (alat bantu HTML mandiri) dan **Detail Nota: Daftar Kas Umum** (halaman data aplikasi).
-- Pengujian: `PreviewCetakTest` (5) — atribut `data-cetak`, helper termuat di kedua layout,
-  dan halaman cetak tetap dapat diakses langsung (mis. untuk bookmark/print manual).
+- Pengujian: `PreviewCetakTest` (6) — atribut `data-cetak`, helper termuat di kedua layout,
+  halaman cetak tetap dapat diakses langsung, dan halaman dokumen tetap berkerangka aplikasi.
+
+### 18.1 Halaman dokumen kini memakai kerangka aplikasi (sidebar ikut ada)
+
+Tiga halaman yang **dibuka dari menu sidebar** sebelumnya tampil sebagai HTML polos tanpa
+sidebar (karena memakai `layouts.print`): **LPJ & Tutup Buku per Tahap** (`/laporan/tahap`),
+**LPJ per Tahap** (`/laporan/lpj`), dan **SPTJM BOSP** (`/pembukuan/sptjm`).
+
+- Ketiganya kini memakai `layouts.app` → **sidebar, header, dan menu aplikasi tampil**;
+  isinya dibungkus `<div class="dokumen">` (gaya kop/tabel/ttd ala dokumen resmi) sehingga
+  tetap berformat surat saat dicetak.
+- `layouts.app` kini punya **aturan cetak** (`@media print`): sidebar, header, footer, pesan
+  flash, dan toolbar disembunyikan; isi halaman tetap tercetak (A4, margin 1,5 cm). Class
+  `nonprint` pada area konten dilepas agar konten tidak ikut hilang saat print.
+- Halaman dokumen **murni** (Buku Pembantu, Rekap Realisasi, Cetak BKU, Register, Kwitansi,
+  Register Penutupan Kas) tetap memakai `layouts.print` — dibuka lewat **preview cetak**
+  (iframe), jadi tak perlu sidebar.

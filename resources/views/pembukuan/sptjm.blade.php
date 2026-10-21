@@ -1,5 +1,6 @@
-@extends('layouts.print', ['title' => 'SPTJM Dana BOSP Semester ' . $semester . ' TA ' . $tahun])
+@extends('layouts.app', ['title' => 'SPTJM Dana BOSP Semester ' . $semester . ' TA ' . $tahun])
 @section('content')
+<div class="dokumen">
 <div class="toolbar nonprint">
   <button onclick="window.print()">🖨️ Cetak / Simpan PDF SPTJM</button>
   <a href="{{ route('pembukuan.sptjm', ['semester' => 1]) }}">Semester 1 (Jan–Jun)</a>
@@ -49,5 +50,6 @@
       <div>NIP. {{ $kepsek->nip ?? '…' }}</div>
     </div>
   </div>
+</div>
 </div>
 @endsection
