@@ -13,7 +13,12 @@
 /.vscode
 /.zed
 /auth.json
-/node_modules
+node_modules/
+/dist/
+agen-arkas/dist/
+agen-arkas/dist-portable/
+agen-arkas/gui/dist/
+*.zip
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
@@ -26,4 +31,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/agen-arkas/dist-portable/TarikArkas/node.exe
+.exe
+.node
+.blob
