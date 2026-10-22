@@ -212,12 +212,12 @@ nama/posisi, dan 9 item belum ada — kini semuanya dikerjakan.
 | Grup | Isi (semua terarah ke route nyata) |
 |---|---|
 | **🏠 Beranda** | Dashboard |
-| **🏫 Data Sekolah** | Profil Sekolah · Penanggung Jawab · **Tahun Anggaran** · **Sumber Dana** · **Status Sinkronisasi** |
-| **📝 Penganggaran** | Kertas Kerja (RKAS) · **Daftar Kegiatan** · Anggaran Bulanan (ARKAS) · Review & Proporsi Anggaran · PBD → RKM → RKT |
-| **📒 Penatausahaan** | Buku Kas Umum · Penerimaan · Tarik/Setor Tunai · Pembelanjaan · Kas dan Bank · Pajak · Buku Pembantu · Penutupan BKU · SPTJM |
-| **🖨️ Laporan** | LPJ & Tutup Buku · LPJ per Tahap · Pajak Triwulan · **Realisasi per Sumber Dana** · Rekonsiliasi + 9 laporan format ARKAS |
+| **🏫 Data Sekolah** | Profil Sekolah · Penanggung Jawab · **Tahun Anggaran** · **Sumber Dana** · **Status Sinkronisasi ke Pusat** |
+| **📝 Penganggaran** | Kertas Kerja (RKAS) · **Review & Proporsi Anggaran** · **Daftar Kegiatan** · Anggaran Bulanan (ARKAS) · PBD → RKM → RKT |
+| **📒 Penatausahaan** | Buku Kas Umum · Kas dan Bank · _Penerimaan:_ Pendapatan · Tarik Tunai · Setor Tunai · _Pengeluaran & Pajak:_ Pembelanjaan · Pajak (Setor & Utang) · Buku Pembantu · _Pelaporan:_ Penutupan BKU · SPTJM |
+| **🖨️ Laporan** | LPJ & Tutup Buku · LPJ per Tahap · Pajak Triwulan · **Realisasi per Sumber Dana** · Rekonsiliasi + 8 laporan format ARKAS |
 | **🗄️ Arsip** (baru) | **RKAS Disahkan** · **BKU Ditutup** · **Dokumen Pajak** · **Riwayat Impor** · **Riwayat Ekspor** |
-| **🧩 Data Referensi** | Referensi Master (rekening, pajak, program, satuan, uraian, PTK) · Kegiatan (Kode ARKAS) · Referensi Harga (SSH/SBU) |
+| **🧩 Data Referensi** | Referensi Master (8 tab: rekening, pajak, program, kegiatan, satuan, uraian, PTK, jenis BOS) · Referensi Harga (SSH/SBU) |
 | **⚙️ Pengaturan** | **Koneksi ARKAS** · Impor Database · Pemetaan Data (HPP) · **Backup Data** · **Deteksi Versi ARKAS** · **Log Sistem** · Ganti Password · Hapus Data |
 
 ### 19.2 Halaman baru (semua datanya sudah ada di aplikasi)
@@ -237,6 +237,33 @@ nama/posisi, dan 9 item belum ada — kini semuanya dikerjakan.
 - **Referensi** kini 8 tab: rekening, pajak, **Program BOSP** (nama lama "Komponen BOSP"),
   **Kegiatan (Kode ARKAS)**, **Satuan**, **Uraian**, **PTK**, jenis BOS & tahap — plus halaman
   **Daftar Kegiatan** (`/penganggaran/kegiatan`) dengan pencarian & paginasi.
+- **Review & Proporsi Anggaran** (`/penganggaran/review`, `RkasController@review`) — daftar kertas
+  kerja tahun berjalan dengan total, pagu, temuan validasi, dan ringkasan proporsi komponen
+  (Juknis 8/2026 Pasal 42) per kertas kerja, plus tautan ke panel review lengkap.
+
+### 19.6 Perapihan menu (22 Okt 2026)
+
+Tujuh temuan audit dibereskan:
+
+1. **Tiga target dobel dihapus** — "RKAS Bulanan (ARKAS)" dan "Register Penutupan Kas (ARKAS)"
+   (duplikat dari *Anggaran Bulanan* dan *Penutupan BKU*), serta "Kegiatan (Kode ARKAS)" di Data
+   Referensi (sudah ada *Daftar Kegiatan*, dan tab Kegiatan di Referensi Master).
+2. **"Review & Proporsi Anggaran" jadi halaman nyata** — sebelumnya hanya tautan kedua ke `/rkas`;
+   kini `/penganggaran/review` berisi ringkasan proporsi + temuan tiap kertas kerja.
+3. **URL menu kini mengikuti grupnya** (status aktif & grup terbuka jadi benar) — rute lama tetap
+   dipertahankan sebagai alias: `/data-sekolah/sinkronisasi`, `/penganggaran/anggaran-bulanan`,
+   `/penatausahaan/penutupan-bku`, `/laporan/realisasi-sumber-dana`, `/laporan/rekonsiliasi`,
+   `/referensi/harga`, `/pengaturan/impor-database`, `/pengaturan/pemetaan`.
+4. **Data Referensi diringkas 7 → 2 entri** — sub-data (program, kegiatan, satuan, uraian, PTK)
+   dibuka lewat 8 tab di *Referensi Master*, tidak lagi memenuhi sidebar.
+5. **Tautan "🧩 Referensi" ganda di sidebar sekolah dihapus** (menu Dinas tetap punya).
+6. **"Pajak" diperjelas** menjadi **"Pajak (Setor & Utang)"**; "Pajak Triwulan" dan "Dokumen Pajak"
+   tetap terpisah sesuai konteks.
+7. **Penatausahaan diberi sub-judul** _Penerimaan_, _Pengeluaran & Pajak_, dan _Pelaporan_; tautan
+   Dashboard ganda di atas grup Beranda juga dihapus.
+
+Penjaga regresi: `MenuDanArsipTest::test_tak_ada_menu_duplikat_atau_tautan_mati` memastikan setiap
+URL menu hanya muncul sekali dan semuanya dapat dibuka (200).
 
 ### 19.3 Master baru yang diimpor dari ARKAS
 
@@ -258,7 +285,8 @@ Juknis BOSP 2026 mulai berlaku) dan menampilkan peringatan bila masih di bawahny
 
 ### 19.5 Pengujian
 
-`MenuDanArsipTest` (10 test): 8 grup sidebar, 5 halaman arsip, 2 halaman data sekolah, 5
+`MenuDanArsipTest` (12 test): 8 grup sidebar, 5 halaman arsip, 2 halaman data sekolah, 5
 halaman pengaturan (+ unduhan backup), laporan per sumber dana, tab referensi baru, daftar
-kegiatan, dan pembatasan akses role (Dinas tidak bisa membuka arsip sekolah). Suite penuh:
-**147 test hijau**.
+kegiatan, pembatasan akses role (Dinas tidak bisa membuka arsip sekolah), halaman *Review &
+Proporsi Anggaran* (label proporsi benar-benar tampil), serta penjaga anti-duplikat/tautan mati.
+Suite penuh: **149 test hijau (818 asersi)**.

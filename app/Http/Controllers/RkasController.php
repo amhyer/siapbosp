@@ -443,6 +443,37 @@ class RkasController extends Controller
         return redirect()->route('rkas.show', $h)->with('ok', $msg);
     }
 
+    /**
+     * Review & Proporsi Anggaran — daftar kertas kerja tahun berjalan beserta
+     * ringkasan proporsi komponen (Juknis 8/2026) dan tautan ke panel review
+     * lengkap tiap kertas kerja.
+     */
+    public function review(Request $r)
+    {
+        $tahun = (int) session('tahun', now()->year);
+        $sekolah = auth()->user()->school;
+        $items = RkasHeader::with('details.rekening')
+            ->where('tahun', $tahun)->orderByDesc('revisi_ke')->get();
+
+        $baris = [];
+        foreach ($items as $h) {
+            $review = JuknisBosp2026Service::reviewKertasKerja($h, $h->school ?? $sekolah);
+            $baris[] = [
+                'header' => $h,
+                'total' => (int) $h->details->sum('jumlah'),
+                'proporsi' => $review['proporsi'] ?? [],
+                'pagu' => $review['pagu'] ?? 0,
+                'temuan' => $review['temuan'] ?? [],
+            ];
+        }
+
+        return view('rkas.review', [
+            'baris' => $baris,
+            'tahun' => $tahun,
+            'sekolah' => $sekolah,
+        ]);
+    }
+
     public function show(RkasHeader $rkasHeader)
     {
         $rkasHeader->load(['details.rekening.komponen', 'acuan']);

@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\ActivityLog;
 use App\Models\BosType;
+use App\Models\RkasHeader;
 use App\Models\School;
+use App\Models\Stage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -49,6 +51,71 @@ class MenuDanArsipTest extends TestCase
         foreach (['Beranda', 'Data Sekolah', 'Penganggaran', 'Penatausahaan', 'Laporan', 'Arsip', 'Data Referensi', 'Pengaturan'] as $grup) {
             $this->assertStringContainsString($grup, $html, 'grup menu '.$grup.' tak ada');
         }
+    }
+
+    /** Tidak ada lagi dua menu dengan target sama (duplikat) & tak ada tautan mati. */
+    public function test_tak_ada_menu_duplikat_atau_tautan_mati(): void
+    {
+        // Halaman LPJ sah 404 bila tahun belum punya tahap — siapkan satu tahap.
+        Stage::create(['tahun' => 2025, 'nama' => 'Tahap 1', 'urutan' => 1, 'is_open' => true]);
+
+        $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
+
+        preg_match_all('#<nav class="navw.*?</nav>#s', $html, $blok);
+        $nav = $blok[0][0] ?? '';
+        preg_match_all('#<a href="([^"]+)"[^>]*>([^<]+)</a>#', $nav, $link, PREG_SET_ORDER);
+
+        $target = [];
+        foreach ($link as $l) {
+            $href = html_entity_decode($l[1]);
+            $label = trim($l[2]);
+            if ($href === '' || str_starts_with($href, '#')) {
+                continue;
+            }
+            $target[$href][] = $label;
+        }
+
+        // Setiap URL hanya boleh muncul sekali sebagai menu (kecuali halaman beranda).
+        foreach ($target as $href => $label) {
+            if ($href === url('/dashboard')) {
+                continue;
+            }
+            $this->assertCount(
+                1,
+                $label,
+                'URL '.$href.' dipakai lebih dari sekali: '.implode(' | ', $label)
+            );
+        }
+
+        // Tautan menu harus bisa diakses (tanpa 404/500).
+        foreach (array_keys($target) as $href) {
+            if (! str_starts_with($href, url('/'))) {
+                continue;
+            }
+            $path = parse_url($href, PHP_URL_PATH);
+            $this->assertSame(200, $this->get($path)->getStatusCode(), 'Menu menuju '.$path.' tidak dapat dibuka.');
+        }
+    }
+
+    public function test_halaman_review_menampilkan_ringkasan_proporsi(): void
+    {
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id,
+            'tahun' => 2025,
+            'revisi_ke' => 1,
+            'no_rkas' => 'RKAS/2025/01',
+            'sumber_dana' => 'BOS Reguler',
+            'jenis_rkas' => 'murni',
+            'status' => 'disahkan',
+        ]);
+
+        $this->withSession(['tahun' => 2025])->get('/penganggaran/review')
+            ->assertOk()
+            ->assertSee('Review &amp; Proporsi Anggaran', false)
+            ->assertSee('RKAS/2025/01')
+            ->assertSee('Buku &amp; Perpustakaan', false)
+            ->assertSee('Pemeliharaan Sarpras')
+            ->assertSee('Pembayaran Honor Non-ASN');
     }
 
     public function test_halaman_arsip_semua_terbuka(): void

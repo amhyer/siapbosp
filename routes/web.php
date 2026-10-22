@@ -130,6 +130,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/unduh-pemasang', [UnduhAplikasiController::class, 'unduhPemasang'])->name('unduh-pemasang');
         Route::get('/unduh-identitas', [UnduhAplikasiController::class, 'unduhIdentitas'])->name('unduh-identitas');
 
+        // ===== RUTE MENU: URL mengikuti grup menu (lama tetap jadi alias) =====
+        Route::get('/data-sekolah/sinkronisasi', [PengaturanController::class, 'sinkronisasi'])->name('datasekolah.sinkronisasi');
+        Route::get('/penganggaran/anggaran-bulanan', [LaporanArkasController::class, 'rkasBulanan'])->name('penganggaran.anggaran-bulanan');
+        Route::get('/penganggaran/review', [RkasController::class, 'review'])->name('penganggaran.review');
+        Route::get('/penatausahaan/penutupan-bku', [LaporanArkasController::class, 'penutupanKas'])->name('penatausahaan.penutupan-bku');
+        Route::get('/laporan/realisasi-sumber-dana', [LaporanArkasController::class, 'realisasiSumber'])->name('laporan.realisasi-sumber-dana');
+        Route::get('/laporan/rekonsiliasi', [RekonsiliasiController::class, 'form'])->name('laporan.rekonsiliasi');
+        Route::get('/referensi/harga', [PerencanaanController::class, 'ssh'])->name('referensi.harga');
+        Route::get('/referensi/kegiatan', [ReferensiController::class, 'kegiatan'])->name('referensi.kegiatan');
+        Route::get('/pengaturan/impor-database', [ImportArkasController::class, 'form'])->name('pengaturan.impor-database');
+        Route::get('/pengaturan/pemetaan', [HppController::class, 'index'])->name('pengaturan.pemetaan');
+
         Route::get('/penerimaan/pendapatan', [PenerimaanController::class, 'pendapatan'])->name('pendapatan.index');
         Route::post('/penerimaan/pendapatan', [PenerimaanController::class, 'pendapatanStore'])->name('pendapatan.store');
         Route::post('/penerimaan/bunga', [PenerimaanController::class, 'bungaStore'])->name('pendapatan.bunga');

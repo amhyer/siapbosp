@@ -67,40 +67,42 @@
     ['label'=>'🏠 Beranda','open'=>request()->routeIs('dashboard'),'items'=>[
       ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
     ]],
-    ['label'=>'🏫 Data Sekolah','open'=>request()->is('utility/profil*')||request()->is('utility/penandatangan*')||request()->is('data-sekolah*')||request()->is('pengaturan/sinkronisasi*'),'items'=>[
+    ['label'=>'🏫 Data Sekolah','open'=>request()->is('utility/profil*')||request()->is('utility/penandatangan*')||request()->is('data-sekolah*'),'items'=>[
       ['Profil Sekolah', route('profil.edit'), request()->is('utility/profil*')],
       ['Penanggung Jawab', route('penandatangan'), request()->is('utility/penandatangan*')],
-      ['Tahun Anggaran', route('datasekolah.tahun'), request()->is('datasekolah/tahun*')],
-      ['Sumber Dana', route('datasekolah.sumber-dana'), request()->is('datasekolah/sumber-dana*')],
-      ['Status Sinkronisasi', route('pengaturan.sinkronisasi'), request()->is('pengaturan/sinkronisasi*')],
+      ['Tahun Anggaran', route('datasekolah.tahun'), request()->is('data-sekolah/tahun*')],
+      ['Sumber Dana', route('datasekolah.sumber-dana'), request()->is('data-sekolah/sumber-dana*')],
+      ['Status Sinkronisasi ke Pusat', route('datasekolah.sinkronisasi'), request()->is('data-sekolah/sinkronisasi*')],
     ]],
-    ['label'=>'📝 Penganggaran','open'=>request()->is('rkas*')||request()->is('perencanaan*')||request()->is('penganggaran*')||request()->is('laporan-arkas/rkas*'),'items'=>[
+    ['label'=>'📝 Penganggaran','open'=>request()->is('rkas*')||request()->is('perencanaan*')||request()->is('penganggaran*'),'items'=>[
       ['Kertas Kerja (RKAS)', route('rkas.index'), request()->is('rkas*')],
+      ['Review & Proporsi Anggaran', route('penganggaran.review'), request()->is('penganggaran/review*')],
       ['Daftar Kegiatan', route('penganggaran.kegiatan'), request()->is('penganggaran/kegiatan*')],
-      ['Anggaran Bulanan (ARKAS)', route('laporan-arkas.rkas-bulanan'), request()->is('laporan-arkas/rkas-bulanan')],
-      ['Review & Proporsi Anggaran', route('rkas.index'), false],
+      ['Anggaran Bulanan (ARKAS)', route('penganggaran.anggaran-bulanan'), request()->is('penganggaran/anggaran-bulanan')],
       ['🧭 PBD → RKM → RKT (Perencanaan)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
     ]],
-    ['label'=>'📒 Penatausahaan','open'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*'),'items'=>[
+    ['label'=>'📒 Penatausahaan','open'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*')||request()->is('penatausahaan*'),'items'=>[
       ['Buku Kas Umum', route('bku'), request()->routeIs('bku')],
-      ['Penerimaan', route('pendapatan.index'), request()->is('penerimaan/pendapatan*')],
+      ['Kas dan Bank', route('kas'), request()->routeIs('kas')],
+      ['Penerimaan', '#', false],
+      ['Pendapatan', route('pendapatan.index'), request()->is('penerimaan/pendapatan*')],
       ['💵 Tarik Tunai (Bank→Tunai)', route('ambil.index'), request()->is('penerimaan/ambil*')],
       ['💵 Setor Tunai (Tunai→Bank)', route('mutasi.index'), request()->is('penerimaan/mutasi*')],
+      ['Pengeluaran & Pajak', '#', false],
       ['Pembelanjaan', route('belanja.index'), request()->is('pengeluaran/belanja*')],
-      ['Kas dan Bank', route('kas'), request()->routeIs('kas')],
-      ['Pajak', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
+      ['Pajak (Setor & Utang)', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
       ['Buku Pembantu', route('pembukuan.bukuPembantu'), request()->routeIs('pembukuan.bukuPembantu')],
-      ['Penutupan BKU', route('laporan-arkas.penutupan-kas'), request()->is('laporan-arkas/penutupan-kas')],
+      ['Pelaporan', '#', false],
+      ['Penutupan BKU', route('penatausahaan.penutupan-bku'), request()->is('penatausahaan/penutupan-bku')],
       ['📄 SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
     ]],
-    ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*')||request()->is('rekonsiliasi*'),'items'=>[
+    ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*'),'items'=>[
       ['LPJ & Tutup Buku per Tahap', route('laporan.tahap'), request()->routeIs('laporan.tahap')],
       ['📦 LPJ per Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
       ['🧾 Pajak Triwulan', route('laporan.pajak-tw'), request()->routeIs('laporan.pajak-tw')],
-      ['Realisasi per Sumber Dana', route('laporan-arkas.realisasi-sumber'), request()->is('laporan-arkas/realisasi-sumber')],
-      ['🔍 Rekonsiliasi ARKAS', route('rekonsiliasi.form'), request()->is('rekonsiliasi*')],
+      ['Realisasi per Sumber Dana', route('laporan.realisasi-sumber-dana'), request()->is('laporan/realisasi-sumber-dana')],
+      ['🔍 Rekonsiliasi ARKAS', route('laporan.rekonsiliasi'), request()->is('laporan/rekonsiliasi')],
       ['Format ARKAS', '#', false],
-      ['RKAS Bulanan (ARKAS)', route('laporan-arkas.rkas-bulanan'), request()->is('laporan-arkas/rkas-bulanan')],
       ['Rincian RKAS per Tahap (ARKAS)', route('laporan-arkas.rkas-tahap'), request()->is('laporan-arkas/rkas-tahap')],
       ['Realisasi Anggaran (ARKAS)', route('laporan-arkas.realisasi'), request()->is('laporan-arkas/realisasi')],
       ['Realisasi Penerimaan & Belanja (ARKAS)', route('laporan-arkas.penerimaan-belanja'), request()->is('laporan-arkas/penerimaan-belanja')],
@@ -108,7 +110,6 @@
       ['Realisasi Modal (ARKAS)', route('laporan-arkas.modal'), request()->is('laporan-arkas/modal')],
       ['Daftar Kas Umum (ARKAS)', route('laporan-arkas.kas-umum'), request()->is('laporan-arkas/daftar-kas-umum')],
       ['Daftar Nota (ARKAS)', route('laporan-arkas.nota'), request()->is('laporan-arkas/daftar-nota')],
-      ['Register Penutupan Kas (ARKAS)', route('laporan-arkas.penutupan-kas'), request()->is('laporan-arkas/penutupan-kas')],
     ]],
     ['label'=>'🗄️ Arsip','open'=>request()->is('arsip*'),'items'=>[
       ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
@@ -119,17 +120,12 @@
     ]],
     ['label'=>'🧩 Data Referensi','open'=>request()->is('referensi*')||request()->is('perencanaan/ssh*'),'items'=>[
       ['Referensi Master', route('referensi'), request()->routeIs('referensi')],
-      ['Program BOSP', route('referensi', ['tab' => 'program']), false],
-      ['Kegiatan (Kode ARKAS)', route('penganggaran.kegiatan'), request()->is('penganggaran/kegiatan*')],
-      ['Satuan', route('referensi', ['tab' => 'satuan']), false],
-      ['Uraian', route('referensi', ['tab' => 'uraian']), false],
-      ['PTK', route('referensi', ['tab' => 'ptk']), false],
-      ['🏷️ Referensi Harga (SSH/SBU)', route('perencanaan.ssh'), request()->routeIs('perencanaan.ssh*')],
+      ['🏷️ Referensi Harga (SSH/SBU)', route('referensi.harga'), request()->is('referensi/harga')],
     ]],
     ['label'=>'⚙️ Pengaturan','open'=>request()->is('pengaturan*')||request()->is('utility*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>array_values(array_filter([
       ['🔌 Koneksi ARKAS', route('pengaturan.koneksi'), request()->is('pengaturan/koneksi*')],
-      ['⬆️ Impor Database (ARKAS)', route('impor-arkas.form'), request()->is('impor-arkas*')],
-      ['🗺️ Pemetaan Data (HPP)', route('hpp.index'), request()->is('hpp*')],
+      ['⬆️ Impor Database (ARKAS)', route('pengaturan.impor-database'), request()->is('pengaturan/impor-database')],
+      ['🗺️ Pemetaan Data (HPP)', route('pengaturan.pemetaan'), request()->is('pengaturan/pemetaan')],
       ['💾 Backup Data', route('pengaturan.backup'), request()->is('pengaturan/backup*')],
       ['🔎 Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],
       ['📋 Log Sistem', route('pengaturan.log'), request()->is('pengaturan/log*')],
@@ -157,8 +153,6 @@
 
     <nav class="navw flex-1 gap-[2px] overflow-y-auto px-3 py-3" aria-label="Menu">
       @if(!$u->isDinas())
-        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'on' : '' }}">📊 Dashboard</a>
-
         @foreach($menuSekolah as $grp)
         <div class="grp {{ $grp['open'] ? 'open' : '' }}">
           <button type="button" class="menu-btn" onclick="toggleGrp(this)" aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
@@ -175,8 +169,6 @@
           </div>
         </div>
         @endforeach
-
-        <a href="{{ route('referensi') }}" class="{{ request()->routeIs('referensi') ? 'on' : '' }}">🧩 Referensi</a>
       @else
         <p class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Wilayah</p>
         <a href="{{ route('dinas.dashboard') }}" class="{{ request()->routeIs('dinas.dashboard') ? 'on' : '' }}">📊 Dashboard Wilayah</a>
