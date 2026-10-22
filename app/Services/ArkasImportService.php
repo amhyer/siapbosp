@@ -11,13 +11,16 @@ use App\Models\KasNota;
 use App\Models\KasTax;
 use App\Models\KasTransaction;
 use App\Models\Penandatangan;
+use App\Models\Ptk;
 use App\Models\Rekening;
 use App\Models\RekeningPajak;
 use App\Models\RkasDetail;
 use App\Models\RkasHeader;
+use App\Models\Satuan;
 use App\Models\School;
 use App\Models\Stage;
 use App\Models\TutupBuku;
+use App\Models\Uraian;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -432,6 +435,72 @@ class ArkasImportService
 
     // ==================== Pelengkap: profil, penjab, pagu, info ====================
 
+    /** Master satuan belanja dari sheet ARKAS `Ref_Satuan`. */
+    protected static function imporSatuan($wb): void
+    {
+        try {
+            $rows = self::sheetAssoc($wb, 'Ref_Satuan', ['satuan', 'unit']);
+        } catch (\RuntimeException) {
+            return;
+        }
+        foreach ($rows as $r) {
+            $nama = trim((string) ($r['satuan'] ?? ''));
+            if ($nama === '') {
+                continue;
+            }
+            Satuan::updateOrCreate(['nama' => $nama], ['unit' => trim((string) ($r['unit'] ?? '')) ?: null]);
+        }
+    }
+
+    /** Data PTK dari sheet ARKAS `PTK` (hanya sekolah ini & tahun berjalan). */
+    protected static function imporPtk($wb, School $sekolah, int $tahun): void
+    {
+        try {
+            $rows = self::sheetAssoc($wb, 'PTK', ['ptk_id', 'nama']);
+        } catch (\RuntimeException) {
+            return;
+        }
+        foreach ($rows as $r) {
+            $nama = trim((string) ($r['nama'] ?? ''));
+            if ($nama === '') {
+                continue;
+            }
+            $th = (int) ($r['tahun_ajaran_id'] ?? $tahun);
+            $id = trim((string) ($r['ptk_id'] ?? ''));
+            Ptk::updateOrCreate(
+                ['school_id' => $sekolah->id, 'arkas_id' => $id !== '' ? $id : 'nama:'.$nama.'-'.$th],
+                [
+                    'tahun' => $th,
+                    'nama' => $nama,
+                    'jenis_kelamin' => trim((string) ($r['jenis_kelamin'] ?? '')) ?: null,
+                    'masa_kerja_tahun' => (int) ($r['masa_kerja_tahun'] ?? 0),
+                    'masa_kerja_bulan' => (int) ($r['masa_kerja_bulan'] ?? 0),
+                    'nuptk' => trim((string) ($r['nuptk'] ?? '')) ?: null,
+                    'jenis_ptk' => (int) ($r['jenis_ptk_arkas'] ?? 0) ?: null,
+                    'pernah_sertifikasi' => (string) ($r['pernah_serfikasi'] ?? '0') === '1',
+                    'is_cut_off' => (string) ($r['is_cut_off'] ?? '0') === '1',
+                ]
+            );
+        }
+    }
+
+    /** Master uraian: ambil uraian unik dari rincian RKAS sekolah ini. */
+    protected static function sinkronUraian(School $sekolah): void
+    {
+        $ada = DB::table('rkas_details as rd')
+            ->join('rkas_headers as rh', 'rd.rkas_header_id', '=', 'rh.id')
+            ->where('rh.school_id', $sekolah->id)
+            ->whereNotNull('rd.uraian')->where('rd.uraian', '!=', '')
+            ->distinct()->pluck('rd.uraian');
+        foreach ($ada as $u) {
+            $u = trim((string) $u);
+            if ($u === '') {
+                continue;
+            }
+            Uraian::firstOrCreate(['uraian' => $u]);
+        }
+    }
+
     /** id_ref_sumber_dana ARKAS → kode bos_types SiapBOS (null = tak dipetakan). */
     public const SUMBER_MAP = [
         1 => 'reguler', 3 => 'bosda', 12 => 'kinerja',
@@ -521,6 +590,13 @@ class ArkasImportService
             }
         } catch (\RuntimeException) {
         }
+
+        // Master satuan & PTK (ARKAS) — dipakai referensi & validasi honor.
+        self::imporSatuan($wb);
+        self::imporPtk($wb, $sekolah, $tahun);
+
+        // Master uraian: bekal dari rincian RKAS yang diimpor.
+        self::sinkronUraian($sekolah);
 
         // Validasi silang: dana salur vs dana cair tercatat.
         // (Dipindah ke infoSilang agar dibaca setelah transaksi tertulis.)

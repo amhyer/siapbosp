@@ -126,6 +126,25 @@ class TarikArkasService
     }
 
     /**
+     * Informasi ARKAS di laptop ini (versi aplikasi, NPSN, data master).
+     *
+     * @return array{ok:bool,adaDb:bool,npsnFile:?string,versi:array}|null
+     */
+    public static function info(): ?array
+    {
+        if (! self::tersedia()) {
+            return null;
+        }
+        $out = self::jalankan(self::denganDb(['info', '--json']));
+        $hasil = json_decode($out, true);
+        if (! is_array($hasil) || empty($hasil['ok'])) {
+            return null;
+        }
+
+        return $hasil;
+    }
+
+    /**
      * Jalankan agen mode `lokal` → berkas Excel ARKAS (tanpa impor).
      *
      * Dipakai juga untuk "Cek Ulang Integritas Impor" — pemanggil wajib

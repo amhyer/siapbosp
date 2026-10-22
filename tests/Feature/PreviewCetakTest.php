@@ -97,7 +97,7 @@ class PreviewCetakTest extends TestCase
             $html = $this->withSession(['tahun' => 2025])->get($url)->assertOk()->getContent();
 
             $this->assertStringContainsString('id="sidebar"', $html, $url.' harus menampilkan sidebar');
-            $this->assertStringContainsString('RKAS-BOSP (Kertas Kerja)', $html, $url.' harus menampilkan menu aplikasi');
+            $this->assertStringContainsString('Kertas Kerja (RKAS)', $html, $url.' harus menampilkan menu aplikasi');
             $this->assertStringContainsString('class="dokumen"', $html, $url.' harus membungkus isi sebagai dokumen');
             $this->assertStringContainsString('@media print', $html, $url.' harus punya aturan cetak');
         }

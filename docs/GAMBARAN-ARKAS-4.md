@@ -199,3 +199,66 @@ sidebar (karena memakai `layouts.print`): **LPJ & Tutup Buku per Tahap** (`/lapo
 - Halaman dokumen **murni** (Buku Pembantu, Rekap Realisasi, Cetak BKU, Register, Kwitansi,
   Register Penutupan Kas) tetap memakai `layouts.print` — dibuka lewat **preview cetak**
   (iframe), jadi tak perlu sidebar.
+
+---
+
+## 19. Restrukturisasi menu & halaman baru (22 Okt 2026)
+
+Hasil audit struktur menu terhadap keadaan aplikasi: 26 item sudah ada, 6 item perlu penyesuaian
+nama/posisi, dan 9 item belum ada — kini semuanya dikerjakan.
+
+### 19.1 Sidebar mengikuti 8 grup
+
+| Grup | Isi (semua terarah ke route nyata) |
+|---|---|
+| **🏠 Beranda** | Dashboard |
+| **🏫 Data Sekolah** | Profil Sekolah · Penanggung Jawab · **Tahun Anggaran** · **Sumber Dana** · **Status Sinkronisasi** |
+| **📝 Penganggaran** | Kertas Kerja (RKAS) · **Daftar Kegiatan** · Anggaran Bulanan (ARKAS) · Review & Proporsi Anggaran · PBD → RKM → RKT |
+| **📒 Penatausahaan** | Buku Kas Umum · Penerimaan · Tarik/Setor Tunai · Pembelanjaan · Kas dan Bank · Pajak · Buku Pembantu · Penutupan BKU · SPTJM |
+| **🖨️ Laporan** | LPJ & Tutup Buku · LPJ per Tahap · Pajak Triwulan · **Realisasi per Sumber Dana** · Rekonsiliasi + 9 laporan format ARKAS |
+| **🗄️ Arsip** (baru) | **RKAS Disahkan** · **BKU Ditutup** · **Dokumen Pajak** · **Riwayat Impor** · **Riwayat Ekspor** |
+| **🧩 Data Referensi** | Referensi Master (rekening, pajak, program, satuan, uraian, PTK) · Kegiatan (Kode ARKAS) · Referensi Harga (SSH/SBU) |
+| **⚙️ Pengaturan** | **Koneksi ARKAS** · Impor Database · Pemetaan Data (HPP) · **Backup Data** · **Deteksi Versi ARKAS** · **Log Sistem** · Ganti Password · Hapus Data |
+
+### 19.2 Halaman baru (semua datanya sudah ada di aplikasi)
+
+- **Arsip** (`ArsipController`) — RKAS berstatus disahkan/dikunci (+ unduh PDF/Excel), periode
+  BKU yang ditutup (bulan & tahap), pajak beserta status lapor & NTPN, riwayat impor ARKAS, dan
+  riwayat ekspor/sinkronisasi (+ `sync_states`).
+- **Data Sekolah** (`DataSekolahController`) — *Tahun Anggaran*: pagu, rencana, realisasi, sisa,
+  serapan, jumlah transaksi & tahap tertutup per tahun. *Sumber Dana*: pagu, rencana, realisasi,
+  dan sisa tiap sumber dana (termasuk BOSP Afirmasi).
+- **Pengaturan** (`PengaturanController`) — *Koneksi ARKAS* (alamat pusat, NPSN, token, status),
+  *Status Sinkronisasi* (identitas, transaksi lokal, terakhir didorong, tombol sinkron & uji
+  koneksi), *Backup Data* (ZIP: `database.sqlite` + konfigurasi launcher tanpa token +
+  `MANIFEST.json`), *Deteksi Versi ARKAS*, *Log Sistem* (jejak audit sekolah).
+- **Laporan Realisasi per Sumber Dana** (`LaporanArkasController@realisasiSumber`) — pagu, rencana,
+  penerimaan, belanja, sisa, dan serapan per sumber dana.
+- **Referensi** kini 8 tab: rekening, pajak, **Program BOSP** (nama lama "Komponen BOSP"),
+  **Kegiatan (Kode ARKAS)**, **Satuan**, **Uraian**, **PTK**, jenis BOS & tahap — plus halaman
+  **Daftar Kegiatan** (`/penganggaran/kegiatan`) dengan pencarian & paginasi.
+
+### 19.3 Master baru yang diimpor dari ARKAS
+
+- **Satuan** — sheet ARKAS `Ref_Satuan` → tabel `satuans` (43 baris pada data uji).
+- **PTK** — sheet ARKAS `PTK` → tabel `ptks` (nama, jenis kelamin, masa kerja, NUPTK,
+  sertifikasi, cut-off; 42 baris pada data uji).
+- **Uraian** — dikumpulkan dari rincian RKAS impor → tabel `uraian` (95 baris pada data uji).
+- **Kode kegiatan** — sheet `Ref_Kode` → `arkas_kodes` (905 baris pada data uji).
+- Perbaikan kecil: `ArkasImportService::sheetAssoc` kini menerima penanda kolom wajib, karena
+  header `Ref_Satuan` (satuan/unit) tidak termasuk daftar kunci header standar.
+
+### 19.4 Deteksi Versi ARKAS
+
+Agen membaca `app_config.version_app` (nilai sebenarnya, mis. **4.3.0** — bukan "ARKAS 4.0" dari
+tabel `app`) lalu melaporkan: versi, tahun anggaran aktif, **tenggat penambiguan anggaran** &
+**tenggat penatausahaan**, batas pergeseran/perubahan, serta jumlah master (kode kegiatan,
+rekening, PTK). Aplikasi membandingkan dengan minimum **4.2.18** (versi ketika Implementasi
+Juknis BOSP 2026 mulai berlaku) dan menampilkan peringatan bila masih di bawahnya.
+
+### 19.5 Pengujian
+
+`MenuDanArsipTest` (10 test): 8 grup sidebar, 5 halaman arsip, 2 halaman data sekolah, 5
+halaman pengaturan (+ unduhan backup), laporan per sumber dana, tab referensi baru, daftar
+kegiatan, dan pembatasan akses role (Dinas tidak bisa membuka arsip sekolah). Suite penuh:
+**147 test hijau**.

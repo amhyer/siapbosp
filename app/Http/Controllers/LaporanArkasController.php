@@ -12,6 +12,7 @@ use App\Models\Rekening;
 use App\Models\RkasHeader;
 use App\Models\Stage;
 use App\Services\KasService;
+use App\Support\SumberDana;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -100,6 +101,75 @@ class LaporanArkasController extends Controller
     }
 
     // ==================== 1. RKAS Bulanan ====================
+
+    /**
+     * Realisasi per sumber dana — pagu, rencana RKAS, penerimaan, belanja,
+     * dan sisa tiap sumber dana (BOS Reguler, Kinerja, BOSP Daerah, Afirmasi,
+     * SILPA, Lainnya).
+     */
+    public function realisasiSumber(Request $r)
+    {
+        $sid = $r->user()->school_id;
+        $tahun = (int) session('tahun', now()->year);
+
+        $pagu = [];
+        foreach (Allocation::with('bosType')->where('school_id', $sid)->where('tahun', $tahun)->get() as $a) {
+            $nama = $a->bosType?->nama ?? 'Tanpa Jenis BOS';
+            $pagu[$nama] = ($pagu[$nama] ?? 0) + (int) $a->nilai;
+        }
+
+        $rencana = [];
+        foreach (DB::table('rkas_details as rd')
+            ->join('rkas_headers as rh', 'rd.rkas_header_id', '=', 'rh.id')
+            ->where('rh.school_id', $sid)->where('rh.tahun', $tahun)
+            ->whereIn('rh.status', ['disetujui', 'dikirim_dinas', 'disahkan', 'dikunci'])
+            ->select('rd.sumber_dana', DB::raw('SUM(rd.jumlah) j'), DB::raw('COUNT(*) n'))
+            ->groupBy('rd.sumber_dana')->get() as $x) {
+            $label = SumberDana::label($x->sumber_dana);
+            $rencana[$label] = ($rencana[$label] ?? 0) + (int) $x->j;
+        }
+
+        $terima = [];
+        $belanja = [];
+        foreach (KasTransaction::with('bosType')->where('school_id', $sid)->where('tahun', $tahun)->get() as $t) {
+            $nama = $t->bosType?->nama ?? 'Tanpa Jenis BOS';
+            if ($t->type === 'pendapatan') {
+                $terima[$nama] = ($terima[$nama] ?? 0) + (int) $t->total;
+            } elseif ($t->type === 'belanja') {
+                $belanja[$nama] = ($belanja[$nama] ?? 0) + (int) $t->total;
+            }
+        }
+
+        $nama = array_values(array_unique(array_merge(array_keys($pagu), array_keys($rencana), array_keys($terima), array_keys($belanja))));
+        $baris = [];
+        foreach ($nama as $n) {
+            $p = (int) ($pagu[$n] ?? 0);
+            $b = (int) ($belanja[$n] ?? 0);
+            $baris[] = [
+                'sumber' => $n,
+                'pagu' => $p,
+                'rencana' => (int) ($rencana[$n] ?? 0),
+                'penerimaan' => (int) ($terima[$n] ?? 0),
+                'belanja' => $b,
+                'sisa' => $p - $b,
+                'serapan' => $p > 0 ? round($b * 100 / $p, 1) : null,
+            ];
+        }
+        usort($baris, fn ($a, $b) => $b['pagu'] <=> $a['pagu']);
+
+        $total = [
+            'pagu' => array_sum(array_column($baris, 'pagu')),
+            'rencana' => array_sum(array_column($baris, 'rencana')),
+            'penerimaan' => array_sum(array_column($baris, 'penerimaan')),
+            'belanja' => array_sum(array_column($baris, 'belanja')),
+        ];
+        $total['sisa'] = $total['pagu'] - $total['belanja'];
+        $total['serapan'] = $total['pagu'] > 0 ? round($total['belanja'] * 100 / $total['pagu'], 1) : null;
+
+        return view('laporan-arkas.realisasi-sumber', [
+            'baris' => $baris, 'total' => $total, 'tahun' => $tahun,
+        ]);
+    }
 
     public function rkasBulanan(Request $r)
     {

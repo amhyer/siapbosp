@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\ArsipController;
 use App\Http\Controllers\CekIntegritasController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DataSekolahController;
 use App\Http\Controllers\DinasController;
 use App\Http\Controllers\HapusDataController;
 use App\Http\Controllers\HppController;
@@ -13,6 +15,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PembukuanController;
 use App\Http\Controllers\PenandatanganController;
 use App\Http\Controllers\PenerimaanController;
+use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PerencanaanController;
 use App\Http\Controllers\ProfilController;
@@ -108,6 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan-arkas/rkas-bulanan', [LaporanArkasController::class, 'rkasBulanan'])->name('laporan-arkas.rkas-bulanan');
         Route::get('/laporan-arkas/rkas-tahap', [LaporanArkasController::class, 'rkasTahap'])->name('laporan-arkas.rkas-tahap');
         Route::get('/laporan-arkas/realisasi', [LaporanArkasController::class, 'realisasi'])->name('laporan-arkas.realisasi');
+        Route::get('/laporan-arkas/realisasi-sumber-dana', [LaporanArkasController::class, 'realisasiSumber'])->name('laporan-arkas.realisasi-sumber');
         Route::get('/laporan-arkas/realisasi.csv', [LaporanArkasController::class, 'realisasiCsv'])->name('laporan-arkas.realisasi.csv');
         Route::get('/laporan-arkas/penerimaan-belanja', [LaporanArkasController::class, 'penerimaanBelanja'])->name('laporan-arkas.penerimaan-belanja');
         Route::get('/laporan-arkas/habis-pakai', [LaporanArkasController::class, 'habisPakai'])->name('laporan-arkas.habis-pakai');
@@ -184,6 +188,30 @@ Route::middleware('auth')->group(function () {
             Route::get('/utility/hapus-data', [HapusDataController::class, 'form'])->name('hapusdata.form');
             Route::delete('/utility/hapus-data', [HapusDataController::class, 'proses'])->name('hapusdata.proses');
         });
+
+        // ===== ARSIP =====
+        Route::get('/arsip/rkas', [ArsipController::class, 'rkas'])->name('arsip.rkas');
+        Route::get('/arsip/bku', [ArsipController::class, 'bku'])->name('arsip.bku');
+        Route::get('/arsip/pajak', [ArsipController::class, 'pajak'])->name('arsip.pajak');
+        Route::get('/arsip/impor', [ArsipController::class, 'impor'])->name('arsip.impor');
+        Route::get('/arsip/ekspor', [ArsipController::class, 'ekspor'])->name('arsip.ekspor');
+
+        // ===== DATA SEKOLAH =====
+        Route::get('/data-sekolah/tahun-anggaran', [DataSekolahController::class, 'tahun'])->name('datasekolah.tahun');
+        Route::get('/data-sekolah/sumber-dana', [DataSekolahController::class, 'sumberDana'])->name('datasekolah.sumber-dana');
+
+        // ===== PENGATURAN =====
+        Route::get('/pengaturan/koneksi-arkas', [PengaturanController::class, 'koneksi'])->name('pengaturan.koneksi');
+        Route::post('/pengaturan/koneksi-arkas/uji', [PengaturanController::class, 'koneksiUji'])->name('pengaturan.koneksi.uji');
+        Route::get('/pengaturan/sinkronisasi', [PengaturanController::class, 'sinkronisasi'])->name('pengaturan.sinkronisasi');
+        Route::post('/pengaturan/sinkronisasi/jalankan', [PengaturanController::class, 'sinkronisasiJalankan'])->name('pengaturan.sinkronisasi.jalankan');
+        Route::get('/pengaturan/backup', [PengaturanController::class, 'backup'])->name('pengaturan.backup');
+        Route::get('/pengaturan/backup/unduh', [PengaturanController::class, 'backupUnduh'])->name('pengaturan.backup.unduh');
+        Route::get('/pengaturan/deteksi-versi', [PengaturanController::class, 'versi'])->name('pengaturan.versi');
+        Route::get('/pengaturan/log', [PengaturanController::class, 'log'])->name('pengaturan.log');
+
+        // ===== DAFTAR KEGIATAN (kode kegiatan ARKAS) =====
+        Route::get('/penganggaran/kegiatan', [ReferensiController::class, 'kegiatan'])->name('penganggaran.kegiatan');
     });
 
     // ===== PANEL DINAS =====

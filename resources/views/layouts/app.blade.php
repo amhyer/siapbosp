@@ -64,32 +64,41 @@
 {{-- Definisi grup menu sekolah (label, rute, status aktif) --}}
 @php
   $menuSekolah = [
-    ['label'=>'📝 Perencanaan','open'=>request()->is('perencanaan*')||request()->is('rkas*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>[
-      ['🧭 PBD → RKM → RKT', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
-      ['🏷️ Standar Harga (SSH/SBU)', route('perencanaan.ssh'), request()->routeIs('perencanaan.ssh*')],
-      ['RKAS-BOSP (Kertas Kerja)', route('rkas.index'), request()->is('rkas*')],
-      ['⬆️ Impor ARKAS', route('impor-arkas.form'), request()->is('impor-arkas*')],
-      ['🗺️ HPP Pemetaan', route('hpp.index'), request()->is('hpp*')],
+    ['label'=>'🏠 Beranda','open'=>request()->routeIs('dashboard'),'items'=>[
+      ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
     ]],
-    ['label'=>'📥 Penerimaan','open'=>request()->is('penerimaan*'),'items'=>[
-      ['Pendapatan', route('pendapatan.index'), request()->is('penerimaan/pendapatan*')],
+    ['label'=>'🏫 Data Sekolah','open'=>request()->is('utility/profil*')||request()->is('utility/penandatangan*')||request()->is('data-sekolah*')||request()->is('pengaturan/sinkronisasi*'),'items'=>[
+      ['Profil Sekolah', route('profil.edit'), request()->is('utility/profil*')],
+      ['Penanggung Jawab', route('penandatangan'), request()->is('utility/penandatangan*')],
+      ['Tahun Anggaran', route('datasekolah.tahun'), request()->is('datasekolah/tahun*')],
+      ['Sumber Dana', route('datasekolah.sumber-dana'), request()->is('datasekolah/sumber-dana*')],
+      ['Status Sinkronisasi', route('pengaturan.sinkronisasi'), request()->is('pengaturan/sinkronisasi*')],
+    ]],
+    ['label'=>'📝 Penganggaran','open'=>request()->is('rkas*')||request()->is('perencanaan*')||request()->is('penganggaran*')||request()->is('laporan-arkas/rkas*'),'items'=>[
+      ['Kertas Kerja (RKAS)', route('rkas.index'), request()->is('rkas*')],
+      ['Daftar Kegiatan', route('penganggaran.kegiatan'), request()->is('penganggaran/kegiatan*')],
+      ['Anggaran Bulanan (ARKAS)', route('laporan-arkas.rkas-bulanan'), request()->is('laporan-arkas/rkas-bulanan')],
+      ['Review & Proporsi Anggaran', route('rkas.index'), false],
+      ['🧭 PBD → RKM → RKT (Perencanaan)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
+    ]],
+    ['label'=>'📒 Penatausahaan','open'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*'),'items'=>[
+      ['Buku Kas Umum', route('bku'), request()->routeIs('bku')],
+      ['Penerimaan', route('pendapatan.index'), request()->is('penerimaan/pendapatan*')],
       ['💵 Tarik Tunai (Bank→Tunai)', route('ambil.index'), request()->is('penerimaan/ambil*')],
       ['💵 Setor Tunai (Tunai→Bank)', route('mutasi.index'), request()->is('penerimaan/mutasi*')],
-    ]],
-    ['label'=>'📤 Pengeluaran','open'=>request()->is('pengeluaran*'),'items'=>[
-      ['Belanja', route('belanja.index'), request()->is('pengeluaran/belanja*')],
-      ['Setor Pajak / Utang', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
-    ]],
-    ['label'=>'📒 Pembukuan','open'=>request()->is('pembukuan*')||request()->is('rekonsiliasi*'),'items'=>[
-      ['BKU Bulanan', route('bku'), request()->routeIs('bku')],
-      ['Kas Tunai & Bank', route('kas'), request()->routeIs('kas')],
+      ['Pembelanjaan', route('belanja.index'), request()->is('pengeluaran/belanja*')],
+      ['Kas dan Bank', route('kas'), request()->routeIs('kas')],
+      ['Pajak', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
+      ['Buku Pembantu', route('pembukuan.bukuPembantu'), request()->routeIs('pembukuan.bukuPembantu')],
+      ['Penutupan BKU', route('laporan-arkas.penutupan-kas'), request()->is('laporan-arkas/penutupan-kas')],
       ['📄 SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
-      ['🔍 Rekonsiliasi ARKAS', route('rekonsiliasi.form'), request()->is('rekonsiliasi*')],
     ]],
-    ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*'),'items'=>[
+    ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*')||request()->is('rekonsiliasi*'),'items'=>[
       ['LPJ & Tutup Buku per Tahap', route('laporan.tahap'), request()->routeIs('laporan.tahap')],
       ['📦 LPJ per Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
       ['🧾 Pajak Triwulan', route('laporan.pajak-tw'), request()->routeIs('laporan.pajak-tw')],
+      ['Realisasi per Sumber Dana', route('laporan-arkas.realisasi-sumber'), request()->is('laporan-arkas/realisasi-sumber')],
+      ['🔍 Rekonsiliasi ARKAS', route('rekonsiliasi.form'), request()->is('rekonsiliasi*')],
       ['Format ARKAS', '#', false],
       ['RKAS Bulanan (ARKAS)', route('laporan-arkas.rkas-bulanan'), request()->is('laporan-arkas/rkas-bulanan')],
       ['Rincian RKAS per Tahap (ARKAS)', route('laporan-arkas.rkas-tahap'), request()->is('laporan-arkas/rkas-tahap')],
@@ -101,9 +110,29 @@
       ['Daftar Nota (ARKAS)', route('laporan-arkas.nota'), request()->is('laporan-arkas/daftar-nota')],
       ['Register Penutupan Kas (ARKAS)', route('laporan-arkas.penutupan-kas'), request()->is('laporan-arkas/penutupan-kas')],
     ]],
-    ['label'=>'⚙️ Utility','open'=>request()->is('utility*'),'items'=>array_values(array_filter([
-      ['Profil Sekolah', route('profil.edit'), request()->is('utility/profil*')],
-      ['Penandatangan', route('penandatangan'), request()->is('utility/penandatangan*')],
+    ['label'=>'🗄️ Arsip','open'=>request()->is('arsip*'),'items'=>[
+      ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
+      ['BKU Ditutup', route('arsip.bku'), request()->is('arsip/bku*')],
+      ['Dokumen Pajak', route('arsip.pajak'), request()->is('arsip/pajak*')],
+      ['Riwayat Impor', route('arsip.impor'), request()->is('arsip/impor*')],
+      ['Riwayat Ekspor', route('arsip.ekspor'), request()->is('arsip/ekspor*')],
+    ]],
+    ['label'=>'🧩 Data Referensi','open'=>request()->is('referensi*')||request()->is('perencanaan/ssh*'),'items'=>[
+      ['Referensi Master', route('referensi'), request()->routeIs('referensi')],
+      ['Program BOSP', route('referensi', ['tab' => 'program']), false],
+      ['Kegiatan (Kode ARKAS)', route('penganggaran.kegiatan'), request()->is('penganggaran/kegiatan*')],
+      ['Satuan', route('referensi', ['tab' => 'satuan']), false],
+      ['Uraian', route('referensi', ['tab' => 'uraian']), false],
+      ['PTK', route('referensi', ['tab' => 'ptk']), false],
+      ['🏷️ Referensi Harga (SSH/SBU)', route('perencanaan.ssh'), request()->routeIs('perencanaan.ssh*')],
+    ]],
+    ['label'=>'⚙️ Pengaturan','open'=>request()->is('pengaturan*')||request()->is('utility*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>array_values(array_filter([
+      ['🔌 Koneksi ARKAS', route('pengaturan.koneksi'), request()->is('pengaturan/koneksi*')],
+      ['⬆️ Impor Database (ARKAS)', route('impor-arkas.form'), request()->is('impor-arkas*')],
+      ['🗺️ Pemetaan Data (HPP)', route('hpp.index'), request()->is('hpp*')],
+      ['💾 Backup Data', route('pengaturan.backup'), request()->is('pengaturan/backup*')],
+      ['🔎 Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],
+      ['📋 Log Sistem', route('pengaturan.log'), request()->is('pengaturan/log*')],
       ['🔐 Ganti Password', route('password.edit'), request()->routeIs('password.edit')],
       $u->role === 'operator' ? ['🗑️ Hapus Data', route('hapusdata.form'), request()->is('utility/hapus-data*')] : null,
     ]))],

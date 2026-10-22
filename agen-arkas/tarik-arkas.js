@@ -78,6 +78,8 @@ function bangunExcel(db, tahun) {
   isi('Ref_Kode', q('SELECT * FROM ref_kode LIMIT 20000'));
   isi('Ref_Rekening', q('SELECT * FROM ref_rekening LIMIT 5000'));
   isi('Ref_Sumber_Dana', q('SELECT * FROM ref_sumber_dana'));
+  isi('Ref_Satuan', q('SELECT * FROM ref_satuan LIMIT 5000'));
+  isi('PTK', q('SELECT * FROM ptk WHERE soft_delete <> \'1\' LIMIT 20000'));
   return wb;
 }
 
@@ -107,6 +109,64 @@ function bacaNpsnLokal() {
     db.close();
     return row ? String(row.npsn) : null;
   } catch (e) { return null; }
+}
+
+// Deteksi versi aplikasi ARKAS dari `app_config.version_app` (mis. 4.3.0),
+// plus data operasional berguna: tahun aktif, tenggat penganggaran/penatausahaan,
+// batas pergeseran/perubahan, dan whitelist sumber dana bebas juknis.
+function bacaVersiArkas() {
+  const hasil = {
+    nama: null, version_app: null, tahun_aktif: null, app_config: 0,
+    ref_kode: 0, ref_rekening: 0, ptk: 0,
+    tenggat_penganggaran: null, tenggat_penatausahaan: null,
+    allow_pergeseran: null, allow_perubahan: null, whitelist_juknis: null,
+  };
+  try {
+    if (!fs.existsSync(DB_PATH)) return hasil;
+    const Database = muatDb();
+    const db = new Database(DB_PATH, { readonly: true });
+    db.pragma("cipher='sqlcipher'"); db.pragma('legacy=4'); db.pragma(`key='${DB_KEY}'`);
+    try {
+      const a = db.prepare('SELECT nama FROM app LIMIT 1').get();
+      if (a && a.nama) hasil.nama = String(a.nama);
+    } catch (e) { /* tabel app tidak ada */ }
+    const hitung = (sql) => { try { return db.prepare(sql).get().c || 0; } catch (e) { return 0; } };
+    hasil.app_config = hitung('SELECT COUNT(*) c FROM app_config');
+    hasil.ref_kode = hitung('SELECT COUNT(*) c FROM ref_kode');
+    hasil.ref_rekening = hitung('SELECT COUNT(*) c FROM ref_rekening');
+    hasil.ptk = hitung('SELECT COUNT(*) c FROM ptk');
+    const cfg = {};
+    try {
+      db.prepare('SELECT varname, varvalue FROM app_config').all().forEach((r) => { cfg[r.varname] = r.varvalue; });
+    } catch (e) { /* tidak ada app_config */ }
+    if (cfg.version_app) hasil.version_app = String(cfg.version_app);
+    if (cfg.tahun_aktif) hasil.tahun_aktif = String(cfg.tahun_aktif);
+    // Tenggat: ambil hanya untuk tahun aktif & sumber dana BOS Reguler (id 1).
+    const tenggat = (raw, kunci) => {
+      try {
+        const list = JSON.parse(raw || '[]');
+        const th = parseInt(cfg.tahun_aktif || '0', 10);
+        const cocok = list.filter((x) => parseInt(x.tahun, 10) === th && parseInt(x.id_ref_sumber_dana, 10) === 1);
+        return cocok.length ? String(cocok[0][kunci] || '') : null;
+      } catch (e) { return null; }
+    };
+    hasil.tenggat_penganggaran = tenggat(cfg.tenggat_penganggaran, 'tenggat_penganggaran');
+    hasil.tenggat_penatausahaan = tenggat(cfg.tenggat_penatausahaan, 'tenggat_penatausahaan');
+    if (cfg.count_allow_pergeseran) hasil.allow_pergeseran = String(cfg.count_allow_pergeseran);
+    if (cfg.count_allow_perubahan) {
+      try {
+        hasil.allow_perubahan = String((JSON.parse(cfg.count_allow_perubahan))[cfg.tahun_aktif] ?? '');
+      } catch (e) { hasil.allow_perubahan = String(cfg.count_allow_perubahan); }
+    }
+    if (cfg.whitelist_juknis) {
+      try {
+        const wl = JSON.parse(cfg.whitelist_juknis).find((x) => String(x.tahun) === String(cfg.tahun_aktif));
+        hasil.whitelist_juknis = wl ? JSON.stringify(wl.sumber_dana_id) : null;
+      } catch (e) { hasil.whitelist_juknis = null; }
+    }
+    db.close();
+  } catch (e) { /* db tidak bisa dibuka */ }
+  return hasil;
 }
 
 // Setup interaktif: tanpa argumen pun bisa — tinggal jawab pertanyaan.
@@ -160,7 +220,7 @@ async function bangunLokal(keluar, tahun) {
     const wb = bangunExcel(db, tahun);
     const buf = await wb.xlsx.writeBuffer();
     fs.writeFileSync(keluar, buf);
-    return { ok: true, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024) };
+    return { ok: true, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024), versi: bacaVersiArkas() };
   } finally {
     try { db.close(); } catch (_) {}
   }
@@ -224,7 +284,10 @@ async function tesKoneksi(server, token) {
     try {
       const cmd = process.argv[2] || 'kirim';
       if (cmd === 'info') {
-        console.log(JSON.stringify({ ok: true, adaDb: fs.existsSync(DB_PATH), npsnFile: bacaNpsnLokal() }));
+        console.log(JSON.stringify({
+          ok: true, adaDb: fs.existsSync(DB_PATH), npsnFile: bacaNpsnLokal(),
+          versi: bacaVersiArkas(),
+        }));
       } else if (cmd === 'tes') {
         console.log(JSON.stringify(await tesKoneksi(butuhFlag('--server'), butuhFlag('--token'))));
       } else if (cmd === 'lokal') {
