@@ -13,8 +13,8 @@ use Tests\TestCase;
 
 /**
  * Menu & halaman baru (hasil audit struktur menu):
- * - grup sidebar: Beranda, Data Sekolah, Penganggaran, Penatausahaan, Laporan,
- *   Arsip, Data Referensi, Pengaturan;
+ * - grup sidebar: Data Sekolah, Penganggaran, Penatausahaan, Laporan,
+ *   Arsip, Data Referensi, Pengaturan (Dashboard berupa tautan langsung);
  * - Arsip (RKAS disahkan, BKU ditutup, dokumen pajak, riwayat impor/ekspor);
  * - Data Sekolah (tahun anggaran, sumber dana);
  * - Pengaturan (koneksi ARKAS, sinkronisasi, backup, deteksi versi, log sistem);
@@ -44,13 +44,19 @@ class MenuDanArsipTest extends TestCase
         $this->actingAs($this->op);
     }
 
-    public function test_sidebar_memuat_delapan_grup_rancangan(): void
+    public function test_sidebar_tujuh_grup_dan_dashboard_langsung(): void
     {
         $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
 
-        foreach (['Beranda', 'Data Sekolah', 'Penganggaran', 'Penatausahaan', 'Laporan', 'Arsip', 'Data Referensi', 'Pengaturan'] as $grup) {
+        foreach (['Data Sekolah', 'Penganggaran', 'Penatausahaan', 'Laporan', 'Arsip', 'Data Referensi', 'Pengaturan'] as $grup) {
             $this->assertStringContainsString($grup, $html, 'grup menu '.$grup.' tak ada');
         }
+
+        preg_match('#<nav class="navw.*?</nav>#s', $html, $blok);
+        $nav = $blok[0] ?? '';
+        $this->assertStringContainsString('href="'.route('dashboard').'"', $nav, 'Dashboard bukan tautan langsung.');
+        $this->assertStringContainsString('📊 Dashboard', $nav);
+        $this->assertStringNotContainsString('Beranda', $nav, 'Induk menu Beranda seharusnya sudah dihapus.');
     }
 
     /** Tidak ada lagi dua menu dengan target sama (duplikat) & tak ada tautan mati. */
@@ -75,7 +81,7 @@ class MenuDanArsipTest extends TestCase
             $target[$href][] = $label;
         }
 
-        // Setiap URL hanya boleh muncul sekali sebagai menu (kecuali halaman beranda).
+        // Setiap URL hanya boleh muncul sekali sebagai menu (kecuali Dashboard).
         foreach ($target as $href => $label) {
             if ($href === url('/dashboard')) {
                 continue;

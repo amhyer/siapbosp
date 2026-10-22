@@ -207,11 +207,12 @@ sidebar (karena memakai `layouts.print`): **LPJ & Tutup Buku per Tahap** (`/lapo
 Hasil audit struktur menu terhadap keadaan aplikasi: 26 item sudah ada, 6 item perlu penyesuaian
 nama/posisi, dan 9 item belum ada — kini semuanya dikerjakan.
 
-### 19.1 Sidebar mengikuti 8 grup
+### 19.1 Sidebar: Dashboard langsung + 7 grup
+
+**📊 Dashboard** tampil sebagai tautan langsung paling atas (tanpa induk "Beranda"), lalu 7 grup:
 
 | Grup | Isi (semua terarah ke route nyata) |
 |---|---|
-| **🏠 Beranda** | Dashboard |
 | **🏫 Data Sekolah** | Profil Sekolah · Penanggung Jawab · **Tahun Anggaran** · **Sumber Dana** · **Status Sinkronisasi ke Pusat** |
 | **📝 Penganggaran** | Kertas Kerja (RKAS) · **Review & Proporsi Anggaran** · **Daftar Kegiatan** · Anggaran Bulanan (ARKAS) · PBD → RKM → RKT |
 | **📒 Penatausahaan** | Buku Kas Umum · Kas dan Bank · _Penerimaan:_ Pendapatan · Tarik Tunai · Setor Tunai · _Pengeluaran & Pajak:_ Pembelanjaan · Pajak (Setor & Utang) · Buku Pembantu · _Pelaporan:_ Penutupan BKU · SPTJM |
@@ -259,8 +260,9 @@ Tujuh temuan audit dibereskan:
 5. **Tautan "🧩 Referensi" ganda di sidebar sekolah dihapus** (menu Dinas tetap punya).
 6. **"Pajak" diperjelas** menjadi **"Pajak (Setor & Utang)"**; "Pajak Triwulan" dan "Dokumen Pajak"
    tetap terpisah sesuai konteks.
-7. **Penatausahaan diberi sub-judul** _Penerimaan_, _Pengeluaran & Pajak_, dan _Pelaporan_; tautan
-   Dashboard ganda di atas grup Beranda juga dihapus.
+7. **Penatausahaan diberi sub-judul** _Penerimaan_, _Pengeluaran & Pajak_, dan _Pelaporan_.
+8. **Induk "🏠 Beranda" dihapus** — Dashboard kini tautan langsung teratas, tidak lagi grup
+   satu-item; sidebar sekolah menjadi 7 grup.
 
 Penjaga regresi: `MenuDanArsipTest::test_tak_ada_menu_duplikat_atau_tautan_mati` memastikan setiap
 URL menu hanya muncul sekali dan semuanya dapat dibuka (200).
@@ -285,8 +287,8 @@ Juknis BOSP 2026 mulai berlaku) dan menampilkan peringatan bila masih di bawahny
 
 ### 19.5 Pengujian
 
-`MenuDanArsipTest` (12 test): 8 grup sidebar, 5 halaman arsip, 2 halaman data sekolah, 5
-halaman pengaturan (+ unduhan backup), laporan per sumber dana, tab referensi baru, daftar
-kegiatan, pembatasan akses role (Dinas tidak bisa membuka arsip sekolah), halaman *Review &
-Proporsi Anggaran* (label proporsi benar-benar tampil), serta penjaga anti-duplikat/tautan mati.
-Suite penuh: **149 test hijau (818 asersi)**.
+`MenuDanArsipTest` (12 test): 7 grup sidebar + Dashboard sebagai tautan langsung, 5 halaman
+arsip, 2 halaman data sekolah, 5 halaman pengaturan (+ unduhan backup), laporan per sumber dana,
+tab referensi baru, daftar kegiatan, pembatasan akses role (Dinas tidak bisa membuka arsip
+sekolah), halaman *Review & Proporsi Anggaran* (label proporsi benar-benar tampil), serta penjaga
+anti-duplikat/tautan mati. Suite penuh: **149 test hijau (820 asersi)**.

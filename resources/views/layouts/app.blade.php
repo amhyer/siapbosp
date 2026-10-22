@@ -64,9 +64,6 @@
 {{-- Definisi grup menu sekolah (label, rute, status aktif) --}}
 @php
   $menuSekolah = [
-    ['label'=>'🏠 Beranda','open'=>request()->routeIs('dashboard'),'items'=>[
-      ['Dashboard', route('dashboard'), request()->routeIs('dashboard')],
-    ]],
     ['label'=>'🏫 Data Sekolah','open'=>request()->is('utility/profil*')||request()->is('utility/penandatangan*')||request()->is('data-sekolah*'),'items'=>[
       ['Profil Sekolah', route('profil.edit'), request()->is('utility/profil*')],
       ['Penanggung Jawab', route('penandatangan'), request()->is('utility/penandatangan*')],
@@ -153,6 +150,8 @@
 
     <nav class="navw flex-1 gap-[2px] overflow-y-auto px-3 py-3" aria-label="Menu">
       @if(!$u->isDinas())
+        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'on' : '' }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif>📊 Dashboard</a>
+
         @foreach($menuSekolah as $grp)
         <div class="grp {{ $grp['open'] ? 'open' : '' }}">
           <button type="button" class="menu-btn" onclick="toggleGrp(this)" aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
