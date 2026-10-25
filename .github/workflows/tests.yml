@@ -42,7 +42,10 @@ jobs:
       - name: Jalankan test
         id: test-suite
         continue-on-error: true
-        run: php artisan test --compact 2>&1 | tee storage/logs/ci-tests.log
+        shell: bash
+        run: |
+          set -o pipefail
+          php artisan test --compact 2>&1 | tee storage/logs/ci-tests.log
 
       - name: Unggah log test jika gagal
         if: steps.test-suite.outcome == 'failure'
