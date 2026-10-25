@@ -176,8 +176,11 @@ class Arkas4Juknis2026Test extends TestCase
 
         $rkasMelanggar = RkasHeader::latest('id')->firstOrFail();
         $this->actingAs($this->operator)->post(route('rkas.aksi', $rkasMelanggar), ['aksi' => 'ajukan']);
-        $this->actingAs($this->kepsek)->post(route('rkas.aksi', $rkasMelanggar), ['aksi' => 'setujui']);
+        $this->actingAs($this->kepsek)
+            ->withSession(['password_hash_web' => (string) $this->kepsek->getAuthPassword()])
+            ->post(route('rkas.aksi', $rkasMelanggar), ['aksi' => 'setujui']);
         $this->actingAs($this->operator)
+            ->withSession(['password_hash_web' => (string) $this->operator->getAuthPassword()])
             ->post(route('rkas.aksi', $rkasMelanggar), ['aksi' => 'kirim_dinas'])
             ->assertSessionHas('error');
 
@@ -199,8 +202,11 @@ class Arkas4Juknis2026Test extends TestCase
 
         $rkasPatuh = RkasHeader::latest('id')->firstOrFail();
         $this->actingAs($this->operator)->post(route('rkas.aksi', $rkasPatuh), ['aksi' => 'ajukan']);
-        $this->actingAs($this->kepsek)->post(route('rkas.aksi', $rkasPatuh), ['aksi' => 'setujui']);
+        $this->actingAs($this->kepsek)
+            ->withSession(['password_hash_web' => (string) $this->kepsek->getAuthPassword()])
+            ->post(route('rkas.aksi', $rkasPatuh), ['aksi' => 'setujui']);
         $this->actingAs($this->operator)
+            ->withSession(['password_hash_web' => (string) $this->operator->getAuthPassword()])
             ->post(route('rkas.aksi', $rkasPatuh), ['aksi' => 'kirim_dinas'])
             ->assertSessionHas('ok');
         $this->assertSame('dikirim_dinas', $rkasPatuh->fresh()->status);

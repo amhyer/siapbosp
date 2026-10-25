@@ -61,12 +61,15 @@ jobs:
           for index, line in enumerate(lines):
               if 'FAILED' not in line:
                   continue
-              end = min(index + 16, len(lines))
-              for candidate in range(index + 1, end):
-                  if 'Tests:' in lines[candidate] or ('FAILED' in lines[candidate]):
-                      end = candidate
+              detail = [line.strip()]
+              for candidate in range(index + 1, min(index + 8, len(lines))):
+                  candidate_line = lines[candidate].strip()
+                  if candidate_line.startswith('at tests/') or candidate_line.startswith('2   tests/'):
+                      detail.append(candidate_line)
                       break
-              chunks.append('\n'.join(lines[index:end]))
+                  if candidate_line and not candidate_line.startswith(('─', '➜')):
+                      detail.append(candidate_line)
+              chunks.append('\n'.join(detail))
           summary = '\n\n'.join(chunks) or output[-18000:]
           summary = (summary + '\n' + next((line for line in reversed(lines) if line.strip().startswith('Tests:')), ''))[-18000:]
           escaped = summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
