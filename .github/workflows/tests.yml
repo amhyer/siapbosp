@@ -51,9 +51,12 @@ jobs:
         if: steps.test-suite.outcome == 'success'
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
-          lines = Path('storage/logs/ci-tests.log').read_text(errors='replace').splitlines()
+          output = Path('storage/logs/ci-tests.log').read_text(errors='replace')
+          output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', output)
+          lines = output.splitlines()
           result = next((line.strip() for line in reversed(lines) if line.strip().startswith('Tests:')), 'Test berhasil; ringkasan PHPUnit tidak ditemukan.')
           result = result.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           print(f'::notice title=Ringkasan PHPUnit::{result}')
