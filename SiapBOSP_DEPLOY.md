@@ -21,6 +21,8 @@ npm run build
 cp .env.example .env
 ```
 
+> `npm run build` **wajib**: `public/build/` tidak ikut repository (gitignored), sedangkan `layouts/app` dan `layouts/guest` memuat CSS lewat `@vite`. Tanpa hasil build, aplikasi memakai jalur darurat (`/tailwind.js` + gaya komponen di `layouts/_gaya-darurat.blade.php`) yang tampil mirip tetapi lebih lambat dan bergantung pada pemuatan skrip CDN lokal. Periksa setelah build: `ls public/build/manifest.json`. Rincian audit CSS per halaman ada di `docs/AUDIT-CSS-HALAMAN.md`.
+
 Edit `.env` sebelum melanjutkan. Minimal:
 
 ```dotenv

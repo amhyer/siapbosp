@@ -28,7 +28,11 @@
   .pt-10{padding-top:2.5rem}.text-2xl{font-size:24px}.text-xl{font-size:20px}.text-lg{font-size:18px}
   .tracking-wide{letter-spacing:.05em}.leading-7{line-height:1.75}
   .w-2\/3{width:66%}.whitespace-nowrap{white-space:nowrap}.font-mono{font-family:monospace}
-  .text-slate-400{color:#94a3b8}.bg-slate-50{background:#f8fafc}
+  .text-slate-400{color:#94a3b8}.text-slate-600{color:#475569}.text-emerald-700{color:#047857}
+  .bg-slate-50{background:#f8fafc}.bg-slate-100{background:#f1f5f9}.bg-emerald-100{background:#d1fae5}
+  .badge{display:inline-block;border-radius:999px;padding:.05rem .45rem;font-size:10px;font-weight:600}
+  /* Kelas ukuran arbitrer yang dipakai isi SPJ (Tailwind tak dimuat di cetak). */
+  .text-\[10px\]{font-size:10px}
   @media print{
     .nonprint{display:none !important}
     @page{size:A4;margin:1.5cm}

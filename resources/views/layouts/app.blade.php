@@ -13,20 +13,11 @@
 @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 @else
-    {{-- Fallback darurat bila aset Vite belum dibangun (jalankan: npm run build) --}}
+    {{-- Fallback darurat bila aset Vite belum dibangun (jalankan: npm run build).
+         Gaya komponen app.css dimuat bersama oleh layouts/_gaya-darurat supaya
+         halaman login (layouts.guest) juga tetap tampil benar. --}}
     <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
-    <style>
-      body{font-family:ui-sans-serif,system-ui,sans-serif}
-      .inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.45rem .7rem;font-size:.875rem;background:#fff}
-      .btn{display:inline-flex;align-items:center;gap:.4rem;background:#4f46e5;color:#fff;font-weight:600;font-size:.85rem;padding:.5rem 1rem;border-radius:.5rem}
-      .btn2{background:#fff;color:#334155;border:1px solid #cbd5e1;border-radius:.5rem;padding:.5rem 1rem;font-size:.85rem;font-weight:600}
-      .card{background:#fff;border-radius:.8rem;box-shadow:0 1px 3px rgb(15 23 42/.08);padding:1.1rem}
-      .tbl{width:100%;border-collapse:collapse;font-size:.85rem}
-      .tbl th{background:#f1f5f9;text-align:left;padding:.55rem .7rem}
-      .tbl td{padding:.5rem .7rem;border-bottom:1px solid #eef2f7}
-      .num{text-align:right;white-space:nowrap}
-      .badge{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.72rem;font-weight:600}
-    </style>
+    @include('layouts._gaya-darurat')
 @endif
 <style>
   /* Aturan cetak untuk halaman aplikasi: kerangka (sidebar, header, footer,

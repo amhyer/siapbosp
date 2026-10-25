@@ -14,6 +14,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 @else
     <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
+    @include('layouts._gaya-darurat')
 @endif
 </head>
 <body class="min-h-screen bg-slate-950">
