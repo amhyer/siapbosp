@@ -255,7 +255,7 @@ Tombol **Ajukan ke Kepsek** otomatis nonaktif (`@disabled`) selama ada blokir. P
 
 **Perbaikan ikutan (penting):** batas uraian ARKAS 4 adalah **500 karakter** dan form SiapBOSP sudah memakainya (`maxlength=500`, `max:500`), tetapi kolom `rkas_details.uraian` masih **VARCHAR(255)** — isian 256–500 karakter lolos validasi lalu terpotong (MySQL longgar) atau gagal simpan (PostgreSQL). Migrasi `2026_10_26_000001_widen_rkas_details_uraian.php` melebarkannya ke 500. Karena setelah itu uraian > 500 tidak mungkin tersimpan, pemeriksaan uraian tidak dijadikan item gerbang.
 
-### P0-3 — Satu halaman Arsip
+### P0-3 — Satu halaman Arsip · ✅ sudah diimplementasikan
 
 **Masalah.** 5 halaman arsip, dan `arsip/bku` bahkan tanpa filter.
 
@@ -266,15 +266,18 @@ Jenis dokumen: [RKAS disahkan ▾]   Sumber dana: [Semua ▾]   Tahun: [2026 ▾
 Tampilan: (•) Akumulasi   ( ) per Sumber Dana        [🖨 Cetak daftar]
 ```
 
-Bobot pekerjaan: sedang. Rute lama (`arsip.rkas`, `arsip.bku`, `arsip.pajak`) tetap hidup sebagai filter-preset agar tautan lama tidak mati.
+**Yang sudah jadi:** `GET /arsip` (`arsip.index`, `ArsipController::index`) — tiga filter sejajar (Format × Sumber dana × Tahun), hanya memuat dokumen sah (RKAS disahkan/dikunci + BKU yang sudah ditutup), tiap baris punya tombol Buka & Cetak. Rute lama (`arsip.rkas`, `arsip.bku`, `arsip.pajak`, impor/ekspor) tetap hidup sebagai filter-preset agar tautan lama tidak mati.
 
-### P1-4 — Kartu per sumber dana sebagai halaman depan
+### P1-4 — Halaman depan Penganggaran (tab sumber dana + baris per tahun) · ✅ sudah diimplementasikan
 
-Ganti `rkas.index` dari tabel menjadi grid kartu (contoh visual: `docs/mockup-paritas-arkas4.html`). Tiap kartu: nama sumber dana, tahun, pagu, terpakai, **status**, dan 4 ikon: 👁 lihat · 🖨 cetak · 🗑 hapus (**nonaktif bila `disahkan`/`dikunci`**) · ⚙ aksi (Ajukan/Revisi/Pergeseran/Perubahan). Riwayat tahun di sisi kanan (dropdown tahun).
+**Yang sudah jadi:** `rkas.index` memakai **tab sumber dana** (`RkasHeader::TAB_SUMBER_DANA`) dan **satu baris per tahun anggaran** dengan riwayat 3 tahun — persis ARKAS 4. Revisi pada tahun yang sama dilipat; seluruh revisi tetap dapat dibuka lewat tombol **Riwayat (n)**. Tahun aktif tanpa dokumen menawarkan **Aktivasi Kertas Kerja**; tahun lampau tanpa dokumen diberi chip *Nonaktif - Lewat Batas*. Tautan lama `?sumber=…` tetap dihormati.
 
-### P1-5 — Strip tab Jan–Des + aksi inline di BKU
+Ikon hapus **tidak** ditambahkan karena belum ada rute hapus RKAS — lebih baik tidak ada tombol daripada tombol yang tidak berfungsi.
 
-- Ganti `<input type="month">` dengan **12 tab** (pertahankan input bulan di kanan sebagai lompat cepat).
+### P1-5 — Grid 12 kotak bulan di BKU · ✅ sudah diimplementasikan (aksi inline belum)
+
+- **Sudah:** grid 12 kotak bulan (4×3) di **atas** tabel BKU sebagai pemilih bulan utama, dengan tanda ✓ untuk bulan
+  yang sudah selesai/tertutup; `<input type="month">` dipertahankan sebagai "Lompat ke bulan".
 - Tambah `+ Tambah Pembelanjaan` **di dalam** lembar BKU (dewasa ini harus pindah menu).
 - Tambah **Tarik Tunai / Setor Tunai** sebagai tombol di lembar (rute `ambil`/`mutasi` sudah ada).
 - **Kilat kuning** pada baris yang baru disimpan (`?baru={id}` + CSS animation).
