@@ -100,7 +100,7 @@ class TarikArkasTest extends TestCase
 
         try {
             $path = TarikArkasService::pathDb();
-            $this->assertStringEndsWith('\\\\Arkas\\\\arkas.db', $path);
+            $this->assertStringEndsWith('\\Arkas\\arkas.db', $path);
         } finally {
             $appdataSebelumnya === false
                 ? putenv('APPDATA')
