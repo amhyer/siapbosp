@@ -187,6 +187,90 @@ class AsetHalamanTest extends TestCase
             ->assertExitCode(0);
     }
 
+    /**
+     * Aset hasil `npm run build` WAJIB ikut repository.
+     *
+     * Laptop bendahara (dan paket portable) tidak punya Node.js. Sebelum aset
+     * dikomit, setiap clone/paket tanpa `public/build` tampil polos tanpa CSS.
+     */
+    public function test_aset_build_ikut_repository(): void
+    {
+        Aset::pakaiDirektori(null);
+
+        $this->assertFileExists(Aset::berkasManifest(),
+            'public/build/manifest.json tidak ada — halaman akan tampil polos di mesin tanpa Node.js. '
+            .'Jalankan: npm ci && npm run build');
+        $this->assertSame([], Aset::masalahBuild(),
+            'Manifest build ada tetapi berkas rujukannya tidak lengkap.');
+        $this->assertSame(Aset::BUILD, Aset::sumber(),
+            'Aset build yang dikomit harus dipakai sebagai sumber CSS default.');
+
+        $css = $this->cssBuild();
+        $this->assertNotSame('', $css);
+        $this->assertGreaterThan(50_000, strlen($css),
+            'CSS hasil build terlalu kecil — kemungkinan build gagal separuh.');
+        $this->assertStringContainsString('.inp', $css, 'CSS hasil build tidak memuat kelas komponen.');
+    }
+
+    /**
+     * CSS yang dikomit tidak boleh ketinggalan dari sumbernya.
+     *
+     * Setiap kelas di `@layer components` resources/css/app.css harus ada di
+     * public/build/assets/app-*.css. Bila gagal: jalankan `npm run build` lalu
+     * komit ulang hasilnya.
+     */
+    public function test_css_build_memuat_semua_kelas_komponen(): void
+    {
+        $sumber = (string) file_get_contents(resource_path('css/app.css'));
+        $awal = strpos($sumber, '@layer components');
+        $this->assertNotFalse($awal);
+
+        $buka = strpos($sumber, '{', $awal);
+        $dalam = 0;
+        $komponen = '';
+        for ($i = $buka, $n = strlen($sumber); $i < $n; $i++) {
+            if ($sumber[$i] === '{') {
+                $dalam++;
+            } elseif ($sumber[$i] === '}') {
+                $dalam--;
+                if ($dalam === 0) {
+                    $komponen = substr($sumber, $buka + 1, $i - $buka - 1);
+                    break;
+                }
+            }
+        }
+
+        preg_match_all('/\.([A-Za-z][A-Za-z0-9_-]*)/', $komponen, $m);
+        $kelas = array_values(array_unique($m[1]));
+        $this->assertNotSame([], $kelas);
+
+        // Escape CSS dibuka: `.w-2\/3` pada berkas hasil build.
+        $css = str_replace('\\', '', $this->cssBuild());
+
+        $hilang = [];
+        foreach ($kelas as $kelasSatu) {
+            if (! preg_match('/\.'.preg_quote($kelasSatu, '/').'(?![\w-])/', $css)) {
+                $hilang[] = $kelasSatu;
+            }
+        }
+
+        $this->assertSame([], $hilang,
+            'CSS hasil build ketinggalan dari resources/css/app.css (kelas: '.implode(', ', $hilang)
+            .'). Jalankan npm run build lalu komit public/build.');
+    }
+
+    /** Gabungan seluruh berkas CSS di public/build/assets. */
+    private function cssBuild(): string
+    {
+        $berkas = glob(public_path('build/assets').DIRECTORY_SEPARATOR.'*.css') ?: [];
+        $css = '';
+        foreach ($berkas as $satu) {
+            $css .= (string) file_get_contents($satu);
+        }
+
+        return $css;
+    }
+
     /** Nilai satu direktif CSP tanpa tertukar dengan direktif berawalan sama. */
     private function direktif(string $csp, string $nama): string
     {

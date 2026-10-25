@@ -23,7 +23,9 @@ agen-arkas/dist/
 agen-arkas/dist-portable/
 agen-arkas/gui/dist/
 *.zip
-/public/build
+# Aset hasil `npm run build` DIKOMIT: laptop bendahara tidak punya Node.js,
+# dan halaman yang dibuka tanpa public/build tampil tanpa CSS sama sekali.
+# Jalankan ulang build setiap kali resources/css atau resources/js berubah.
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
