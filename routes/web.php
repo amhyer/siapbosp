@@ -153,6 +153,8 @@ Route::middleware('auth')->group(function () {
     // ===== PANEL SEKOLAH =====
     Route::middleware('role:operator,kepsek')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        // Bantuan & panduan (padanan Tutorial/Pertanyaan Umum di sidebar ARKAS 4).
+        Route::view('/bantuan', 'bantuan')->name('bantuan');
 
         // ---- Hulu Pra-ARKAS: PBD/Rapor Pendidikan -> RKM -> RKT + Standar Harga (SSH/SBU) ----
         Route::get('/perencanaan', [PerencanaanController::class, 'index'])->name('perencanaan.index');

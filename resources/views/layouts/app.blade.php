@@ -64,16 +64,17 @@
   $tahunAktif = (int) session('tahun', now()->year);
 @endphp
 
-{{-- Definisi grup menu sekolah (label, rute, status aktif) --}}
+{{-- =====================================================================
+     Definisi menu sekolah.
+     Struktur mengikuti ARKAS 4 agar operator yang sudah terbiasa dengan
+     ARKAS langsung menemukan letak menunya:
+       · 3 area kerja di sidebar: Penganggaran, Penatausahaan, Arsip
+       · Data Sekolah pindah ke dropdown profil di topbar (ARKAS: Profil ▾)
+       · Laporan/Referensi/Pengaturan tetap ada di bawah pemisah karena
+         SiapBOSP punya fitur yang tidak ada di ARKAS 4.
+     ===================================================================== --}}
 @php
-  $menuSekolah = [
-    ['label'=>'🏫 Data Sekolah','open'=>request()->is('utility/profil*')||request()->is('utility/penandatangan*')||request()->is('data-sekolah*'),'items'=>[
-      ['Profil Sekolah', route('profil.edit'), request()->is('utility/profil*')],
-      ['Penanggung Jawab', route('penandatangan'), request()->is('utility/penandatangan*')],
-      ['Tahun Anggaran', route('datasekolah.tahun'), request()->is('data-sekolah/tahun*')],
-      ['Sumber Dana', route('datasekolah.sumber-dana'), request()->is('data-sekolah/sumber-dana*')],
-      ['Status Sinkronisasi ke Pusat', route('datasekolah.sinkronisasi'), request()->is('data-sekolah/sinkronisasi*')],
-    ]],
+  $menuUtama = [
     ['label'=>'📝 Penganggaran','open'=>request()->is('rkas*')||request()->is('perencanaan*')||request()->is('penganggaran*'),'items'=>[
       ['Kertas Kerja (RKAS)', route('rkas.index'), request()->is('rkas*')],
       ['Review & Proporsi Anggaran', route('penganggaran.review'), request()->is('penganggaran/review*')],
@@ -96,6 +97,16 @@
       ['Penutupan BKU', route('penatausahaan.penutupan-bku'), request()->is('penatausahaan/penutupan-bku')],
       ['📄 SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
     ]],
+    ['label'=>'🗄️ Arsip','open'=>request()->is('arsip*'),'items'=>[
+      ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
+      ['BKU Ditutup', route('arsip.bku'), request()->is('arsip/bku*')],
+      ['Dokumen Pajak', route('arsip.pajak'), request()->is('arsip/pajak*')],
+      ['Riwayat Impor', route('arsip.impor'), request()->is('arsip/impor*')],
+      ['Riwayat Ekspor', route('arsip.ekspor'), request()->is('arsip/ekspor*')],
+    ]],
+  ];
+
+  $menuTambahan = [
     ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*'),'items'=>[
       ['LPJ & Tutup Buku per Tahap', route('laporan.tahap'), request()->routeIs('laporan.tahap')],
       ['📦 LPJ per Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
@@ -110,13 +121,6 @@
       ['Realisasi Modal (ARKAS)', route('laporan-arkas.modal'), request()->is('laporan-arkas/modal')],
       ['Daftar Kas Umum (ARKAS)', route('laporan-arkas.kas-umum'), request()->is('laporan-arkas/daftar-kas-umum')],
       ['Daftar Nota (ARKAS)', route('laporan-arkas.nota'), request()->is('laporan-arkas/daftar-nota')],
-    ]],
-    ['label'=>'🗄️ Arsip','open'=>request()->is('arsip*'),'items'=>[
-      ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
-      ['BKU Ditutup', route('arsip.bku'), request()->is('arsip/bku*')],
-      ['Dokumen Pajak', route('arsip.pajak'), request()->is('arsip/pajak*')],
-      ['Riwayat Impor', route('arsip.impor'), request()->is('arsip/impor*')],
-      ['Riwayat Ekspor', route('arsip.ekspor'), request()->is('arsip/ekspor*')],
     ]],
     ['label'=>'🧩 Data Referensi','open'=>request()->is('referensi*')||request()->is('perencanaan/ssh*'),'items'=>[
       ['Referensi Master', route('referensi'), request()->routeIs('referensi')],
@@ -133,6 +137,16 @@
       $u->role === 'operator' ? ['🗑️ Hapus Data', route('hapusdata.form'), request()->is('utility/hapus-data*')] : null,
     ]))],
   ];
+
+  // Isi dropdown profil di topbar (padanan "Data Penanggung Jawab" + Keluar di ARKAS 4).
+  $menuProfil = [
+    ['Profil Sekolah', route('profil.edit'), request()->is('utility/profil*')],
+    ['Data Penanggung Jawab', route('penandatangan'), request()->is('utility/penandatangan*')],
+    ['Tahun Anggaran', route('datasekolah.tahun'), request()->is('data-sekolah/tahun*')],
+    ['Sumber Dana', route('datasekolah.sumber-dana'), request()->is('data-sekolah/sumber-dana*')],
+    ['Status Sinkronisasi ke Pusat', route('datasekolah.sinkronisasi'), request()->is('data-sekolah/sinkronisasi*')],
+  ];
+
 @endphp
 
 <div class="nonprint fixed inset-0 z-30 hidden bg-slate-900/50 backdrop-blur-[1px] lg:hidden" id="sidebar-overlay" data-close-sidebar aria-hidden="true"></div>
@@ -155,7 +169,30 @@
       @if(!$u->isDinas())
         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'on' : '' }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif>📊 Dashboard</a>
 
-        @foreach($menuSekolah as $grp)
+        {{-- 3 area kerja ARKAS 4 --}}
+        <div class="navw-utama">
+          @foreach($menuUtama as $grp)
+          <div class="grp {{ $grp['open'] ? 'open' : '' }}">
+            <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
+              <span>{{ $grp['label'] }}</span><span class="chev">▾</span>
+            </button>
+            <div class="sub {{ $grp['open'] ? '' : 'hidden' }}">
+              @foreach($grp['items'] as [$label, $href, $aktif])
+                @if($href === '#')
+                  <p class="pointer-events-none select-none px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{{ $label }}</p>
+                @else
+                  <a href="{{ $href }}" class="{{ $aktif ? 'on' : '' }}" @if($aktif) aria-current="page" @endif>{{ $label }}</a>
+                @endif
+              @endforeach
+            </div>
+          </div>
+          @endforeach
+        </div>
+
+        {{-- Fitur SiapBOSP yang tidak ada padanannya di ARKAS 4 --}}
+        <div class="navw-sep" role="presentation"><span>Menu Lain</span></div>
+
+        @foreach($menuTambahan as $grp)
         <div class="grp {{ $grp['open'] ? 'open' : '' }}">
           <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
             <span>{{ $grp['label'] }}</span><span class="chev">▾</span>
@@ -192,8 +229,16 @@
       @endif
     </nav>
 
-    <div class="border-t border-white/10 p-3">
-      <div class="flex items-center gap-2.5 rounded-xl bg-white/5 px-3 py-2.5">
+    <div class="border-t border-white/10 px-3 py-2.5">
+      @if(!$u->isDinas())
+        <a href="{{ route('bantuan') }}" class="navw-util {{ request()->routeIs('bantuan') ? 'on' : '' }}">
+          <span aria-hidden="true">ⓘ</span><span>Bantuan &amp; Panduan</span>
+        </a>
+        <a href="{{ route('pengaturan.versi') }}" class="navw-util {{ request()->is('pengaturan/deteksi-versi*') ? 'on' : '' }}">
+          <span aria-hidden="true">↻</span><span>Perbarui Aplikasi</span>
+        </a>
+      @endif
+      <div class="mt-2 flex items-center gap-2.5 rounded-xl bg-white/5 px-3 py-2.5">
         <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600/30 text-sm font-bold text-indigo-200">{{ mb_substr($u->name ?? 'U', 0, 1) }}</span>
         <div class="min-w-0 text-xs">
           <div class="truncate font-semibold text-slate-100">{{ $u->name }}</div>
@@ -259,9 +304,26 @@
               @for($y = 2023; $y <= 2028; $y++) <option value="{{ $y }}" @selected($tahunAktif === $y)>{{ $y }}</option> @endfor
             </select>
           </form>
-          <form method="post" action="{{ route('logout') }}">@csrf
-            <button class="btn2 btn-sm !text-rose-600" title="Keluar dari aplikasi">Keluar ⏻</button>
-          </form>
+          {{-- Dropdown profil ala ARKAS 4: nama sekolah + data sekolah + Keluar --}}
+          <details class="relative" data-dropdown>
+            <summary class="flex cursor-pointer select-none list-none items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 hover:bg-slate-50 [&amp;::-webkit-details-marker]:hidden" title="Data sekolah &amp; keluar">
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">{{ mb_substr($u->name ?? 'U', 0, 1) }}</span>
+              <span class="hidden max-w-[15rem] truncate text-[12.5px] font-semibold text-slate-700 sm:block">{{ $u->school->nama ?? 'Dinas Pendidikan' }}</span>
+              <span class="text-[10px] text-slate-400" aria-hidden="true">▾</span>
+            </summary>
+            <div class="absolute right-0 z-50 mt-2 w-[17.5rem] rounded-2xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl">
+              <p class="px-2.5 pb-1 pt-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Data Sekolah</p>
+              @foreach($menuProfil as [$label, $href, $aktif])
+                <a href="{{ $href }}" class="block rounded-xl px-2.5 py-2 text-[12.5px] {{ $aktif ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-slate-700 hover:bg-slate-100' }}">
+                  {{ $label }}
+                </a>
+              @endforeach
+              <div class="my-1 border-t border-slate-100"></div>
+              <form method="post" action="{{ route('logout') }}">@csrf
+                <button class="w-full rounded-xl px-2.5 py-2 text-left text-[12.5px] font-semibold text-rose-600 hover:bg-rose-50" title="Keluar dari aplikasi">Keluar ⏻</button>
+              </form>
+            </div>
+          </details>
         </div>
       </div>
     </header>

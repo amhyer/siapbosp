@@ -103,6 +103,14 @@
     margin-left: 1.25rem; display: flex; flex-direction: column; gap: .125rem;
     border-left: 1px solid rgb(255 255 255 / .15); padding: .25rem 0 .25rem .75rem;
   }
+  .navw-utama { margin-bottom: .25rem; display: flex; flex-direction: column; gap: 2px; }
+  .navw-utama > .grp > .menu-btn { padding-block: .625rem; font-size: 14.5px; font-weight: 700; color: #fff; }
+  .navw-utama > .grp.open > .menu-btn { background: rgb(255 255 255 / .1); }
+  .navw-sep { margin-block: .5rem; display: flex; align-items: center; gap: .5rem; padding-inline: .75rem; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
+  .navw-sep span { flex-shrink: 0; }
+  .navw-util { display: flex; align-items: center; gap: .625rem; border-radius: .75rem; padding: .5rem .75rem; font-size: 12.5px; color: #94a3b8; text-decoration: none; transition: background-color .15s, color .15s; }
+  .navw-util:hover { background: rgb(255 255 255 / .1); color: #fff; text-decoration: none; }
+  .navw-util.on { background: rgb(255 255 255 / .1); color: #fff; }
 
   /* ===== Alert, empty, header halaman, toolbar ===== */
   .alert { display: flex; align-items: flex-start; gap: .625rem; border: 1px solid; border-radius: .75rem; padding: .75rem 1rem; font-size: .875rem; }
