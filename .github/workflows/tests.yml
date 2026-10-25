@@ -47,6 +47,17 @@ jobs:
           set -o pipefail
           php artisan test --compact 2>&1 | tee storage/logs/ci-tests.log
 
+      - name: Tampilkan ringkasan error test
+        if: steps.test-suite.outcome == 'failure'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          output = Path('storage/logs/ci-tests.log').read_text(errors='replace')[-3500:]
+          escaped = output.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=Output PHPUnit (3500 karakter terakhir)::{escaped}')
+          PY
+
       - name: Unggah log test jika gagal
         if: steps.test-suite.outcome == 'failure'
         uses: actions/upload-artifact@v4
