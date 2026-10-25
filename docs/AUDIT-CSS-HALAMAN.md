@@ -117,7 +117,7 @@ Empat tes statis (tanpa browser, tanpa database) mengunci hasil di atas:
 | Sintaks PHP | `php -l` (php-wasm PHP 8.5.10) pada `tests/Feature/CssHalamanTest.php` | tanpa galat |
 | Logika tes 1–4 | harness PHP di luar PHPUnit (vendor tidak terpasang) | tes 1: 0 pelanggaran; tes 2: 4 syarat terpenuhi; tes 3: 32 kelas komponen, 0 hilang; tes 4: 0 kelas cetak tanpa definisi |
 | Diff kelas vs CSS build | skrip Python (577 token unik) | 549 punya aturan, 28 terklasifikasi seperti §2 |
-| CI | `gh pr checks` (SQLite + PostgreSQL 16) | _diisi setelah pipeline berjalan_ |
+| CI (run 40200670771) | workflow `tests` pada SQLite + PostgreSQL 16 | **205 tes lulus, 1.054 assertion** di kedua driver (201 tes sebelumnya + 4 tes baru); commit `c4fddbb` |
 
 Catatan CSP: `public/tailwind.js` tidak memakai `eval`/`new Function` dan
 menyuntikkan CSS lewat `document.createElement('style')`, sehingga cocok dengan
