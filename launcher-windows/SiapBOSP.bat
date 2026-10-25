@@ -37,6 +37,17 @@ REM --- mode lokal: pastikan server jalan ---
 powershell -NoProfile -Command "try { (New-Object Net.Sockets.TcpClient('127.0.0.1', %PORT%)).Close(); exit 0 } catch { exit 1 }"
 if not errorlevel 1 (
   echo  Server lokal sudah jalan.
+  REM Server yang sudah jalan bisa saja memakai KODE LAMA - cek asetnya.
+  if exist "public\hot" (
+    echo.
+    echo  [PERINGATAN] public\hot ada. Bila Anda tidak sedang menjalankan
+    echo  "npm run dev", tutup jendela SiapBOSP-Server lalu klik 2x
+    echo  launcher-windows\Jalankan-Ulang-Server.bat.
+  )
+  if not exist "public\build\assets" (
+    echo.
+    echo  [PERINGATAN] public\build\assets tidak ada - halaman bisa tampil polos.
+  )
   goto buka_browser
 )
 
