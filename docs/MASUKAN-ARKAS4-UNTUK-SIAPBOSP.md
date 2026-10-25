@@ -169,7 +169,7 @@ Detail perilaku yang penting ditiru:
 
 ## 4. Masukan konkret
 
-### P0-1 — Peta kosakata status (pekerjaan: kecil, dampak: besar)
+### P0-1 — Peta kosakata status (pekerjaan: kecil, dampak: besar) · ✅ sudah diimplementasikan
 
 **Masalah.** Operator mengetik status ke Dinas dengan istilah ARKAS; di SiapBOSP ia melihat "Diajukan ke Kepsek" dan "Disetujui Kepsek" yang tidak ada padanannya.
 
@@ -185,23 +185,25 @@ Detail perilaku yang penting ditiru:
 | `disahkan` | Disahkan Dinas | Disahkan |
 | `dikunci` | Dikunci | Diarsipkan |
 
-Sentuh: `app/Models/RkasHeader.php` (konstanta `LABEL_STATUS_ARKAS`), satu partial badge, tampilan `rkas/index` + `rkas/show`. Tanpa migrasi DB.
-Tambahkan juga aksi **"Cek Status Terbaru"** (teks + waktu sinkron terakhir) di kartu KK.
+**Yang sudah jadi:** `RkasHeader::LABEL_STATUS_ARKAS` (+ `labelStatusArkas()`, `nadaStatusArkas()`, `catatanStatusArkas()`, `statusArkasBerbeda()`) dan partial `resources/views/rkas/partials/status-arkas.blade.php` yang dipakai di `rkas/index` dan `rkas/show`. Chip internal tetap ditampilkan, chip ARKAS muncul di sampingnya. Tanpa migrasi DB.
 
-### P0-2 — Gerbang pra-pengajuan (blocking checklist)
+### P0-2 — Gerbang pra-pengajuan (blocking checklist) · ✅ sudah diimplementasikan
 
 **Masalah.** Sekarang "Ajukan" bisa ditekan walau ada sisa belum dianggarkan; ARKAS menolak.
 
-**Usulan.** Modal pratinjau sebelum ajukan, dengan 5 pemeriksaan:
+**Yang sudah jadi** (`App\Services\PraAjukanRkasService::periksa()`):
 
-1. `Belum Dianggarkan` = **Rp 0** per sumber dana.
-2. Tiap rincian punya **volume > 0, satuan, harga**.
-3. **Uraian ≤ 500 karakter** (hitung di server).
-4. **Harga satuan ≤ batas** SSH/SBU referensi (peringatan, bukan blokir, bila referensi kosong).
-5. Total per sumber dana **≤ pagu**.
+| Pemeriksaan | Level | Efek |
+|---|---|---|
+| `Belum Dianggarkan` ≠ Rp 0 (kurang **atau** lebih dari pagu) | ⛔ blokir | pengajuan ditolak |
+| Belum ada rincian sama sekali | ⛔ blokir | pengajuan ditolak |
+| Rincian tanpa volume/harga/jumlah (> 0) | ⛔ blokir | pengajuan ditolak |
+| Harga satuan > batas SSH/SBU Dinas | ⚠️ peringatan | tetap boleh, dicatat |
+| Temuan proporsi Juknis (buku/sarpras/honor/tahap) | ⚠️ peringatan | blokirnya tetap di "Kirim ke Dinas" |
 
-Tombol "Ajukan"nonaktif selama ada item merah; tiap item bisa diklik untuk melompat ke baris bermasalah.
-Sentuh: `RkasController` (satu method `periksaPraAjukan`), partial modal, test fitur baru.
+Tombol **Ajukan ke Kepsek** otomatis nonaktif (`@disabled`) selama ada blokir. Panel *Kelayakan Pengajuan* menampilkan tiap temuan beserta tautan langsung ke baris rincian (`#baris-{id}`), ada tombol **Periksa Ulang**, dan endpoint `GET /rkas/{id}/pra-ajukan` mengembalikan hasil yang sama dalam JSON. Aturan penolakan juga ditegakkan di sisi server pada `RkasController::aksi()` — bukan hanya di tampilan.
+
+**Perbaikan ikutan (penting):** batas uraian ARKAS 4 adalah **500 karakter** dan form SiapBOSP sudah memakainya (`maxlength=500`, `max:500`), tetapi kolom `rkas_details.uraian` masih **VARCHAR(255)** — isian 256–500 karakter lolos validasi lalu terpotong (MySQL longgar) atau gagal simpan (PostgreSQL). Migrasi `2026_10_26_000001_widen_rkas_details_uraian.php` melebarkannya ke 500. Karena setelah itu uraian > 500 tidak mungkin tersimpan, pemeriksaan uraian tidak dijadikan item gerbang.
 
 ### P0-3 — Satu halaman Arsip
 
@@ -292,7 +294,7 @@ Lembar gabungan semua panel: [`mockup/00-semua-tampilan.png`](mockup/00-semua-ta
 
 | Sprint | Isi | Risiko | Alasan urutan |
 |---|---|---|---|
-| **S1** | P0-1 kosakata status + P0-2 gerbang ajukan | rendah (tanpa migrasi) | mencegah salah kirim ke Dinas |
+| **S1** | ✅ P0-1 kosakata status + P0-2 gerbang ajukan (selesai) | rendah | mencegah salah kirim ke Dinas |
 | **S2** | P0-3 arsip terpadu | sedang (rute baru) | memperbaiki temuan operator paling sering |
 | **S3** | P1-5 tab BKU + badge pajak + P1-6 format cetak | sedang | nilai tampilan tertinggi |
 | **S4** | P1-4 kartu sumber dana | sedang | mengubah halaman depan `rkas.index` |

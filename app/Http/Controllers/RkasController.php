@@ -16,6 +16,7 @@ use App\Services\Aktivitas;
 use App\Services\AntreanArkasService;
 use App\Services\EmailNotif;
 use App\Services\JuknisBosp2026Service;
+use App\Services\PraAjukanRkasService;
 use App\Services\RkasExportService;
 use Illuminate\Http\Request;
 
@@ -472,6 +473,7 @@ class RkasController extends Controller
             'reviewJuknis' => $reviewJuknis,
             'kodeNama' => $kodeNama,
             'namaBulan' => JuknisBosp2026Service::NAMA_BULAN,
+            'praAjukan' => PraAjukanRkasService::periksa($rkasHeader, $sekolah, null, $reviewJuknis),
         ]);
     }
 
@@ -500,10 +502,37 @@ class RkasController extends Controller
             ->deleteFileAfterSend(true);
     }
 
+    /**
+     * Hasil pemeriksaan kelayakan pengajuan (dipakai tombol "Periksa Kelayakan"
+     * dan modal gerbang pra-pengajuan di halaman Kertas Kerja).
+     */
+    public function praAjukan(RkasHeader $rkasHeader)
+    {
+        return response()->json(
+            PraAjukanRkasService::periksa($rkasHeader, auth()->user()->school)
+        );
+    }
+
     public function aksi(Request $r, RkasHeader $rkasHeader)
     {
         $aksi = $r->validate(['aksi' => 'required|in:ajukan,setujui,kunci,kirim_dinas'])['aksi'];
         $sekolah = auth()->user()->school;
+
+        // Gerbang pra-pengajuan (paritas "Ajukan Pengesahan" ARKAS 4): tolak selama
+        // masih ada blokir — Belum Dianggarkan belum Rp 0, rincian belum lengkap,
+        // uraian > 500 karakter, atau tidak ada rincian sama sekali.
+        $pra = null;
+        if ($aksi === 'ajukan') {
+            $pra = PraAjukanRkasService::periksa($rkasHeader, $sekolah);
+            if (! $pra['boleh_ajukan']) {
+                $rincian = collect($pra['cek'])
+                    ->where('level', 'blokir')
+                    ->map(fn ($c) => '• '.$c['pesan'])
+                    ->implode(' ');
+
+                return back()->with('error', 'Kertas Kerja belum dapat diajukan: '.$rincian);
+            }
+        }
 
         // Alur persetujuan Dinas: validasi batas kepatuhan Permendikdasmen No. 8 Tahun 2026 & ARKAS 4
         if ($aksi === 'kirim_dinas') {
@@ -553,6 +582,18 @@ class RkasController extends Controller
             return back()->with('error', 'RKAS hanya bisa dikunci setelah DISAHKAN oleh Dinas.');
         }
         $rkasHeader->update(['status' => $map[$aksi]]);
+
+        if ($aksi === 'ajukan') {
+            $pra ??= PraAjukanRkasService::periksa($rkasHeader, $sekolah);
+            $peringatan = collect($pra['cek'])
+                ->where('level', 'peringatan')
+                ->map(fn ($c) => '• '.$c['pesan'])
+                ->implode(' ');
+
+            return back()
+                ->with('ok', 'Kertas Kerja diajukan ke Kepala Sekolah untuk disetujui.')
+                ->with('warning', $peringatan ?: null);
+        }
 
         return back()->with('ok', 'Status RKAS diperbarui: '.$map[$aksi]);
     }

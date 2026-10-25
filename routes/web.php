@@ -180,6 +180,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/rkas/{rkasHeader}/sisip/{detail}', [RkasController::class, 'sisipUraian'])->name('rkas.sisip')->whereNumber('rkasHeader');
         Route::get('/rkas/{rkasHeader}/pdf', [RkasController::class, 'pdf'])->name('rkas.pdf')->whereNumber('rkasHeader');
         Route::get('/rkas/{rkasHeader}/xlsx', [RkasController::class, 'xlsx'])->name('rkas.xlsx')->whereNumber('rkasHeader');
+        Route::get('/rkas/{rkasHeader}/pra-ajukan', [RkasController::class, 'praAjukan'])->name('rkas.pra-ajukan')->whereNumber('rkasHeader');
         Route::post('/rkas/{rkasHeader}/aksi', [RkasController::class, 'aksi'])->name('rkas.aksi')->whereNumber('rkasHeader');
         Route::post('/rkas-impor', [RkasController::class, 'impor'])->middleware('throttle:unggah')->name('rkas.impor');
         Route::get('/hpp', [HppController::class, 'index'])->name('hpp.index');

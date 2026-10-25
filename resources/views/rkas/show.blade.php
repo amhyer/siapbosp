@@ -41,8 +41,7 @@
     </div>
     <div class="text-lg font-bold">{{ $h->no_rkas ?? '(belum ada nomor dokumen)' }}</div>
     <div class="text-sm text-slate-500 mt-1">{{ $h->catatan }}</div>
-    @php $mapB = ['draft'=>'bg-slate-100 text-slate-600','diajukan'=>'bg-amber-100 text-amber-700','disetujui'=>'bg-sky-100 text-sky-700','dikirim_dinas'=>'bg-indigo-100 text-indigo-700','revisi'=>'bg-rose-100 text-rose-700','disahkan'=>'bg-emerald-100 text-emerald-700','dikunci'=>'bg-slate-200 text-slate-600']; @endphp
-    <span class="badge {{ $mapB[$h->status] ?? 'bg-slate-100' }} mt-2">{{ \App\Models\RkasHeader::LABEL_STATUS[$h->status] ?? $h->status }}</span>
+    <div class="mt-2">@include('rkas.partials.status-arkas', ['h' => $h])</div>
     @if($h->status==='dikirim_dinas')<div class="text-[11px] text-indigo-500 mt-1">dikirim {{ $h->dikirim_dinas_at?->format('d/m/Y H:i') }} — menunggu tinjauan Dinas</div>@endif
     @if($h->status==='disahkan')<div class="text-[11px] text-emerald-600 mt-1">🎉 disahkan oleh {{ $h->ditinjau_oleh }} ({{ $h->ditinjau_at?->format('d/m/Y') }})</div>@endif
     @if($h->status==='revisi')<div class="mt-1 text-[11px] bg-rose-50 border border-rose-200 text-rose-700 rounded px-2 py-1">🟠 Catatan Dinas ({{ $h->ditinjau_oleh }}): <b>{{ $h->catatan_dinas }}</b> — susun RKAS revisi baru, lalu kirim ulang ke Dinas.</div>@endif
@@ -51,7 +50,11 @@
   <div class="flex flex-wrap gap-2 items-center">
     <form method="post" action="{{ route('rkas.aksi', $h) }}" class="flex flex-wrap gap-2">
       @csrf
-      @if($h->status==='draft')<button name="aksi" value="ajukan" class="btn">📤 Ajukan ke Kepsek</button>@endif
+      @if($h->status==='draft')
+        <button name="aksi" value="ajukan" class="btn"
+                @disabled(! $praAjukan['boleh_ajukan'])
+                title="{{ $praAjukan['boleh_ajukan'] ? 'Ajukan Kertas Kerja ke Kepala Sekolah' : 'Belum bisa diajukan: selesaikan '.$praAjukan['jumlah_blokir'].' hal yang memblokir pada panel Kelayakan Pengajuan' }}">📤 Ajukan ke Kepsek</button>
+      @endif
       @if($h->status==='diajukan' && auth()->user()->role==='kepsek')<button name="aksi" value="setujui" class="btn">✅ Setujui (Kepsek)</button>@endif
       @if(in_array($h->status, ['disetujui', 'revisi']))
         <button name="aksi" value="kirim_dinas" class="btn bg-indigo-600" data-konfirmasi="Kirim RKAS ini ke Dinas untuk disahkan?">{{ $h->status === 'revisi' ? '🔄 Kirim Ulang ke Dinas' : '📨 Kirim ke Dinas' }}</button>
@@ -65,6 +68,10 @@
   </div>
   @endif
 </div>
+
+@if(in_array($h->status, ['draft', 'revisi'], true))
+  @include('rkas.partials.pra-ajukan', ['pra' => $praAjukan, 'h' => $h])
+@endif
 
 {{-- PANEL REVIEW KERTAS KERJA ALA ARKAS 4 v4.3.0 (3 MODE: GRAFIK PROPORSI · PER TAHAPAN · PER TAHUN) --}}
 <div class="card space-y-4">
@@ -220,7 +227,7 @@
     </thead>
     <tbody>
       @foreach($h->details as $d)
-      <tr>
+      <tr id="baris-{{ $d->id }}" class="scroll-mt-24">
         <td class="font-mono text-xs">{{ $d->kode_kegiatan ?? '—' }}</td>
         <td class="font-mono text-xs">{{ $d->rekening->kode }}</td>
         <td>{{ $d->rekening->nama }}</td>
@@ -239,7 +246,7 @@
             <form method="post" action="{{ route('rkas.sisip', [$h, $d]) }}" class="absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-40 space-y-2 text-xs">
               @csrf
               <div class="font-bold text-slate-700">Sisip Uraian ({{ $d->rekening->kode }})</div>
-              <input name="uraian" class="inp text-xs" required placeholder="Uraian barang/jasa sisipan">
+              <input name="uraian" class="inp text-xs" maxlength="500" required placeholder="Uraian barang/jasa sisipan (maks. 500 karakter)">
               <div class="grid grid-cols-2 gap-1.5">
                 <input type="number" name="banyak" min="1" value="1" class="inp text-xs" placeholder="Vol">
                 <input type="number" name="harga_satuan" min="0" value="{{ (int) $d->harga_satuan }}" class="inp text-xs" placeholder="Harga">
@@ -277,6 +284,31 @@ function setTabReview(tab){
 document.addEventListener('click', function (ev) {
   const el = ev.target.closest('[data-tab-review]');
   if (el) setTabReview(el.dataset.tabReview);
+});
+
+// Periksa Ulang kelayakan pengajuan: ambil hasil terbaru lalu render ulang panel
+// (server yang menggambar daftar, agar tidak ada logika tampilan ganda).
+document.addEventListener('click', async function (ev) {
+  const btn = ev.target.closest('#btnPeriksaUlang');
+  if (!btn) return;
+  ev.preventDefault();
+  const status = document.getElementById('praAjukanStatus');
+  btn.disabled = true;
+  if (status) status.textContent = 'Memeriksa…';
+  try {
+    const res = await fetch(btn.dataset.url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (status) {
+      status.textContent = 'Pemeriksaan terbaru: ' + (data.boleh_ajukan
+        ? 'siap diajukan'
+        : data.jumlah_blokir + ' hal memblokir');
+    }
+    window.location.reload();
+  } catch (e) {
+    if (status) status.textContent = 'Gagal memeriksa, coba lagi.';
+    btn.disabled = false;
+  }
 });
 </script>
 @endsection
