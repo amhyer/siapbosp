@@ -15,9 +15,11 @@ dan versi HTML interaktifnya di [`../mockup-paritas-arkas4.html`](../mockup-pari
 
 ## ⚠️ Status keakuratan
 
-Panel **`01-penganggaran-kartu.png`** dan bagian "kartu sumber dana" pada
+Panel **`01-penganggaran-kartu.png`** sudah DIGANTI (commit lanjutan) dengan struktur yang benar; bagian "kartu sumber dana" pada
 `../mockup-paritas-arkas4.html` dibuat **sebelum** ada tangkapan layar ARKAS 4 asli, sehingga
-**tidak akurat** untuk struktur Penganggaran. Yang benar menurut ARKAS 4 v4.3.0:
+**tidak akurat** pada versi awal. Keduanya sudah dikoreksi; panel 1 kini menampilkan kerangka
+ARKAS 4 yang benar (topbar identitas, sidebar 3 area kerja, tab sumber dana, daftar per tahun).
+Ringkasnya, struktur yang benar menurut ARKAS 4 v4.3.0:
 
 - sidebar berisi 3 area kerja (Penganggaran · Penatausahaan · Arsip), bukan di top bar;
 - top bar hanya logo + nama sekolah berdropdown (isinya *Data Penanggung Jawab* & *Keluar*);
