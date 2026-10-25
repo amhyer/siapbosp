@@ -245,10 +245,14 @@ class KeamananAuditTest extends TestCase
             ->withSession(['password_hash_web' => $hashLama])
             ->get('/referensi')->assertOk();
 
-        // Dinas mereset sandi akun tersebut.
+        // Dinas mereset sandi akun tersebut. Feature test berganti identitas
+        // pada klien yang sama, jadi simulasikan sesi superadmin terpisah.
         $this->actingAs($this->superadmin)
+            ->withSession(['password_hash_web' => (string) $this->superadmin->getAuthPassword()])
             ->post('/dinas/pengguna/'.$this->operatorA->id.'/reset', ['password' => 'SandiBaru123'])
             ->assertRedirect();
+
+        $this->assertNotSame($hashLama, (string) $this->operatorA->fresh()->getAuthPassword());
 
         // Sesi lama (mis. milik penyerang) tidak boleh hidup lagi.
         $this->actingAs($this->operatorA->fresh())
@@ -346,6 +350,7 @@ class KeamananAuditTest extends TestCase
             'kas_transaction_id' => $trxB->id, 'rekening_id' => $rekening->id,
             'uraian' => 'Kertas Sekolah B', 'nilai' => 1000,
         ]);
+        $sumberBSebelum = $detailB->fresh()->sumber;
 
         $trxA = KasTransaction::create([
             'school_id' => $this->sekolahA->id, 'tahun' => (int) now()->year, 'type' => 'belanja',
@@ -374,7 +379,7 @@ class KeamananAuditTest extends TestCase
 
         // Rincian belanja sekolah B tidak boleh berubah ...
         $this->assertNull($detailB->fresh()->rkas_detail_id);
-        $this->assertNull($detailB->fresh()->sumber);
+        $this->assertSame($sumberBSebelum, $detailB->fresh()->sumber);
 
         // ... sedangkan milik sendiri tetap tersimpan.
         $this->assertSame('siplah', $detailA->fresh()->sumber);

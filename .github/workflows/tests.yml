@@ -45,17 +45,32 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          php artisan test --compact 2>&1 | tee storage/logs/ci-tests.log
+          php artisan test 2>&1 | tee storage/logs/ci-tests.log
 
       - name: Tampilkan ringkasan error test
         if: steps.test-suite.outcome == 'failure'
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
-          output = Path('storage/logs/ci-tests.log').read_text(errors='replace')[-3500:]
-          escaped = output.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print(f'::error title=Output PHPUnit (3500 karakter terakhir)::{escaped}')
+          output = Path('storage/logs/ci-tests.log').read_text(errors='replace')
+          output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', output)
+          lines = output.splitlines()
+          chunks = []
+          for index, line in enumerate(lines):
+              if 'FAILED' not in line:
+                  continue
+              end = min(index + 16, len(lines))
+              for candidate in range(index + 1, end):
+                  if 'Tests:' in lines[candidate] or ('FAILED' in lines[candidate]):
+                      end = candidate
+                      break
+              chunks.append('\n'.join(lines[index:end]))
+          summary = '\n\n'.join(chunks) or output[-18000:]
+          summary = (summary + '\n' + next((line for line in reversed(lines) if line.strip().startswith('Tests:')), ''))[-18000:]
+          escaped = summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=Daftar kegagalan PHPUnit::{escaped}')
           PY
 
       - name: Unggah log test jika gagal

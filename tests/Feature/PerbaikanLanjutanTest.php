@@ -231,10 +231,13 @@ class PerbaikanLanjutanTest extends TestCase
 
         $this->assertNull(User::where('email', 'dinas.baru@tes.test')->first());
 
-        // Superadmin tetap boleh membuat akun dinas.
-        $this->actingAs($this->superadmin)->post('/dinas/pengguna/impor', [
-            'file' => UploadedFile::fake()->createWithContent('pengguna.csv', $csv),
-        ])->assertRedirect();
+        // Superadmin tetap boleh membuat akun dinas. Simulasikan sesi terpisah
+        // karena test mengubah identitas pada klien yang sama.
+        $this->actingAs($this->superadmin)
+            ->withSession(['password_hash_web' => (string) $this->superadmin->getAuthPassword()])
+            ->post('/dinas/pengguna/impor', [
+                'file' => UploadedFile::fake()->createWithContent('pengguna.csv', $csv),
+            ])->assertRedirect();
 
         $this->assertNotNull(User::where('email', 'dinas.baru@tes.test')->first());
     }
