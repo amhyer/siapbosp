@@ -326,6 +326,28 @@ class AsetHalamanTest extends TestCase
             ->assertNotFound();
     }
 
+    /**
+     * Alat perbaikan tampilan harus membaca manifest, bukan menulis nama berkas
+     * ber-hash di dalam skrip (hash berubah setiap CSS dibangun ulang).
+     */
+    public function test_skrip_perbaikan_tampilan_memakai_manifest(): void
+    {
+        $ps1 = base_path('launcher-windows/Perbaiki-Tampilan.ps1');
+        $bat = base_path('launcher-windows/Perbaiki-Tampilan.bat');
+
+        $this->assertFileExists($ps1, 'Skrip perbaikan tampilan untuk pengguna hilang.');
+        $this->assertFileExists($bat);
+
+        $isi = (string) file_get_contents($ps1);
+        $this->assertStringContainsString('manifest.json', $isi);
+        $this->assertStringContainsString('BacaManifest', $isi);
+        $this->assertStringNotContainsString('app-BWZe9esl', $isi,
+            'Nama berkas CSS ber-hash tidak boleh ditulis manual di skrip.');
+        $this->assertMatchesRegularExpression('/build\/assets|raw\.githubusercontent/', $isi);
+
+        $this->assertStringContainsString('Perbaiki-Tampilan.ps1', (string) file_get_contents($bat));
+    }
+
     /** Nilai satu direktif CSP tanpa tertukar dengan direktif berawalan sama. */
     private function direktif(string $csp, string $nama): string
     {

@@ -44,6 +44,45 @@ Konsekuensi untuk pengembang: setiap perubahan `resources/css/app.css` atau
 `public/build`. Tes `test_css_build_memuat_semua_kelas_komponen` menolak commit
 yang lupa membangun ulang (CI membangun lebih dulu, jadi CI sendiri lolos).
 
+### Mesin yang halamannya masih polos
+
+Tampilan polos **total** (tanpa warna sama sekali) berarti CSS tidak terkirim
+sama sekali. Urutan penyebab yang terbukti, dari tersering:
+
+1. **Folder yang dilayani bukan folder yang diperbarui.** Server `artisan serve`
+   yang sudah berjalan terus memakai kode/aset yang dibaca saat ia dinyalakan.
+   Memperbarui berkas, `git pull`, atau membangun CSS tidak berpengaruh sampai
+   server dijalankan ulang dari folder yang benar. Ini sering terjadi pada
+   salinan terpasang (`%LocalAppData%\Programs\SiapBOSP`) sementara yang
+   diperbarui adalah folder repo/hasil ekstrak ZIP yang lain.
+2. **`public/build` tidak ada di folder itu.** Kode lama hanya memuat CSS lewat
+   `@vite` bila `public/build/manifest.json` ada.
+3. `public/hot` basi menunjuk dev server yang sudah mati (kode lama), atau
+   manifest menunjuk berkas yang tidak ada (sudah ditangani `Aset`).
+
+Perbaikan satu klik — `launcher-windows\Perbaiki-Tampilan.bat`:
+mencari folder yang benar-benar dilayani di port 8000 (dari `php.exe` proses
+listener), melengkapi `public\build\...` di sana (menyalin dari folder ini atau
+mengunduh dari GitHub), menghapus `public\hot`, membersihkan cache,
+menyalakan ulang server, lalu **memverifikasi** CSS terunduh (HTTP 200 +
+ukuran > 10 kB) sebelum membuka browser. Nama berkas aset dibaca dari
+`manifest.json`, bukan ditulis di skrip.
+
+Perbaikan manual tanpa git/Node — cukup tiga berkas di folder yang dilayani
+(`<folder aplikasi>\public\build\`):
+
+| Berkas | Sumber |
+|---|---|
+| `manifest.json` | `https://raw.githubusercontent.com/amhyer/siapbosp/main/public/build/manifest.json` |
+| `assets/app-BWZe9esl.css` | `.../main/public/build/assets/app-BWZe9esl.css` |
+| `assets/app-BBzzTR7w.js` | `.../main/public/build/assets/app-BBzzTR7w.js` |
+
+Setelah itu hapus `public\hot` (bila ada) dan jalankan ulang server. Kode lama
+sekalipun akan memuat CSS karena `manifest.json` sudah ada.
+
+Bukti untuk pengembang: `http://127.0.0.1:8000/_aset` (khusus localhost) dan
+`php artisan siapbos:cek-aset`.
+
 ### Diagnosa cepat (tanpa PHP CLI)
 
 Buka `http://localhost:8000/_aset` — halaman ini (hanya bisa diakses dari
