@@ -65,7 +65,7 @@ class PembukuanController extends Controller
             ->where('t.school_id', $sid)
             ->where('t.tahun', $tahun)
             ->where('p.status', 'belum')
-            ->selectRaw('substr(t.tanggal, 1, 7) as ym, sum(p.nilai) as j')
+            ->selectRaw('substr(CAST(t.tanggal AS VARCHAR), 1, 7) as ym, sum(p.nilai) as j')
             ->groupBy('ym')
             ->pluck('j', 'ym');
 
@@ -477,7 +477,7 @@ class PembukuanController extends Controller
         $belumPajak = DB::table('kas_taxes as p')
             ->join('kas_transactions as t', 'p.kas_transaction_id', '=', 't.id')
             ->where('t.school_id', $sid)
-            ->whereRaw('substr(t.tanggal, 1, 7) = ?', [$bulan])
+            ->whereRaw('substr(CAST(t.tanggal AS VARCHAR), 1, 7) = ?', [$bulan])
             ->where('p.status', 'belum')
             ->exists();
 
