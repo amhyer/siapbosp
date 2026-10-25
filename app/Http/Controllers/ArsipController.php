@@ -17,6 +17,114 @@ use Illuminate\Support\Facades\DB;
  */
 class ArsipController extends Controller
 {
+    /**
+     * Arsip terpadu ala ARKAS 4: tiga filter sejajar — Format (BKU/RKAS/Semua),
+     * Sumber dana, dan Tahun — lalu daftar dokumen sah beserta tombol cetak.
+     *
+     * Hanya dokumen yang benar-benar sah yang masuk: RKAS berstatus
+     * disahkan/dikunci dan BKU bulan yang sudah ditutup.
+     */
+    public function index(Request $r)
+    {
+        $sid = auth()->user()->school_id;
+
+        $format = (string) $r->query('format', 'semua');
+        if (! in_array($format, ['semua', 'bku', 'rkas'], true)) {
+            $format = 'semua';
+        }
+        $sumber = trim((string) $r->query('sumber', ''));
+
+        // Daftar tahun yang punya dokumen sah (ARKAS: 2018…tahun ini + "Semua").
+        $tahunRkas = RkasHeader::where('school_id', $sid)
+            ->whereIn('status', ['disahkan', 'dikunci'])->pluck('tahun');
+        $tahunBku = BkuTutupBulan::where('school_id', $sid)->pluck('tahun');
+        $daftarTahun = $tahunRkas->merge($tahunBku)->map(fn ($t) => (int) $t)
+            ->unique()->sortDesc()->values();
+
+        $tahun = (string) $r->query('tahun', 'semua');
+        $tahunInt = ctype_digit($tahun) ? (int) $tahun : null;
+
+        $dokumen = collect();
+
+        // --- Dokumen RKAS (satu baris per dokumen sah) ---
+        if ($format === 'semua' || $format === 'rkas') {
+            $rkas = RkasHeader::with('details')
+                ->where('school_id', $sid)
+                ->whereIn('status', ['disahkan', 'dikunci'])
+                ->when($sumber !== '', fn ($q) => $q->where('sumber_dana', $sumber))
+                ->when($tahunInt, fn ($q) => $q->where('tahun', $tahunInt))
+                ->orderByDesc('tahun')->orderByDesc('revisi_ke')
+                ->get();
+
+            foreach ($rkas as $h) {
+                $dokumen->push([
+                    'jenis' => 'rkas',
+                    'nama' => 'RKAS '.$h->sumber_dana.' '.$h->tahun,
+                    'sub' => 'Ver. '.$h->labelJenis().' — '.($h->ditinjau_at ?? $h->updated_at)?->format('d M Y'),
+                    'sumber' => $h->sumber_dana,
+                    'tahun' => (int) $h->tahun,
+                    'status' => $h->labelStatusArkas(),
+                    'nilai' => (int) $h->details->sum('jumlah'),
+                    'cetak' => route('rkas.pdf', $h),
+                    'buka' => route('rkas.show', $h),
+                ]);
+            }
+        }
+
+        // --- Dokumen BKU (satu baris per bulan yang sudah ditutup) ---
+        if ($format === 'semua' || $format === 'bku') {
+            $bku = BkuTutupBulan::where('school_id', $sid)
+                ->when($tahunInt, fn ($q) => $q->where('tahun', $tahunInt))
+                ->orderByDesc('tahun')->orderByDesc('bulan')
+                ->get();
+
+            $namaBulan = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
+
+            foreach ($bku as $b) {
+                $bulanInt = (int) $b->bulan;
+                $ym = sprintf('%04d-%02d', (int) $b->tahun, $bulanInt);
+
+                // Sumber dana pada BKU: sekolah ini memakai satu BKU per tahun,
+                // jadi labelnya "Semua sumber dana" agar tidak menyesatkan.
+                $labelSumber = 'Semua sumber dana';
+                if ($sumber !== '' && mb_strtolower($sumber) !== 'semua sumber dana') {
+                    continue;
+                }
+
+                $dokumen->push([
+                    'jenis' => 'bku',
+                    'nama' => 'BKU '.($namaBulan[$bulanInt] ?? $bulanInt).' '.$b->tahun,
+                    'sub' => 'Ditutup '.($b->created_at?->format('d M Y') ?? '—'),
+                    'sumber' => $labelSumber,
+                    'tahun' => (int) $b->tahun,
+                    'status' => 'Sudah Selesai',
+                    'nilai' => null,
+                    'cetak' => route('bku.cetak', ['bulan' => $ym]),
+                    'buka' => route('bku', ['bulan' => $ym]),
+                ]);
+            }
+        }
+
+        $dokumen = $dokumen->sortByDesc(fn ($d) => $d['tahun'] * 1000 + ($d['jenis'] === 'rkas' ? 500 : 0));
+
+        // Pilihan sumber dana: gabungan nilai yang benar-benar ada di arsip.
+        $daftarSumber = RkasHeader::where('school_id', $sid)
+            ->whereIn('status', ['disahkan', 'dikunci'])
+            ->distinct()->orderBy('sumber_dana')->pluck('sumber_dana')
+            ->filter()->values();
+
+        return view('arsip.index', [
+            'dokumen' => $dokumen->values(),
+            'format' => $format,
+            'sumber' => $sumber,
+            'tahun' => $tahun,
+            'daftarTahun' => $daftarTahun,
+            'daftarSumber' => $daftarSumber,
+        ]);
+    }
+
     /** RKAS yang sudah disahkan/dikunci (dokumen sah untuk pemeriksaan). */
     public function rkas(Request $r)
     {

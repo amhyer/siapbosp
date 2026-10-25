@@ -286,6 +286,7 @@ Route::middleware('auth')->group(function () {
         });
 
         // ===== ARSIP =====
+        Route::get('/arsip', [ArsipController::class, 'index'])->name('arsip.index');
         Route::get('/arsip/rkas', [ArsipController::class, 'rkas'])->name('arsip.rkas');
         Route::get('/arsip/bku', [ArsipController::class, 'bku'])->name('arsip.bku');
         Route::get('/arsip/pajak', [ArsipController::class, 'pajak'])->name('arsip.pajak');

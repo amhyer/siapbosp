@@ -183,6 +183,59 @@ class MenuDanArsipTest extends TestCase
             ->assertSee('Pembayaran Honor Non-ASN');
     }
 
+    /** Arsip terpadu ala ARKAS 4: 3 filter (format x sumber dana x tahun). */
+    public function test_arsip_terpadu_dengan_tiga_filter_arkas(): void
+    {
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'no_rkas' => 'RKAS/2025/ARSIP', 'sumber_dana' => 'BOS Reguler',
+            'jenis_rkas' => 'murni', 'status' => 'disahkan',
+        ]);
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'sumber_dana' => 'BOS Kinerja', 'jenis_rkas' => 'murni', 'status' => 'disahkan',
+        ]);
+        // Draf tidak boleh masuk arsip.
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'sumber_dana' => 'BOS Reguler', 'jenis_rkas' => 'murni', 'status' => 'draft',
+        ]);
+
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index'))
+            ->assertOk()
+            ->assertSee('Arsip Dokumen Sah')
+            ->assertSee('Semua Format')
+            ->assertSee('Semua sumber dana')
+            ->assertSee('RKAS BOS Reguler 2025')
+            ->assertSee('RKAS BOS Kinerja 2025')
+            ->assertSee('Cetak');
+
+        // Filter sumber dana
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['sumber' => 'BOS Kinerja']))
+            ->assertOk()->assertSee('RKAS BOS Kinerja 2025')->assertDontSee('RKAS BOS Reguler 2025');
+
+        // Filter format: hanya BKU -> dokumen RKAS tidak muncul
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['format' => 'bku']))
+            ->assertOk()->assertDontSee('RKAS BOS Reguler 2025');
+
+        // Filter tahun yang tidak punya dokumen
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['tahun' => '2021']))
+            ->assertOk()->assertSee('Belum ada dokumen sah');
+    }
+
+    public function test_arsip_hanya_memuat_dokumen_sah(): void
+    {
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'sumber_dana' => 'BOS Reguler', 'jenis_rkas' => 'murni', 'status' => 'dikirim_dinas',
+        ]);
+
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index'))
+            ->assertOk()
+            ->assertDontSee('RKAS BOS Reguler 2025', false)
+            ->assertSee('Belum ada dokumen sah');
+    }
+
     public function test_halaman_arsip_semua_terbuka(): void
     {
         foreach ([

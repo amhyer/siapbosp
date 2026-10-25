@@ -98,6 +98,7 @@
       ['📄 SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
     ]],
     ['label'=>'🗄️ Arsip','open'=>request()->is('arsip*'),'items'=>[
+      ['Arsip Dokumen Sah', route('arsip.index'), request()->routeIs('arsip.index')],
       ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
       ['BKU Ditutup', route('arsip.bku'), request()->is('arsip/bku*')],
       ['Dokumen Pajak', route('arsip.pajak'), request()->is('arsip/pajak*')],
