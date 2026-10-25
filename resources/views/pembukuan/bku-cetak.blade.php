@@ -15,7 +15,7 @@
   ⚠️ <b>Watermark DRAFT aktif</b> (sesuai ARKAS 4 Bab XXI): BKU bulan ini belum ditutup. Lakukan <b>Tutup BKU Bulan Ini</b> terlebih dahulu agar tanda air DRAFT hilang.
 </div>
 @endif
-<div class="toolbar nonprint"><button onclick="window.print()">🖨️ Cetak / Simpan PDF</button><a href="{{ route('bku', ['bulan' => $bulan]) }}">← Kembali ke BKU</a></div>
+<div class="toolbar nonprint"><button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button><a href="{{ route('bku', ['bulan' => $bulan]) }}">← Kembali ke BKU</a></div>
 <div class="kop">
   <div style="font-weight:800;letter-spacing:.35em">BUKU KAS UMUM</div>
   <div style="font-size:11px">Nama Sekolah : {{ $sekolah->nama }}</div>

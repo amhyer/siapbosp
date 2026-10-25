@@ -45,7 +45,7 @@
         <td class="num font-semibold text-rose-700">{{ rp($t->total) }}</td>
         <td class="text-right whitespace-nowrap">
           <a href="{{ route('belanja.show', $t) }}" class="badge bdan">lihat</a>
-          <form method="post" action="{{ route('pengeluaran.destroy',$t) }}" class="inline" onsubmit="return confirm('Hapus belanja ini?')">@csrf @method('DELETE')<button class="badge bdel">✖</button></form>
+          <form method="post" action="{{ route('pengeluaran.destroy',$t) }}" class="inline" data-konfirmasi="Hapus belanja ini?">@csrf @method('DELETE')<button class="badge bdel">✖</button></form>
         </td>
       </tr>
       @empty

@@ -103,7 +103,7 @@
                     @csrf
                     <button class="btn2 btn text-xs whitespace-nowrap">{{ $usr->is_active ? '🔇 Nonaktifkan' : '🔊 Aktifkan' }}</button>
                   </form>
-                  <form method="post" action="{{ route('dinas.pengguna.hapus', $usr) }}" onsubmit="return confirm('Hapus akun {{ $usr->email }}?')">
+                  <form method="post" action="{{ route('dinas.pengguna.hapus', $usr) }}" data-konfirmasi="Hapus akun {{ $usr->email }}?">
                     @csrf @method('DELETE')
                     <button class="badge bdel">🗑 Hapus</button>
                   </form>

@@ -40,7 +40,7 @@
               <button class="badge bdan whitespace-nowrap">⬆ unggah</button>
             </form>
           </td>
-          <td class="text-right"><form method="post" action="{{ route('penandatangan.destroy', $p) }}" onsubmit="return confirm('Hapus?')">@csrf @method('DELETE')<button class="badge bdel">hapus</button></form></td></tr>
+          <td class="text-right"><form method="post" action="{{ route('penandatangan.destroy', $p) }}" data-konfirmasi="Hapus?">@csrf @method('DELETE')<button class="badge bdel">hapus</button></form></td></tr>
         @empty
         <tr><td colspan="6" class="text-center text-slate-400 py-6">Belum ada penandatangan.</td></tr>
         @endforelse

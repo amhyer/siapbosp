@@ -48,19 +48,19 @@
           </td>
           <td class="font-mono text-xs whitespace-nowrap">
             {{ $d->kode_kegiatan ?: '06.05' }}
-            <button type="button" class="text-indigo-600 ml-1" onclick="salinTeks('{{ $d->kode_kegiatan ?: '06.05' }}', this)">📋</button>
+            <button type="button" class="text-indigo-600 ml-1" data-salin="{{ $d->kode_kegiatan ?: '06.05' }}">📋</button>
           </td>
           <td class="font-mono text-xs whitespace-nowrap">
             {{ $d->rekening->kode }}
-            <button type="button" class="text-indigo-600 ml-1" onclick="salinTeks('{{ $d->rekening->kode }}', this)">📋</button>
+            <button type="button" class="text-indigo-600 ml-1" data-salin="{{ $d->rekening->kode }}">📋</button>
           </td>
           <td>
             <span class="font-medium">{{ $d->uraian }}</span>
-            <button type="button" class="text-indigo-600 ml-1 text-xs" onclick="salinTeks(@js($d->uraian), this)">📋 Salin</button>
+            <button type="button" class="text-indigo-600 ml-1 text-xs" data-salin="{{ $d->uraian }}">📋 Salin</button>
           </td>
           <td class="num font-mono whitespace-nowrap">
             {{ (int) $d->harga_satuan }}
-            <button type="button" class="text-indigo-600 ml-1 text-xs" onclick="salinTeks('{{ (int) $d->harga_satuan }}', this)">📋</button>
+            <button type="button" class="text-indigo-600 ml-1 text-xs" data-salin="{{ (int) $d->harga_satuan }}">📋</button>
           </td>
           <td class="text-xs">
             @foreach($blnAktif as $m => $vol)
@@ -85,5 +85,10 @@ function salinTeks(txt, el){
   el.textContent = '✓';
   setTimeout(() => el.textContent = asli, 1000);
 }
+// Delegasi event menggantikan atribut on* inline (audit R-03).
+document.addEventListener('click', function (ev) {
+  const el = ev.target.closest('[data-salin]');
+  if (el) salinTeks(el.dataset.salin, el);
+});
 </script>
 @endsection

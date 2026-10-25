@@ -134,7 +134,7 @@
         <div class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2 mb-2">🚫 Database ARKAS di laptop ini milik NPSN <b>{{ $tarik['npsn'] }}</b>, bukan NPSN sekolah ini (<b>{{ $sekolah->npsn }}</b>) — tarik ditolak agar data tidak tertukar. Samaikan NPSN di Profil bila memang sekolah yang benar.</div>
       @else
         <div class="text-xs text-slate-600 mb-2">✅ Database ARKAS ditemukan{{ $tarik['npsn'] ? ' — NPSN '.$tarik['npsn'].' ' : ' ' }}di laptop ini, siap ditarik.<br><span class="text-slate-400">Tutup aplikasi ARKAS dulu bila database-nya terkunci. Hasil tarik dicek di <b>Pembukuan → BKU</b>.</span></div>
-        <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="flex flex-wrap items-end gap-2" onsubmit="const b=this.querySelector('button');b.disabled=true;b.textContent='⏳ Menarik data… (sampai 5 menit)';return true;">
+        <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="flex flex-wrap items-end gap-2" data-tombol-sibuk="⏳ Menarik data… (sampai 5 menit)">
           @csrf
           <div>
             <label class="text-[11px] font-semibold text-slate-600" for="tahun-tarik">Tahun anggaran</label>
@@ -189,12 +189,12 @@
         <div class="text-xs text-slate-400 italic mb-3">Belum ada token.</div>
       @endif
       <div class="mt-3 flex flex-wrap gap-2">
-        <form method="post" action="{{ route('api-token.store') }}" onsubmit="return confirm('Buat token baru? Token lama akan langsung tidak berlaku.')">
+        <form method="post" action="{{ route('api-token.store') }}" data-konfirmasi="Buat token baru? Token lama akan langsung tidak berlaku.">
           @csrf
           <button class="btn text-xs">♻️ {{ auth()->user()->api_token ? 'Buat Ulang Token' : 'Buat Token' }}</button>
         </form>
         @if(auth()->user()->api_token)
-          <form method="post" action="{{ route('api-token.cabut') }}" onsubmit="return confirm('Cabut token API sekarang? Perangkat yang memakainya akan langsung kehilangan akses.')">
+          <form method="post" action="{{ route('api-token.cabut') }}" data-konfirmasi="Cabut token API sekarang? Perangkat yang memakainya akan langsung kehilangan akses.">
             @csrf
             <button class="btn2 text-xs">🚫 Cabut Token</button>
           </form>

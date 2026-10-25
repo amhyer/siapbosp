@@ -9,7 +9,7 @@
   @if(isset($bulan) && $bulan)
   <form method="get" class="flex gap-2 items-center text-sm">
     <span class="text-slate-500">{{ $pilihLabel ?? 'Bulan' }}:</span>
-    <select name="bulan" class="inp !w-auto" onchange="this.form.submit()">
+    <select name="bulan" class="inp !w-auto" data-kirim-otomatis>
       @foreach($namaBulan as $n => $nm) <option value="{{ $n }}" @selected($n == $bulan)>{{ $nm }} {{ $kop['tahun'] }}</option> @endforeach
     </select>
   </form>

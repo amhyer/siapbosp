@@ -10,10 +10,10 @@
   <form style="display:flex;gap:.5rem;align-items:center;font-size:.82rem" method="get">
     <input type="hidden" name="jenis" value="{{ $jenis }}">
     <span>Bulan:</span>
-    <input type="month" name="bulan" value="{{ $bulan }}" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .6rem" onchange="this.form.submit()">
+    <input type="month" name="bulan" value="{{ $bulan }}" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .6rem" data-kirim-otomatis>
   </form>
   <a href="{{ route('pembukuan.register', ['jenis' => $jenis === 'tunai' ? 'bank' : 'tunai', 'bulan' => $bulan]) }}">🔁 Register {{ $jenis === 'tunai' ? 'Bank' : 'Tunai' }}</a>
-  <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button>
   <a href="{{ route('kas') }}">← Kembali</a>
 </div>
 

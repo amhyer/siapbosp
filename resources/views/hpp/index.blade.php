@@ -6,12 +6,12 @@
 </div>
 <div class="toolbar">
   <form method="get" class="flex flex-wrap gap-2 items-center text-sm">
-    <select name="sumber" class="inp inp-sm !w-auto" onchange="this.form.submit()">
+    <select name="sumber" class="inp inp-sm !w-auto" data-kirim-otomatis>
       <option value="">Semua sumber</option>
       <option value="siplah" @selected($sumber==='siplah')>SIPLah</option>
       <option value="langsung" @selected($sumber==='langsung')>Langsung</option>
     </select>
-    <select name="status" class="inp inp-sm !w-auto" onchange="this.form.submit()">
+    <select name="status" class="inp inp-sm !w-auto" data-kirim-otomatis>
       <option value="">Semua status</option>
       <option value="belum" @selected($status==='belum')>Belum terpetakan</option>
       <option value="terpetakan" @selected($status==='terpetakan')>Terpetakan</option>

@@ -38,7 +38,7 @@
           <td>{!! $s->is_active ? '<span class="badge bg-emerald-100 text-emerald-700">aktif</span>' : '<span class="badge bg-slate-200 text-slate-500">nonaktif</span>' !!}</td>
           <td class="whitespace-nowrap">
             <form method="post" action="{{ route('dinas.sekolah.toggle', $s) }}" class="inline">@csrf<button class="btn2 btn text-xs">{{ $s->is_active?'Nonaktifkan':'Aktifkan' }}</button></form>
-            <form method="post" action="{{ route('dinas.sekolah.hapusdata', $s) }}" class="inline" onsubmit="return confirm('HAPUS SELURUH DATA {{ $s->nama }}? Transaksi, RKAS, tutup buku, LPJ ikut terhapus permanen.')">@csrf @method('DELETE')<button class="btn text-xs !bg-rose-600 hover:!bg-rose-700">🗑️</button></form>
+            <form method="post" action="{{ route('dinas.sekolah.hapusdata', $s) }}" class="inline" data-konfirmasi="HAPUS SELURUH DATA {{ $s->nama }}? Transaksi, RKAS, tutup buku, LPJ ikut terhapus permanen.">@csrf @method('DELETE')<button class="btn text-xs !bg-rose-600 hover:!bg-rose-700">🗑️</button></form>
           </td>
         </tr>
         @endforeach

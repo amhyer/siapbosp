@@ -154,7 +154,7 @@
     </div>
     <div>
       <label class="text-xs font-semibold text-slate-600">Kebutuhan Biaya</label>
-      <select name="butuh_anggaran" id="rktButuh" class="inp mt-1" onchange="document.querySelectorAll('.rkt-biaya').forEach(e=>e.style.opacity=this.value=='1'?1:.45)">
+      <select name="butuh_anggaran" id="rktButuh" class="inp mt-1" data-rkt-butuh>
         <option value="1">Butuh Anggaran (Masuk RKAS)</option>
         <option value="0">Tanpa Biaya (Non-Anggaran)</option>
       </select>
@@ -226,4 +226,14 @@
     </table>
   </div>
 </div>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
+  // Delegasi event menggantikan atribut onchange inline (audit R-03).
+  document.addEventListener('change', function (ev) {
+    if (!ev.target.matches || !ev.target.matches('[data-rkt-butuh]')) return;
+    const butuh = ev.target.value === '1';
+    document.querySelectorAll('.rkt-biaya').forEach(function (e) {
+      e.style.opacity = butuh ? 1 : 0.45;
+    });
+  });
+</script>
 @endsection

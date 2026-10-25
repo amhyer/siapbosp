@@ -14,7 +14,7 @@
 <div class="mb-4 flex gap-2 items-center flex-wrap bg-amber-50 border border-amber-300 rounded-lg p-3">
   <span class="text-sm font-semibold text-amber-800">🔍 MODE TINJAUAN DINAS — RKAS {{ $review->school->nama ?? '' }} · TA {{ $review->tahun }} revisi ke-{{ $review->revisi_ke }} (status: {{ strtoupper($review->status) }})</span>
   @if($review->status === 'dikirim_dinas')
-  <form method="post" action="{{ route('dinas.rkas.sahkan', $review->id) }}" onsubmit="return confirm('Sahkan RKAS ini? Sekolah akan dinotifikasi.')">@csrf
+  <form method="post" action="{{ route('dinas.rkas.sahkan', $review->id) }}" data-konfirmasi="Sahkan RKAS ini? Sekolah akan dinotifikasi.">@csrf
     <button class="border rounded px-3 py-1 text-sm bg-emerald-600 text-white font-semibold">✅ Sahkan</button>
   </form>
   <details class="relative">
@@ -54,7 +54,7 @@
       @if($h->status==='draft')<button name="aksi" value="ajukan" class="btn">📤 Ajukan ke Kepsek</button>@endif
       @if($h->status==='diajukan' && auth()->user()->role==='kepsek')<button name="aksi" value="setujui" class="btn">✅ Setujui (Kepsek)</button>@endif
       @if(in_array($h->status, ['disetujui', 'revisi']))
-        <button name="aksi" value="kirim_dinas" class="btn bg-indigo-600" onclick="return confirm('Kirim RKAS ini ke Dinas untuk disahkan?')">{{ $h->status === 'revisi' ? '🔄 Kirim Ulang ke Dinas' : '📨 Kirim ke Dinas' }}</button>
+        <button name="aksi" value="kirim_dinas" class="btn bg-indigo-600" data-konfirmasi="Kirim RKAS ini ke Dinas untuk disahkan?">{{ $h->status === 'revisi' ? '🔄 Kirim Ulang ke Dinas' : '📨 Kirim ke Dinas' }}</button>
       @endif
       @if($h->status==='disahkan')<button name="aksi" value="kunci" class="btn2 btn">🔒 Kunci RKAS</button>@endif
     </form>
@@ -74,9 +74,9 @@
       <p class="text-xs text-slate-500">{{ $reviewJuknis['aturan']['label_aturan'] }}</p>
     </div>
     <div class="flex gap-1.5 text-xs">
-      <button type="button" onclick="setTabReview('proporsi')" id="btnTab-proporsi" class="btn btn-sm">🥧 Grafik Proporsi</button>
-      <button type="button" onclick="setTabReview('tahapan')" id="btnTab-tahapan" class="btn2 btn-sm">🗓️ Per Tahapan</button>
-      <button type="button" onclick="setTabReview('tahunan')" id="btnTab-tahunan" class="btn2 btn-sm">📅 Per Tahun</button>
+      <button type="button" data-tab-review="proporsi" id="btnTab-proporsi" class="btn btn-sm">🥧 Grafik Proporsi</button>
+      <button type="button" data-tab-review="tahapan" id="btnTab-tahapan" class="btn2 btn-sm">🗓️ Per Tahapan</button>
+      <button type="button" data-tab-review="tahunan" id="btnTab-tahunan" class="btn2 btn-sm">📅 Per Tahun</button>
     </div>
   </div>
 
@@ -273,5 +273,10 @@ function setTabReview(tab){
     btn.className = (t === tab ? 'btn btn-sm' : 'btn2 btn-sm');
   });
 }
+// Delegasi event menggantikan atribut on* inline (audit R-03).
+document.addEventListener('click', function (ev) {
+  const el = ev.target.closest('[data-tab-review]');
+  if (el) setTabReview(el.dataset.tabReview);
+});
 </script>
 @endsection

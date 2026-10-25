@@ -2,7 +2,7 @@
 @section('content')
 <div class="dokumen">
 <div class="toolbar nonprint">
-  <button onclick="window.print()">🖨️ Cetak / Simpan PDF SPTJM</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF SPTJM</button>
   <a href="{{ route('pembukuan.sptjm', ['semester' => 1]) }}">Semester 1 (Jan–Jun)</a>
   <a href="{{ route('pembukuan.sptjm', ['semester' => 2]) }}">Semester 2 (Jul–Des)</a>
   <a href="{{ route('bku') }}">← Kembali ke BKU</a>

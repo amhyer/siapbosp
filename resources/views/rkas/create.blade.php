@@ -29,7 +29,7 @@
         <td class="num">{{ rp($rc['anggaran']) }}</td>
         <td class="num font-semibold text-rose-700">{{ rp($rc['realisasi']) }}</td>
         <td>@if($rc['siplah'])<span class="badge bg-sky-100 text-sky-700">SIPLah</span>@else<span class="badge bg-slate-100 text-slate-600">langsung</span>@endif</td>
-        <td><button type="button" class="btn btn-sm" onclick='bawaRekomendasi(@json($rc))'>+ Bawa</button></td>
+        <td><button type="button" class="btn btn-sm" data-bawa-rekomendasi="{{ json_encode($rc) }}">+ Bawa</button></td>
       </tr>
       @endforeach
     </tbody>
@@ -99,7 +99,7 @@
         <h3 class="font-semibold text-slate-700">Rincian Kegiatan &amp; Jadwal Volume Bulanan (Januari–Desember)</h3>
         <p class="text-[11px] text-slate-400">Pilih Kode Kegiatan SNP, Referensi Standar Harga (opsional), Rekening Belanja, dan sebaran volume per bulan (Tahap 1: Jan–Jun · Tahap 2: Jul–Des).</p>
       </div>
-      <button type="button" class="btn2 btn" onclick="tambahBaris()">➕ Tambah Kegiatan</button>
+      <button type="button" class="btn2 btn" data-tambah-baris>➕ Tambah Kegiatan</button>
     </div>
     <div class="overflow-x-auto">
       <table class="tbl" id="tblRkas">
@@ -139,7 +139,7 @@
       <option value="">— pilih rekening —</option>
       @foreach($rekenings as $r)<option value="{{ $r->id }}">{{ $r->kode }} · {{ Str::limit($r->nama, 38) }}</option>@endforeach
     </select>
-    <select name="standar_harga_id[]" class="inp text-xs sshSel bg-slate-50" onchange="pilihSsh(this)">
+    <select name="standar_harga_id[]" class="inp text-xs sshSel bg-slate-50">
       <option value="">— referensi SSH/SBU (opsional) —</option>
       @foreach($standarHargas as $sh)
         <option value="{{ $sh->id }}" data-nama="{{ $sh->nama_barang }}" data-satuan="{{ $sh->satuan }}" data-harga="{{ $sh->batas_harga }}">
@@ -153,20 +153,20 @@
     <input type="hidden" name="sumber[]" class="sumberRow" value="{{ $sumber }}">
   </td>
   <td><input name="satuan[]" class="inp satInp" value="paket" style="width:76px"></td>
-  <td><input name="banyak[]" type="number" min="1" value="1" class="inp qty" style="width:68px" oninput="sinkronDariQty(this)"></td>
-  <td><input name="harga[]" type="number" min="0" value="0" class="inp hrg" style="width:120px" oninput="hitung()"></td>
+  <td><input name="banyak[]" type="number" min="1" value="1" class="inp qty" style="width:68px"></td>
+  <td><input name="harga[]" type="number" min="0" value="0" class="inp hrg" style="width:120px"></td>
   <td>
     <div class="grid grid-cols-6 gap-1 text-[10px]">
       @foreach($bulanPendek as $m => $lbl)
       <label class="block">
         <span class="text-slate-400">{{ $lbl }}</span>
-        <input type="number" min="0" value="{{ $m === 1 ? 1 : 0 }}" data-m="{{ $m }}" class="inp !px-1 !py-0.5 text-xs blnInp" oninput="sinkronDariBulan(this)">
+        <input type="number" min="0" value="{{ $m === 1 ? 1 : 0 }}" data-m="{{ $m }}" class="inp !px-1 !py-0.5 text-xs blnInp">
       </label>
       @endforeach
     </div>
   </td>
   <td class="num jml font-semibold whitespace-nowrap">Rp 0</td>
-  <td><button type="button" class="badge bg-rose-50 text-rose-600" onclick="hapusBaris(this)">✖</button></td>
+  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-baris>✖</button></td>
 </tr>
 </template>
 
@@ -285,6 +285,25 @@ function hitung(){
 
 document.getElementById('hdrSumber').addEventListener('change', function(){
   document.querySelectorAll('.sumberRow').forEach(i => i.value = this.value);
+});
+
+// Delegasi event menggantikan atribut on* inline (audit R-03). Baris rincian
+// dibuat dari <template>, jadi listener dipasang di document.
+document.addEventListener('click', function (ev) {
+  let el;
+  if ((el = ev.target.closest('[data-tambah-baris]'))) { tambahBaris(); return; }
+  if ((el = ev.target.closest('[data-hapus-baris]'))) { hapusBaris(el); return; }
+  const rekomendasi = ev.target.closest('[data-bawa-rekomendasi]');
+  if (rekomendasi) bawaRekomendasi(JSON.parse(rekomendasi.dataset.bawaRekomendasi));
+});
+document.addEventListener('input', function (ev) {
+  const el = ev.target;
+  if (el.classList.contains('qty')) { sinkronDariQty(el); return; }
+  if (el.classList.contains('blnInp')) { sinkronDariBulan(el); return; }
+  if (el.classList.contains('hrg')) hitung();
+});
+document.addEventListener('change', function (ev) {
+  if (ev.target.classList.contains('sshSel')) pilihSsh(ev.target);
 });
 
 if(PREFILL.length){

@@ -145,7 +145,7 @@
           <span class="block text-[11px] leading-tight text-slate-400">Akuntansi Dana BOSP · ARKAS 4</span>
         </span>
       </a>
-      <button type="button" class="rounded-lg p-1.5 text-xl text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" onclick="toggleSidebar(false)" aria-label="Tutup menu">✕</button>
+      <button type="button" class="rounded-lg p-1.5 text-xl text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" data-sidebar-tutup aria-label="Tutup menu">✕</button>
     </div>
 
     <nav class="navw flex-1 gap-[2px] overflow-y-auto px-3 py-3" aria-label="Menu">
@@ -154,7 +154,7 @@
 
         @foreach($menuSekolah as $grp)
         <div class="grp {{ $grp['open'] ? 'open' : '' }}">
-          <button type="button" class="menu-btn" onclick="toggleGrp(this)" aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
+          <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
             <span>{{ $grp['label'] }}</span><span class="chev">▾</span>
           </button>
           <div class="sub {{ $grp['open'] ? '' : 'hidden' }}">
@@ -184,7 +184,7 @@
         <a href="{{ route('dinas.keamanan') }}" class="{{ request()->routeIs('dinas.keamanan') ? 'on' : '' }}">🛡️ Keamanan</a>
         <a href="{{ route('dinas.aktivitas') }}" class="{{ request()->routeIs('dinas.aktivitas') ? 'on' : '' }}">📋 Log Aktivitas</a>
         <a href="{{ route('dinas.pengumuman') }}" class="{{ request()->routeIs('dinas.pengumuman') ? 'on' : '' }}">📣 Pengumuman</a>
-        <a href="{{ route('dinas.backup') }}" onclick="return confirm('Unduh backup database sekarang?')">💾 Backup DB</a>
+        <a href="{{ route('dinas.backup') }}" data-konfirmasi="Unduh backup database sekarang?">💾 Backup DB</a>
         <a href="{{ route('password.edit') }}" class="{{ request()->routeIs('password.edit') ? 'on' : '' }}">🔐 Ganti Password</a>
       @endif
     </nav>
@@ -205,7 +205,7 @@
     <header class="nonprint sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div class="flex min-w-0 items-center gap-3">
-          <button type="button" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-lg text-slate-600 hover:bg-slate-50 lg:hidden" onclick="toggleSidebar()" aria-label="Buka menu">☰</button>
+          <button type="button" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-lg text-slate-600 hover:bg-slate-50 lg:hidden" data-sidebar-buka aria-label="Buka menu">☰</button>
           <div class="min-w-0">
             <h1 class="truncate text-[15px] font-bold text-slate-800 sm:text-base">{{ $title ?? '' }}</h1>
             @hasSection('subtitle')
@@ -252,7 +252,7 @@
           <form method="post" action="{{ route('sesi.tahun') }}" class="flex items-center gap-2 text-sm">
             @csrf
             <label for="tahun-anggaran" class="hidden text-slate-500 md:inline">Tahun Anggaran</label>
-            <select id="tahun-anggaran" name="tahun" class="inp inp-sm !w-auto" onchange="this.form.submit()">
+            <select id="tahun-anggaran" name="tahun" class="inp inp-sm !w-auto" data-kirim-otomatis>
               @for($y = 2023; $y <= 2028; $y++) <option value="{{ $y }}" @selected($tahunAktif === $y)>{{ $y }}</option> @endfor
             </select>
           </form>
@@ -284,6 +284,7 @@
 </div>
 
 @stack('scripts')
+@include('layouts._interaksi')
 @include('layouts._cetak-preview')
 </body>
 </html>

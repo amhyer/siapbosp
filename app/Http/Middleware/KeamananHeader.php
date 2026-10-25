@@ -10,9 +10,12 @@ use Symfony\Component\HttpFoundation\Response;
  * Header keamanan untuk seluruh respons web (R-03).
  *
  * CSP membatasi asal sumber secara eksplisit dan memberi nonce acak untuk blok
- * <script> inline. Handler atribut inline masih dipertahankan sementara agar
- * antarmuka lama tetap berjalan; CSP memisahkannya ke script-src-attr sehingga
- * migrasi event handler bisa dilakukan bertahap tanpa melemahkan script-src.
+ * <script> inline. Seluruh handler atribut inline (`onclick`/`onsubmit`/…)
+ * sudah dipindah ke JavaScript non-inline yang dipasang di layouts: atribut
+ * `data-*` + addEventListener (lihat resources/js/app.js dan
+ * resources/views/layouts/_interaksi.blade.php). Karena itu `script-src-attr`
+ * kini ditutup penuh (`'none'`) — tidak ada lagi pengecualian 'unsafe-inline'
+ * atau hash untuk event handler.
  */
 class KeamananHeader
 {
@@ -35,7 +38,7 @@ class KeamananHeader
             "frame-ancestors 'self'",
             "form-action 'self'",
             "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
-            "script-src-attr 'unsafe-inline'",
+            "script-src-attr 'none'",
             "style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://fonts.googleapis.com",
             "img-src 'self' data: blob:",
             "font-src 'self' data: https://fonts.bunny.net https://fonts.gstatic.com",
