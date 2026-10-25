@@ -46,15 +46,22 @@ class CssHalamanTest extends TestCase
     /**
      * Kumpulan nama kelas yang didefinisikan pada potongan CSS.
      *
-     * Escape CSS (`.text-\[10px\]`, `.w-2\/3`) dibuka lebih dulu supaya nama
-     * kelasnya sama persis dengan yang ditulis pada atribut class di markup.
+     * Escape CSS dibuka lebih dulu supaya nama kelasnya sama dengan yang
+     * ditulis di markup: `.w-2\/3` → `w-2/3`, `.text-\[10px\]` → `text-[10px]`.
      */
     private function kelasDidefinisikan(string $css): array
     {
-        $polos = str_replace('\\', '', $css);
-        preg_match_all('/\.([A-Za-z][A-Za-z0-9_\[\]\/:%.!-]*)/', $polos, $m);
+        preg_match_all('/\.((?:\\\\.|[A-Za-z0-9_-])+)/', $css, $m);
 
-        return array_values(array_unique($m[1]));
+        $kelas = [];
+        foreach ($m[1] as $token) {
+            $token = str_replace('\\', '', $token);
+            if (preg_match('/^[A-Za-z]/', $token)) {
+                $kelas[] = $token;
+            }
+        }
+
+        return array_values(array_unique($kelas));
     }
 
     /** Kumpulan kelas yang dipakai pada atribut class="…" sebuah view. */
@@ -127,12 +134,15 @@ class CssHalamanTest extends TestCase
                 "@vite(['resources/css/app.css', 'resources/js/app.js'])", $isi,
                 "layouts.{$nama} harus memuat CSS hasil build lewat @vite."
             );
-            $this->assertStringContainsString('build/manifest.json', $isi,
-                "layouts.{$nama} harus memeriksa manifest Vite sebelum memakai fallback.");
+            $this->assertStringContainsString('Aset::viteAktif()', $isi,
+                "layouts.{$nama} harus memakai App\\Support\\Aset untuk menentukan sumber aset "
+                .'(bukan file_exists mentah: berkas hot basi / manifest tak lengkap harus jatuh ke fallback).');
             $this->assertStringContainsString("@include('layouts._gaya-darurat')", $isi,
                 "layouts.{$nama} harus memuat gaya darurat pada cabang tanpa build.");
             $this->assertStringContainsString('src="/tailwind.js"', $isi,
                 "layouts.{$nama} harus menyediakan tailwind.js pada cabang tanpa build.");
+            $this->assertStringContainsString('Aset::tailwindJsAda()', $isi,
+                "layouts.{$nama} tidak boleh merujuk /tailwind.js yang tidak ada.");
         }
 
         // Halaman cetak tidak memakai aset Vite; gayanya harus mandiri.

@@ -8,12 +8,15 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#4f46e5">
 <link rel="apple-touch-icon" href="/icons/icon.svg">
+@use('App\Support\Aset')
 <title>{{ $title ?? 'Masuk' }} — SiapBOSP</title>
 @fonts
-@if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+@if (Aset::viteAktif())
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 @else
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
+    @if (Aset::tailwindJsAda())
+        <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
+    @endif
     @include('layouts._gaya-darurat')
 @endif
 </head>

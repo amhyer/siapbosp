@@ -1,6 +1,6 @@
 # Audit Pemuatan CSS per Halaman
 
-Tanggal: 2026-10-25 · Branch: `arena/eb95f7ef-siapbosp` · Lingkup: seluruh 97 berkas
+Tanggal: 2026-10-25 · Lingkup: seluruh 97 berkas
 Blade di `resources/views` (69 halaman `layouts.app`, 7 `layouts.print`,
 7 `layouts.error`, 1 `layouts.guest`, sisanya partial/layout/Dompdf/mail).
 
@@ -13,15 +13,39 @@ ada verifikasi visual, karena lingkungan kerja tidak punya runtime PHP
 
 | Jalur | Pemicu | Sumber gaya | Halaman |
 |---|---|---|---|
-| A. Aset build | `public/build/manifest.json` atau `public/hot` ada | `@vite(['resources/css/app.css','resources/js/app.js'])` | 69 halaman `layouts.app`, 1 `layouts.guest` |
-| B. Darurat (tanpa build) | manifest & `hot` tidak ada | `/tailwind.js` (build Tailwind di browser) + `layouts/_gaya-darurat.blade.php` | halaman yang sama dengan A |
-| C. Cetak mandiri | selalu | blok `<style>` di `layouts/print.blade.php` (+ `<style>` lokal view) | 7 halaman `layouts.print` |
-| D. Inline penuh | selalu | CSS di dalam view itu sendiri | 7 halaman `layouts.error`, `emails/notifikasi`, `laporan/lpj-pdf`, `rkas/pdf` (Dompdf) |
+| A. Dev server (`hot`) | `public/hot` ada **dan** server Vite menjawab | `@vite([...])` → `http://…:5173/…` (CSP wajib mengizinkan origin ini) | 69 halaman `layouts.app`, 1 `layouts.guest` |
+| B. Aset build | `public/build/manifest.json` ada **dan** semua berkas rujukannya ada | `@vite([...])` → `/build/assets/app-*.css` | sama dengan A |
+| C. Darurat | dua-duanya tidak memenuhi syarat di atas | `/tailwind.js` (bila ada) + `layouts/_gaya-darurat.blade.php` | sama dengan A |
+| D. Cetak mandiri | selalu | blok `<style>` di `layouts/print.blade.php` (+ `<style>` lokal view) | 7 halaman `layouts.print` |
+| E. Inline penuh | selalu | CSS di dalam view itu sendiri | 7 halaman `layouts.error`, `emails/notifikasi`, `laporan/lpj-pdf`, `rkas/pdf` (Dompdf) |
 
-Jalur A adalah yang dipakai produksi bila `npm run build` dijalankan
-(`public/build/` **tidak** ikut repository). Jalur B adalah jaring pengaman
-untuk instalasi yang lupa build. Jalur C sengaja tidak memakai `@vite` supaya
+Penentuan jalur A–C dilakukan satu tempat: `App\Support\Aset`
+(`Aset::sumber()`), bukan lagi `file_exists()` mentah di layout. Dua
+kegagalan yang dulu menghasilkan **halaman tanpa CSS sama sekali** kini
+tertangani sendiri:
+
+| Keadaan | Dulu | Sekarang |
+|---|---|---|
+| `public/hot` basi (sisa `npm run dev` yang sudah ditutup) | `@vite` mengeluarkan alamat `http://localhost:5173/…` yang mati → CSS 404, halaman polos | koneksi ke dev server diuji (≤0,2 s); bila tidak menjawab, `public/hot` dihapus dan aplikasi memakai build/darurat |
+| `manifest.json` menunjuk berkas yang hilang (build terpotong, ZIP tak lengkap) | tetap `@vite` → CSS 404, halaman polos | setiap berkas rujukan manifest diverifikasi; bila ada yang hilang → jalur darurat |
+| `npm run dev` hidup, CSP hanya `'self'` | aset dev (port 5173) **diblokir CSP** → halaman polos | origin dev server + WebSocket HMR ditambahkan ke `script-src`/`style-src`/`connect-src` selama `hot` hidup |
+
+Jalur B adalah yang dipakai produksi bila `npm run build` dijalankan
+(`public/build/` **tidak** ikut repository). Jalur C adalah jaring pengaman
+untuk instalasi yang lupa build. Jalur D sengaja tidak memakai `@vite` supaya
 dialog cetak tetap tampil benar walau aset build hilang.
+
+### Diagnosa cepat
+
+```bash
+php artisan siapbos:cek-aset
+```
+
+Perintah ini menyebutkan sumber CSS yang sedang dipakai halaman, keberadaan
+`public/hot`, kelengkapan `public/build`, dan langkah perbaikannya. Kode keluar
+`1` bila aplikasi masih di jalur darurat — bisa dipakai skrip pemasangan.
+Launcher Windows (`launcher-windows/SiapBOSP.bat`) juga menjalankannya dan
+menampilkan peringatan sebelum membuka browser bila aset belum siap.
 
 ## 2. Inventaris kelas: 577 dipakai, 28 tanpa aturan di CSS build
 
@@ -56,11 +80,11 @@ Perbaikan: gaya komponen darurat dipindah dari `layouts/app` ke partial baru
 `resources/views/layouts/_gaya-darurat.blade.php`, lalu di-`@include` oleh
 `layouts/app` **dan** `layouts/guest` pada cabang tanpa build.
 
-### F-2 Gaya darurat hanya menutup 9 dari 32 kelas komponen
+### F-2 Gaya darurat hanya menutup 10 aturan dari 31 kelas komponen
 
 Blok lama (`layouts/app`) hanya berisi 10 aturan: `body`, `.inp`, `.btn`,
 `.btn2`, `.card`, `.tbl`, `.tbl th`, `.tbl td`, `.num`, `.badge`. `app.css`
-mendefinisikan 32 kelas komponen; yang tidak punya padanan darurat antara lain
+mendefinisikan 31 kelas komponen; yang tidak punya padanan darurat antara lain
 `.lbl`, `.inp-sm`, `.btn-sm`, `.btn-danger`, `.card-title`, `.tbl-wrap`,
 `.bdan`, `.bdel`, `.navw` beserta `.on/.chev/.menu-btn/.sub`, `.alert`
 dengan `.alert-ok/-warn/-err`, `.empty`, `.page-head`, `.page-desc`,
@@ -115,7 +139,7 @@ Empat tes statis (tanpa browser, tanpa database) mengunci hasil di atas:
 |---|---|---|
 | Build aset | `npm ci` lalu `npm run build` (vite 8.3.4, tailwindcss 4.3.3) | sukses; `app-BWZe9esl.css` 100.62 kB (gzip 18.48 kB), `app-BBzzTR7w.js` 1.45 kB, `manifest.json` 0.33 kB |
 | Sintaks PHP | `php -l` (php-wasm PHP 8.5.10) pada `tests/Feature/CssHalamanTest.php` | tanpa galat |
-| Logika tes 1–4 | harness PHP di luar PHPUnit (vendor tidak terpasang) | tes 1: 0 pelanggaran; tes 2: 4 syarat terpenuhi; tes 3: 32 kelas komponen, 0 hilang; tes 4: 0 kelas cetak tanpa definisi |
+| Logika tes 1–4 | harness PHP di luar PHPUnit (vendor tidak terpasang) | tes 1: 0 pelanggaran; tes 2: 4 syarat terpenuhi; tes 3: 31 kelas komponen, 0 hilang; tes 4: 0 kelas cetak tanpa definisi |
 | Diff kelas vs CSS build | skrip Python (577 token unik) | 549 punya aturan, 28 terklasifikasi seperti §2 |
 | CI (run 40200670771) | workflow `tests` pada SQLite + PostgreSQL 16 | **205 tes lulus, 1.054 assertion** di kedua driver (201 tes sebelumnya + 4 tes baru); commit `c4fddbb` |
 
@@ -136,12 +160,17 @@ perilaku Play CDN pada perangkat sangat lambat.
 2. **`welcome.blade.php` tidak terpakai** — tidak ada route yang merujuknya;
    kelasnya ikut terhitung dalam inventaris. Kandidat dihapus pada pekerjaan
    terpisah (tidak dilakukan di sini agar tidak mengubah berkas di luar lingkup).
-3. **Blok `<style>` masih inline.** Gaya darurat, gaya cetak, dan gaya dokumen
+3. **Jalur darurat bukan tiruan sempurna.** Bila build hilang, `/tailwind.js`
+   mengompilasi utility di browser (451 kB skrip) dan gaya komponen berasal
+   dari `_gaya-darurat`; tampilannya mendekati build tetapi tidak identik dan
+   lebih lambat. Karena itu `siapbos:paket-portable` sekarang **menolak**
+   mengemas bila `public/build` tidak lengkap.
+4. **Blok `<style>` masih inline.** Gaya darurat, gaya cetak, dan gaya dokumen
    bergantung pada `style-src 'unsafe-inline'` di CSP (`KeamananHeader.php`).
    Mengetatkan `style-src` tanpa memindahkan blok-blok ini ke berkas `@vite`
    akan mematikan gaya cetak dan dokumen — jangan dilakukan tanpa migrasi
    terlebih dahulu (lihat `docs/AUDIT-KEAMANAN.md`).
-4. **Daftar kompatibilitas cetak bersifat manual.** Tes 4 menangkap kelas yang
+5. **Daftar kompatibilitas cetak bersifat manual.** Tes 4 menangkap kelas yang
    belum didefinisikan, tetapi tidak menangkap nilai yang berbeda dari
    Tailwind; penambahan utility baru di view cetak tetap perlu disertai aturan
    CSS-nya.

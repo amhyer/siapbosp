@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Aset;
 use Illuminate\Console\Command;
 use ZipArchive;
 
@@ -39,6 +40,26 @@ class PaketPortable extends Command
 
     public function handle(): int
     {
+        // ---------- 0) Prasyarat: aset tampilan wajib sudah dibangun ----------
+        // Laptop bendahara tidak punya Node.js, jadi CSS/JS harus ikut paket.
+        // Tanpa public/build aplikasi tetap jalan tetapi memakai jalur darurat —
+        // inilah penyebab halaman tampil polos pada paket yang pernah terkirim.
+        $masalahAset = Aset::masalahBuild();
+        if ($masalahAset !== []) {
+            $this->error('Aset tampilan belum dibangun — paket akan tampil tanpa CSS.');
+            foreach ($masalahAset as $masalah) {
+                $this->line('  - '.$masalah);
+            }
+            $this->line('Jalankan dulu: npm ci && npm run build');
+
+            return 1;
+        }
+        if (! is_file(base_path('public/tailwind.js'))) {
+            $this->error('public/tailwind.js tidak ditemukan — cadangan mode darurat tidak akan berfungsi.');
+
+            return 1;
+        }
+
         $base = base_path();
         $nama = $this->option('nama');
         $out = storage_path('app/paket/'.$nama);
