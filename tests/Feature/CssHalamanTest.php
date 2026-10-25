@@ -135,8 +135,10 @@ class CssHalamanTest extends TestCase
                 "layouts.{$nama} harus memuat CSS hasil build lewat @vite."
             );
             $this->assertStringContainsString('Aset::viteAktif()', $isi,
-                "layouts.{$nama} harus memakai App\\Support\\Aset untuk menentukan sumber aset "
-                .'(bukan file_exists mentah: berkas hot basi / manifest tak lengkap harus jatuh ke fallback).');
+                "layouts.{$nama} harus memakai App\\Support\\Aset, bukan file_exists mentah.");
+            $this->assertStringContainsString('@foreach (Aset::cssUrl() as $css)', $isi,
+                "layouts.{$nama} harus merujuk CSS hasil build lewat <link> biasa "
+                .'(tanpa Vite/manifest/hot, sehingga tidak bisa menunjuk aset yang tidak ada).');
             $this->assertStringContainsString("@include('layouts._gaya-darurat')", $isi,
                 "layouts.{$nama} harus memuat gaya darurat pada cabang tanpa build.");
             $this->assertStringContainsString('src="/tailwind.js"', $isi,

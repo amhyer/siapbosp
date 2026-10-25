@@ -47,6 +47,8 @@ class CekAset extends Command
                 }
             }
         }
+        $this->line('  Berkas CSS build : '.($laporan['css'] === [] ? 'TIDAK ADA' : implode(', ', $laporan['css'])));
+        $this->line('  Berkas JS build  : '.($laporan['js'] === [] ? 'TIDAK ADA' : implode(', ', $laporan['js'])));
         $this->line('  public/tailwind.js: '.($laporan['tailwind_js'] ? 'ada (cadangan mode darurat)' : 'TIDAK ADA — mode darurat akan tampil tanpa utility'));
         $this->newLine();
 
@@ -62,8 +64,11 @@ class CekAset extends Command
 
         if ($sumber === Aset::BUILD || $sumber === Aset::HOT) {
             $this->line('Tampilan seharusnya normal. Bila masih polos di browser:');
-            $this->line('  1) muat ulang paksa (Ctrl+F5 / Shift+Reload);');
-            $this->line('  2) buka DevTools → Console + Network, cari status 404 atau pesan CSP.');
+            $this->line('  1) muat ulang paksa (Ctrl+Shift+R);');
+            $this->line('  2) pastikan server yang menahan port dijalankan DARI folder ini');
+            $this->line('     (server lama = kode lama) — Windows: launcher-windows\\Jalankan-Ulang-Server.bat');
+            $this->line('  3) buka '.config('app.url').'/_aset saat aplikasi lokal untuk melihat sumber CSS');
+            $this->line('     yang benar-benar dipakai; atau periksa DevTools → Network (cari 404).');
 
             return self::SUCCESS;
         }

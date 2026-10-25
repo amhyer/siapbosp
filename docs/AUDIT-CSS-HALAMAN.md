@@ -14,7 +14,7 @@ ada verifikasi visual, karena lingkungan kerja tidak punya runtime PHP
 | Jalur | Pemicu | Sumber gaya | Halaman |
 |---|---|---|---|
 | A. Dev server (`hot`) | `public/hot` ada **dan** server Vite menjawab | `@vite([...])` → `http://…:5173/…` (CSP wajib mengizinkan origin ini) | 69 halaman `layouts.app`, 1 `layouts.guest` |
-| B. Aset build | `public/build/manifest.json` ada **dan** semua berkas rujukannya ada | `@vite([...])` → `/build/assets/app-*.css` | sama dengan A |
+| B. Aset build | ada berkas `public/build/assets/*.css` | `<link rel="stylesheet" href="/build/assets/app-*.css">` **tanpa Vite/manifest/hot** | sama dengan A |
 | C. Darurat | dua-duanya tidak memenuhi syarat di atas | `/tailwind.js` (bila ada) + `layouts/_gaya-darurat.blade.php` | sama dengan A |
 | D. Cetak mandiri | selalu | blok `<style>` di `layouts/print.blade.php` (+ `<style>` lokal view) | 7 halaman `layouts.print` |
 | E. Inline penuh | selalu | CSS di dalam view itu sendiri | 7 halaman `layouts.error`, `emails/notifikasi`, `laporan/lpj-pdf`, `rkas/pdf` (Dompdf) |
@@ -29,6 +29,8 @@ tertangani sendiri:
 | `public/hot` basi (sisa `npm run dev` yang sudah ditutup) | `@vite` mengeluarkan alamat `http://localhost:5173/…` yang mati → CSS 404, halaman polos | koneksi ke dev server diuji (≤0,2 s); bila tidak menjawab, `public/hot` dihapus dan aplikasi memakai build/darurat |
 | `manifest.json` menunjuk berkas yang hilang (build terpotong, ZIP tak lengkap) | tetap `@vite` → CSS 404, halaman polos | setiap berkas rujukan manifest diverifikasi; bila ada yang hilang → jalur darurat |
 | `npm run dev` hidup, CSP hanya `'self'` | aset dev (port 5173) **diblokir CSP** → halaman polos | origin dev server + WebSocket HMR ditambahkan ke `script-src`/`style-src`/`connect-src` selama `hot` hidup |
+| `manifest.json` rusak/hilang padahal berkas CSS ada | `@vite` gagal atau menunjuk aset yang tidak ada | jalur build memakai `<link>` langsung ke `build/assets/*.css` (glob), manifest hanya dipakai untuk laporan/paket |
+| server lama masih menahan port 8000 (kode lama tetap dilayani) | halaman polos walau berkas sudah diperbarui | `launcher-windows\Jalankan-Ulang-Server.bat` mematikan listener port lalu menyalakan server baru |
 
 Jalur B adalah yang dipakai produksi. **`public/build/` kini ikut repository**
 (sejak 2026-10-25): laptop bendahara dan paket portable tidak punya Node.js,
@@ -42,7 +44,14 @@ Konsekuensi untuk pengembang: setiap perubahan `resources/css/app.css` atau
 `public/build`. Tes `test_css_build_memuat_semua_kelas_komponen` menolak commit
 yang lupa membangun ulang (CI membangun lebih dulu, jadi CI sendiri lolos).
 
-### Diagnosa cepat
+### Diagnosa cepat (tanpa PHP CLI)
+
+Buka `http://localhost:8000/_aset` — halaman ini (hanya bisa diakses dari
+localhost) menampilkan commit yang sedang berjalan, sumber CSS yang dipakai,
+berkas `public/build` yang terdeteksi, dan keadaan `public/hot`. Bila sumber CSS
+tertulis **darurat**, berarti `public/build` tidak ada di folder yang dilayani.
+
+### Diagnosa cepat (CLI)
 
 ```bash
 php artisan siapbos:cek-aset

@@ -225,6 +225,70 @@ final class Aset
         return array_values(array_unique($daftar));
     }
 
+    /**
+     * Berkas CSS hasil build (terbaru lebih dulu), dibaca langsung dari disk.
+     *
+     * Sengaja TIDAK lewat manifest: bila manifest rusak/hilang tetapi berkas
+     * CSS-nya ada, halaman tetap bisa ditata. Inilah jaring pengaman terakhir
+     * sebelum mode darurat.
+     *
+     * @return list<string> path absolut
+     */
+    public static function cssBerkas(): array
+    {
+        return self::berkasAset('css');
+    }
+
+    /** @return list<string> path absolut */
+    public static function jsBerkas(): array
+    {
+        return self::berkasAset('js');
+    }
+
+    /** @return list<string> */
+    private static function berkasAset(string $ekstensi): array
+    {
+        $pola = self::dir().DIRECTORY_SEPARATOR.'build'.DIRECTORY_SEPARATOR.'assets'.DIRECTORY_SEPARATOR.'*.'.$ekstensi;
+        $berkas = glob($pola) ?: [];
+
+        // Terbaru lebih dulu: bila ada sisa build lama, yang baru dipakai.
+        usort($berkas, fn (string $a, string $b): int => (int) @filemtime($b) <=> (int) @filemtime($a));
+
+        return array_values(array_filter($berkas, 'is_file'));
+    }
+
+    /**
+     * URL CSS siap pakai (`/build/assets/app-xxxx.css`), atau null bila tidak ada.
+     *
+     * Dipakai layout sebagai <link> biasa — tanpa Vite, tanpa manifest, tanpa
+     * ketergantungan pada berkas `hot`. Nama berkas sudah ber-hash Vite,
+     * jadi cache browser aman.
+     *
+     * @return list<string>
+     */
+    public static function cssUrl(): array
+    {
+        return array_map(
+            fn (string $berkas): string => '/build/assets/'.basename($berkas),
+            self::cssBerkas()
+        );
+    }
+
+    /** @return list<string> */
+    public static function jsUrl(): array
+    {
+        return array_map(
+            fn (string $berkas): string => '/build/assets/'.basename($berkas),
+            self::jsBerkas()
+        );
+    }
+
+    /** True bila CSS hasil build bisa dirujuk langsung (jalur `build`). */
+    public static function cssSiap(): bool
+    {
+        return self::cssBerkas() !== [];
+    }
+
     public static function buildLengkap(): bool
     {
         return self::masalahBuild() === [];
@@ -245,13 +309,21 @@ final class Aset
             self::buangHotBasi();
         }
 
-        return self::$sumber = self::buildLengkap() ? self::BUILD : self::DARURAT;
+        // Cukup berkas CSS-nya ada: layout merujuknya lewat <link> biasa,
+        // sehingga manifest yang rusak tidak lagi membuat halaman polos.
+        return self::$sumber = self::cssSiap() ? self::BUILD : self::DARURAT;
     }
 
-    /** True bila `@vite` aman dipakai (dev server hidup atau build lengkap). */
+    /**
+     * True bila `@vite` perlu dipakai — yaitu hanya saat server dev hidup.
+     *
+     * Pada jalur build, layout sengaja memakai <link> biasa ke berkas CSS hasil
+     * build: tidak butuh manifest, tidak butuh berkas `hot`, tidak bisa
+     * diarahkan ke dev server yang mati.
+     */
     public static function viteAktif(): bool
     {
-        return self::sumber() !== self::DARURAT;
+        return self::sumber() === self::HOT;
     }
 
     /** `tailwind.js` (Play CDN) hanya dimuat bila berkasnya memang ada. */
@@ -303,6 +375,8 @@ final class Aset
             'build_lengkap' => self::buildLengkap(),
             'masalah_build' => self::masalahBuild(),
             'tailwind_js' => self::tailwindJsAda(),
+            'css' => self::cssUrl(),
+            'js' => self::jsUrl(),
             'sumber' => self::sumber(),
         ];
     }

@@ -12,11 +12,20 @@
 <title>{{ $title ?? 'SiapBOSP' }} — SiapBOSP</title>
 @fonts
 @if (Aset::viteAktif())
+    {{-- Server dev (npm run dev) hidup: biarkan Vite menangani aset + HMR. --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+@elseif (Aset::cssSiap())
+    {{-- Jalur produksi: rujuk berkas hasil `npm run build` secara langsung.
+         Tanpa Vite, tanpa manifest, tanpa berkas `hot` — sehingga halaman tidak
+         bisa lagi tampil polos karena manifest rusak atau hot basi. --}}
+    @foreach (Aset::cssUrl() as $css)
+        <link rel="stylesheet" href="{{ $css }}">
+    @endforeach
+    @foreach (Aset::jsUrl() as $js)
+        <script src="{{ $js }}" defer></script>
+    @endforeach
 @else
-    {{-- Fallback darurat bila aset Vite belum dibangun (jalankan: npm run build).
-         Gaya komponen app.css dimuat bersama oleh layouts/_gaya-darurat supaya
-         halaman login (layouts.guest) juga tetap tampil benar. --}}
+    {{-- Aset build tidak ada: pakai Tailwind di browser + gaya komponen layout. --}}
     @if (Aset::tailwindJsAda())
         <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
     @endif

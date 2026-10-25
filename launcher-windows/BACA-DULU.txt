@@ -26,10 +26,12 @@ CARA PASANG (sekali saja, ±2-3 menit):
 
 BILA TAMPILAN "POLOS" (tanpa warna / tombol jelek):
   Tutup jendela aplikasi, lalu klik 2x
-      launcher-windows\Perbaiki-Tampilan.bat
-  Berkas itu menghapus penanda dev server yang basi, membersihkan cache,
-  dan memeriksa aset CSS. Setelah itu buka aplikasi dan tekan Ctrl+F5.
-  Bila tetap polos, kirimkan tulisan yang muncul di jendela perbaikan itu.
+      launcher-windows\Jalankan-Ulang-Server.bat
+  Berkas itu mematikan server lama (server lama = kode lama), membersihkan
+  cache, memeriksa aset CSS, lalu menyalakan server baru dan membuka aplikasi.
+  Setelah itu tekan Ctrl+Shift+R di jendela aplikasi.
+  Bila masih polos, buka alamat ini di browser dan kirimkan isinya:
+      http://localhost:8000/_aset
 
 PAKAI SEHARI-HARI:
 1. Klik pintasan "SiapBOSP" -> jendela aplikasi terbuka sendiri.

@@ -35,6 +35,73 @@ Route::get('/', function () {
     return redirect()->route($u->isDinas() ? 'dinas.dashboard' : 'dashboard');
 });
 
+/**
+ * Diagnosa tampilan (hanya dari komputer sendiri).
+ *
+ * Berguna saat halaman tampil polos: menampilkan sumber CSS yang dipakai,
+ * keberadaan public/build & public/hot, dan versi kode yang sedang berjalan —
+ * semuanya bisa dibaca lewat browser tanpa PHP CLI. Diakses dari luar
+ * localhost selalu 404 agar tidak membocorkan detail server.
+ */
+Route::get('/_aset', function (Illuminate\Http\Request $request) {
+    abort_unless(
+        in_array($request->ip(), ['127.0.0.1', '::1'], true)
+        && in_array($request->getHost(), ['localhost', '127.0.0.1', '::1', '[::1]'], true),
+        404
+    );
+
+    $laporan = App\Support\Aset::periksa();
+    $commit = null;
+    $head = base_path('.git/HEAD');
+    if (is_file($head)) {
+        $isi = trim((string) file_get_contents($head));
+        if (str_starts_with($isi, 'ref:')) {
+            $ref = base_path(trim(substr($isi, 4)));
+            $commit = is_file($ref) ? substr(trim((string) file_get_contents($ref)), 0, 12) : null;
+        } else {
+            $commit = substr($isi, 0, 12);
+        }
+    }
+
+    $baris = [
+        'Versi kode (commit)' => $commit ?? 'bukan salinan git / tidak terbaca',
+        'Lingkungan' => config('app.env').' · APP_DEBUG='.(config('app.debug') ? 'true' : 'false'),
+        'Sumber CSS dipakai' => $laporan['sumber'],
+        'Berkas CSS hasil build' => $laporan['css'] === [] ? 'TIDAK ADA' : implode(', ', $laporan['css']),
+        'Berkas JS hasil build' => $laporan['js'] === [] ? 'TIDAK ADA' : implode(', ', $laporan['js']),
+        'public/build/manifest.json' => $laporan['manifest_ada'] ? 'ada' : 'TIDAK ADA',
+        'Kelengkapan manifest' => $laporan['build_lengkap'] ? 'lengkap' : implode('; ', $laporan['masalah_build']),
+        'public/hot (dev server)' => $laporan['hot_berkas']
+            ? ($laporan['hot_url'] ?? '?').($laporan['hot_hidup'] ? ' — HIDUP' : ' — BASI (diabaikan)')
+            : 'tidak ada',
+        'public/tailwind.js' => $laporan['tailwind_js'] ? 'ada' : 'TIDAK ADA',
+    ];
+
+    $html = '<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">'
+        .'<meta name="viewport" content="width=device-width,initial-scale=1">'
+        .'<title>Diagnosa aset — SiapBOSP</title><style>'
+        .'body{font-family:ui-sans-serif,system-ui,sans-serif;margin:0;padding:24px;background:#f1f5f9;color:#1e293b}'
+        .'h1{font-size:18px;margin:0 0 4px}p{font-size:13px;color:#64748b;margin:0 0 16px}'
+        .'table{border-collapse:collapse;width:100%;max-width:900px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}'
+        .'th,td{text-align:left;padding:8px 12px;font-size:13px;border-bottom:1px solid #f1f5f9;vertical-align:top}'
+        .'th{width:34%;color:#475569;background:#f8fafc;font-weight:600}'
+        .'td{font-family:ui-monospace,monospace;word-break:break-all}'
+        .'code{background:#f1f5f9;padding:1px 5px;border-radius:4px}'
+        .'</style></head><body><h1>Diagnosa aset SiapBOSP</h1>'
+        .'<p>Halaman ini hanya bisa dibuka dari komputer ini (localhost).</p><table>';
+
+    foreach ($baris as $kunci => $nilai) {
+        $html .= '<tr><th>'.e($kunci).'</th><td>'.e((string) $nilai).'</td></tr>';
+    }
+
+    $html .= '</table><p style="margin-top:16px">Tampilan normal bila <strong>Sumber CSS dipakai = '
+        .'aset build</strong> (atau <code>dev server</code>). Bila <strong>darurat</strong>, jalankan '
+        .'<code>npm ci &amp;&amp; npm run build</code> — atau pakai paket yang sudah membawa '
+        .'<code>public/build</code>.</p></body></html>';
+
+    return response($html)->header('Content-Type', 'text/html; charset=utf-8');
+})->name('diagnosa.aset');
+
 Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');

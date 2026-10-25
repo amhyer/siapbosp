@@ -271,6 +271,61 @@ class AsetHalamanTest extends TestCase
         return $css;
     }
 
+    /**
+     * Jalur build tidak boleh bergantung pada manifest/berkas hot.
+     *
+     * Dulu halaman tampil polos bila manifest rusak atau berkas `hot` basi.
+     * Sekarang cukup berkas CSS-nya ada: layout merujuknya lewat <link> biasa.
+     */
+    public function test_css_dipakai_walau_manifest_rusak(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'build'.DIRECTORY_SEPARATOR.'manifest.json', '{rusak');
+
+        $this->assertNotSame([], Aset::masalahBuild(), 'Manifest rusak memang harus dilaporkan.');
+        $this->assertSame(Aset::BUILD, Aset::sumber(),
+            'Berkas CSS ada → halaman harus tetap memakai build, bukan jatuh ke darurat.');
+        $this->assertSame(['/build/assets/app.css'], Aset::cssUrl());
+        $this->assertSame(['/build/assets/app.js'], Aset::jsUrl());
+    }
+
+    public function test_hot_basi_tidak_pernah_memakai_vite(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        $this->anggapServerDev(false);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame(Aset::BUILD, Aset::sumber());
+        $this->assertFalse(Aset::viteAktif(),
+            '@vite hanya boleh dipakai saat dev server benar-benar hidup.');
+    }
+
+    public function test_tanpa_berkas_aset_halaman_tetap_ditata_gaya_darurat(): void
+    {
+        $this->dirPublik(); // kosong: tidak ada build, tidak ada hot
+
+        $html = (string) $this->get('/login')->assertOk()->getContent();
+
+        $this->assertStringContainsString('.navw a', $html,
+            'Tanpa aset build, layout wajib menyertakan gaya komponen (mode darurat).');
+        $this->assertStringNotContainsString('/build/assets/', $html,
+            'Tidak boleh merujuk berkas build yang tidak ada (pasti 404 → halaman polos).');
+        $this->assertStringNotContainsString('localhost:5173', $html);
+    }
+
+    public function test_diagnosa_aset_hanya_untuk_localhost(): void
+    {
+        $this->dirPublik();
+
+        $this->get('/_aset')->assertOk()->assertSee('Diagnosa aset SiapBOSP');
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
+            ->get('/_aset')
+            ->assertNotFound();
+    }
+
     /** Nilai satu direktif CSP tanpa tertukar dengan direktif berawalan sama. */
     private function direktif(string $csp, string $nama): string
     {
