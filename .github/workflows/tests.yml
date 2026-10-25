@@ -40,4 +40,21 @@ jobs:
           php artisan key:generate
 
       - name: Jalankan test
-        run: php artisan test --compact
+        id: test-suite
+        continue-on-error: true
+        run: php artisan test --compact 2>&1 | tee storage/logs/ci-tests.log
+
+      - name: Unggah log test jika gagal
+        if: steps.test-suite.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-logs
+          path: |
+            storage/logs/ci-tests.log
+            storage/logs/laravel.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Gagalkan workflow jika test gagal
+        if: steps.test-suite.outcome == 'failure'
+        run: exit 1
