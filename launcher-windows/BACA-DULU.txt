@@ -24,6 +24,13 @@ CARA PASANG (sekali saja, ±2-3 menit):
    Aplikasi terpasang di: %LocalAppData%\Programs\SiapBOSP
    (data lokal ada di dalam folder itu juga)
 
+BILA TAMPILAN "POLOS" (tanpa warna / tombol jelek):
+  Tutup jendela aplikasi, lalu klik 2x
+      launcher-windows\Perbaiki-Tampilan.bat
+  Berkas itu menghapus penanda dev server yang basi, membersihkan cache,
+  dan memeriksa aset CSS. Setelah itu buka aplikasi dan tekan Ctrl+F5.
+  Bila tetap polos, kirimkan tulisan yang muncul di jendela perbaikan itu.
+
 PAKAI SEHARI-HARI:
 1. Klik pintasan "SiapBOSP" -> jendela aplikasi terbuka sendiri.
    Jangan tutup jendela "SiapBOSP-Server" selama bekerja.

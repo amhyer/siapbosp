@@ -21,7 +21,7 @@ npm run build
 cp .env.example .env
 ```
 
-> `npm run build` **wajib**: `public/build/` tidak ikut repository (gitignored), sedangkan `layouts/app` dan `layouts/guest` memuat CSS lewat `@vite`. Tanpa hasil build, aplikasi memakai jalur darurat (`/tailwind.js` + gaya komponen di `layouts/_gaya-darurat.blade.php`) yang tampil mirip tetapi lebih lambat dan bergantung pada pemuatan skrip CDN lokal. Periksa setelah build: `ls public/build/manifest.json`. Rincian audit CSS per halaman ada di `docs/AUDIT-CSS-HALAMAN.md`. Setelah build, `php artisan siapbos:cek-aset` menyebutkan sumber CSS yang dipakai halaman (harus "aset hasil build"); perintah yang sama dipakai saat aplikasi tampil polos.
+> `npm run build` hanya perlu diulang bila `resources/css/app.css` atau `resources/js/app.js` berubah — **hasil build sudah ikut repository** (`public/build/`), sehingga pemasangan di mesin tanpa Node.js tetap mendapat CSS. Setelah build/checkout, `php artisan siapbos:cek-aset` menyebutkan sumber CSS yang dipakai halaman (harus "aset hasil build"); perintah yang sama dipakai saat aplikasi tampil polos. Bila `public/build` hilang, aplikasi memakai jalur darurat (`/tailwind.js` + gaya komponen di `layouts/_gaya-darurat.blade.php`) yang tampil mirip tetapi lebih lambat. Rincian audit CSS per halaman: `docs/AUDIT-CSS-HALAMAN.md`.
 
 Edit `.env` sebelum melanjutkan. Minimal:
 

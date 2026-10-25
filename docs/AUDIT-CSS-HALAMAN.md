@@ -30,10 +30,17 @@ tertangani sendiri:
 | `manifest.json` menunjuk berkas yang hilang (build terpotong, ZIP tak lengkap) | tetap `@vite` → CSS 404, halaman polos | setiap berkas rujukan manifest diverifikasi; bila ada yang hilang → jalur darurat |
 | `npm run dev` hidup, CSP hanya `'self'` | aset dev (port 5173) **diblokir CSP** → halaman polos | origin dev server + WebSocket HMR ditambahkan ke `script-src`/`style-src`/`connect-src` selama `hot` hidup |
 
-Jalur B adalah yang dipakai produksi bila `npm run build` dijalankan
-(`public/build/` **tidak** ikut repository). Jalur C adalah jaring pengaman
-untuk instalasi yang lupa build. Jalur D sengaja tidak memakai `@vite` supaya
-dialog cetak tetap tampil benar walau aset build hilang.
+Jalur B adalah yang dipakai produksi. **`public/build/` kini ikut repository**
+(sejak 2026-10-25): laptop bendahara dan paket portable tidak punya Node.js,
+sehingga tanpa aset yang dikomit setiap pemasangan baru tampil polos. Jalur C
+tetap jaring pengaman bila `public/build` hilang/terpotong. Jalur D sengaja
+tidak memakai `@vite` supaya dialog cetak tetap tampil benar walau aset build
+hilang.
+
+Konsekuensi untuk pengembang: setiap perubahan `resources/css/app.css` atau
+`resources/js/app.js` **wajib** diikuti `npm run build` dan komit ulang
+`public/build`. Tes `test_css_build_memuat_semua_kelas_komponen` menolak commit
+yang lupa membangun ulang (CI membangun lebih dulu, jadi CI sendiri lolos).
 
 ### Diagnosa cepat
 
@@ -153,10 +160,12 @@ perilaku Play CDN pada perangkat sangat lambat.
 
 ## 6. Risiko tersisa
 
-1. **`public/build/` gitignored.** Setiap pemasangan/perbaruan wajib
-   `npm run build`. Tanpa itu aplikasi tetap jalan lewat jalur darurat, tetapi
-   lebih lambat (Tailwind dikompilasi di browser: `public/tailwind.js` 451 kB) dan hasil
-   tipografinya tidak identik dengan build. Sudah dicatat di panduan deploy.
+1. **Aset build harus ikut di setiap rilis.** `public/build` sudah dikomit,
+   tetapi bila seseorang membangun ulang CSS tanpa mengomit hasilnya, tampilan
+   memakai CSS lama. Dijaga oleh tes paritas kelas; pengingatnya ada di
+   `npm run build` + commit. Jika aset hilang sama sekali, aplikasi jatuh ke
+   jalur darurat (lebih lambat: `public/tailwind.js` 451 kB dikompilasi di
+   browser) dan `siapbos:cek-aset` melaporkannya.
 2. **`welcome.blade.php` tidak terpakai** — tidak ada route yang merujuknya;
    kelasnya ikut terhitung dalam inventaris. Kandidat dihapus pada pekerjaan
    terpisah (tidak dilakukan di sini agar tidak mengubah berkas di luar lingkup).
