@@ -90,8 +90,7 @@
         <td>{{ $h->details->count() }}</td>
         <td class="num font-bold">{{ rp($h->details->sum('jumlah')) }}</td>
         <td>
-          @php $b = ['draft'=>'bg-slate-100 text-slate-600','diajukan'=>'bg-amber-100 text-amber-700','disetujui'=>'bg-sky-100 text-sky-700','dikirim_dinas'=>'bg-indigo-100 text-indigo-700','revisi'=>'bg-rose-100 text-rose-700','disahkan'=>'bg-emerald-100 text-emerald-700','dikunci'=>'bg-slate-200 text-slate-600']; @endphp
-          <span class="badge {{ $b[$h->status] ?? 'bg-slate-100' }}">{{ \App\Models\RkasHeader::LABEL_STATUS[$h->status] ?? $h->status }}</span>
+          @include('rkas.partials._status-arkas', ['h' => $h, 'ringkas' => true])
         </td>
         <td class="text-right whitespace-nowrap">
           <a href="{{ route('rkas.salinArkas', $h) }}" class="btn2 btn" title="Mode Salin Cepat ke ARKAS 4 Desktop">📋 Salin ARKAS</a>
