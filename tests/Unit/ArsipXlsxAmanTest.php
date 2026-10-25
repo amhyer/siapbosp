@@ -12,6 +12,7 @@ class ArsipXlsxAmanTest extends TestCase
     public function test_fixture_xlsx_valid_lolos_pemeriksaan_arsip(): void
     {
         ArsipXlsxAman::periksa(base_path('tests/Fixtures/arkas-mini.xlsx'));
+        $this->addToAssertionCount(1);
     }
 
     public function test_entri_jalur_traversal_di_arsip_ditolak(): void

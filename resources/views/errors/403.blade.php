@@ -1,0 +1,5 @@
+@extends('layouts.error')
+@section('code', '403')
+@section('title', 'Akses ditolak')
+@section('heading', 'Anda tidak memiliki akses')
+@section('message', 'Akun Anda tidak diizinkan membuka halaman ini. Jika Anda merasa seharusnya memiliki akses, hubungi administrator Dinas.')

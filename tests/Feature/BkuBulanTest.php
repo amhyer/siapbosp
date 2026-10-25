@@ -109,9 +109,13 @@ class BkuBulanTest extends TestCase
             ->assertSessionHas('error');
         $this->assertDatabaseHas('bku_tutup_bulans', ['bulan' => '2025-01']);
 
-        // Kepala Sekolah membuka kembali → catatan bisa masuk lagi
+        // Kepala Sekolah membuka kembali → catatan bisa masuk lagi. Simulasikan
+        // sesi KS tersendiri karena klien test sebelumnya bertindak sebagai operator.
         $this->actingAs($this->kepsek);
-        $this->withSession(['tahun' => 2025])->post(route('bku.buka'), ['bulan' => '2025-01'])
+        $this->withSession([
+            'tahun' => 2025,
+            'password_hash_web' => (string) $this->kepsek->getAuthPassword(),
+        ])->post(route('bku.buka'), ['bulan' => '2025-01'])
             ->assertSessionHas('ok');
         $this->assertDatabaseMissing('bku_tutup_bulans', ['bulan' => '2025-01']);
 
@@ -145,9 +149,12 @@ class BkuBulanTest extends TestCase
         $this->withSession(['tahun' => 2025])->get(route('bku', ['bulan' => '2025-03']))
             ->assertOk()->assertSee('TERTUTUP')->assertDontSee('Buka Kembali');
 
-        // Kepala Sekolah melihat tombol buka kembali
+        // Kepala Sekolah melihat tombol buka kembali. Sesi berbeda dari operator.
         $this->actingAs($this->kepsek);
-        $this->withSession(['tahun' => 2025])->get(route('bku', ['bulan' => '2025-03']))
+        $this->withSession([
+            'tahun' => 2025,
+            'password_hash_web' => (string) $this->kepsek->getAuthPassword(),
+        ])->get(route('bku', ['bulan' => '2025-03']))
             ->assertOk()->assertSee('Buka Kembali');
     }
 

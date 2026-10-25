@@ -62,9 +62,9 @@ Semua kata sandi **`password`** (dibuat oleh seeder) — daftar lengkap di
 composer test         # atau: php artisan test
 ```
 
-112 pengujian fitur/unit — isolasi multi-tenant, impor ARKAS, BKU, LPJ,
-keamanan token API. CI berjalan otomatis di setiap push
-([`.github/workflows/tests.yml`](.github/workflows/tests.yml)).
+Suite PHPUnit feature/unit mencakup isolasi multi-tenant, impor ARKAS, BKU,
+LPJ, dan keamanan token API. Jalankan `composer test` sebelum rilis; workflow CI
+ada di [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
 ## Dokumen
 

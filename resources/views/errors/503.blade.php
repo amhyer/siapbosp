@@ -1,0 +1,5 @@
+@extends('layouts.error')
+@section('code', '503')
+@section('title', 'Layanan sementara tidak tersedia')
+@section('heading', 'Kami sedang melakukan pemeliharaan')
+@section('message', 'Layanan sementara tidak tersedia. Silakan coba lagi beberapa saat lagi.')

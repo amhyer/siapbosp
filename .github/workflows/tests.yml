@@ -40,4 +40,68 @@ jobs:
           php artisan key:generate
 
       - name: Jalankan test
-        run: php artisan test --compact
+        id: test-suite
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          php artisan test 2>&1 | tee storage/logs/ci-tests.log
+
+      - name: Tampilkan ringkasan hasil test
+        if: steps.test-suite.outcome == 'success'
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          output = Path('storage/logs/ci-tests.log').read_text(errors='replace')
+          output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', output)
+          lines = output.splitlines()
+          result = next((line.strip() for line in reversed(lines) if line.strip().startswith('Tests:')), 'Test berhasil; ringkasan PHPUnit tidak ditemukan.')
+          result = result.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::notice title=Ringkasan PHPUnit::{result}')
+          PY
+
+      - name: Tampilkan ringkasan error test
+        if: steps.test-suite.outcome == 'failure'
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          output = Path('storage/logs/ci-tests.log').read_text(errors='replace')
+          output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', output)
+          lines = output.splitlines()
+          chunks = []
+          for index, line in enumerate(lines):
+              if 'FAILED' not in line:
+                  continue
+              detail = [line.strip()]
+              for candidate in range(index + 1, min(index + 8, len(lines))):
+                  candidate_line = lines[candidate].strip()
+                  if candidate_line.startswith('at tests/') or candidate_line.startswith('2   tests/'):
+                      detail.append(candidate_line)
+                      break
+                  if candidate_line and not candidate_line.startswith(('─', '➜')):
+                      detail.append(candidate_line)
+              chunks.append('\n'.join(detail))
+          summary = '\n\n'.join(chunks) or output[-18000:]
+          summary = (summary + '\n' + next((line for line in reversed(lines) if line.strip().startswith('Tests:')), ''))[-18000:]
+          escaped = summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=Daftar kegagalan PHPUnit::{escaped}')
+          PY
+
+      - name: Unggah log test jika gagal
+        if: steps.test-suite.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-logs
+          path: |
+            storage/logs/ci-tests.log
+            storage/logs/laravel.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Gagalkan workflow jika test gagal
+        if: steps.test-suite.outcome == 'failure'
+        run: exit 1

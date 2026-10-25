@@ -95,8 +95,16 @@ class TarikArkasTest extends TestCase
 
     public function test_path_db_arkas_arahnya_benar(): void
     {
-        $path = TarikArkasService::pathDb();
-        $this->assertNotSame('', $path);
-        $this->assertSame('\\Arkas\\arkas.db', substr($path, -15));
+        $appdataSebelumnya = getenv('APPDATA');
+        putenv('APPDATA=C:\\Users\\PenggunaUji\\AppData\\Roaming');
+
+        try {
+            $path = TarikArkasService::pathDb();
+            $this->assertStringEndsWith('\\Arkas\\arkas.db', $path);
+        } finally {
+            $appdataSebelumnya === false
+                ? putenv('APPDATA')
+                : putenv('APPDATA='.$appdataSebelumnya);
+        }
     }
 }

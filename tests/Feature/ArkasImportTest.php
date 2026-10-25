@@ -298,13 +298,15 @@ class ArkasImportTest extends TestCase
         // Penjab: KS + bendahara masuk (komite kosong di fixture).
         $this->assertSame(2, Penandatangan::where('school_id', $this->sekolahA->id)->count());
         $this->assertSame(2, $lap['dibuat']['penjab']);
-        // Pagu: revisi terakhir (100 jt) yang dipakai, hanya bila kosong.
-        $alokasi = Allocation::where('school_id', $this->sekolahA->id)->where('tahun', 2025)->firstOrFail();
-        $this->assertSame(100000000, (int) $alokasi->nilai);
-        // Impor ulang: pagu sama → tidak dobel, tidak selisih.
+        // Server pusat tidak boleh menerima pagu resmi dari berkas sekolah;
+        // angka dari ARKAS hanya dilaporkan untuk ditetapkan Dinas.
+        $this->assertSame(0, Allocation::where('school_id', $this->sekolahA->id)->where('tahun', 2025)->count());
+        $this->assertSame(0, $lap['dibuat']['alokasi']);
+        $this->assertNotEmpty($lap['selisih_pagu']);
+        // Impor ulang juga tidak menetapkan pagu dan tetap melaporkan perbedaan.
         $lap2 = $this->imporA();
-        $this->assertSame(1, Allocation::where('school_id', $this->sekolahA->id)->where('tahun', 2025)->count());
-        $this->assertSame([], $lap2['selisih_pagu']);
+        $this->assertSame(0, Allocation::where('school_id', $this->sekolahA->id)->where('tahun', 2025)->count());
+        $this->assertNotEmpty($lap2['selisih_pagu']);
         // Info silang + nama rekening asing.
         $this->assertSame(100000000, $lap['info_salur']['salur']);
         $this->assertSame(100000000, $lap['info_salur']['cair']);

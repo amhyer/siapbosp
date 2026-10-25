@@ -62,7 +62,9 @@ class GabungV23Test extends TestCase
         $res = $this->post('/login', ['email' => 'opf@t.t', 'password' => 'rahasia']);
         $this->assertGuest();
 
-        $this->actingAs($this->dinas)->post("/dinas/pengguna/{$op->id}/toggle");
+        $this->actingAs($this->dinas)
+            ->withSession(['password_hash_web' => (string) $this->dinas->getAuthPassword()])
+            ->post("/dinas/pengguna/{$op->id}/toggle");
         $this->assertTrue($op->fresh()->is_active);
     }
 
@@ -89,7 +91,7 @@ class GabungV23Test extends TestCase
     public function test_dinas_tidak_bisa_menonaktifkan_akun_diri_sendiri(): void
     {
         $res = $this->actingAs($this->dinas)->post("/dinas/pengguna/{$this->dinas->id}/toggle");
-        $res->assertSessionHas('error');
+        $res->assertForbidden();
         $this->assertTrue($this->dinas->fresh()->is_active);
     }
 
