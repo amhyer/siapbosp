@@ -170,7 +170,7 @@ style tetap diperlukan dan berada di luar lingkup R-03.
 | Sintaks JavaScript | `node --check` pada `resources/js/app.js` + semua blok `<script>` nonce di view | 13 blok OK (dashboard tidak diubah; stub `@php` pada harness membuat blok chart tak terparse — bukan akibat migrasi) |
 | Perilaku lapisan interaksi | jsdom 30 (di luar repo) | 64 pemeriksaan lulus: konfirmasi form/tautan/tombol (termasuk tombol submit bernama yang batal ⇒ form tidak terkirim), `data-kirim-otomatis`, `data-cetak-halaman`, `data-tombol-sibuk`, sidebar & grup menu, serta halaman pendapatan, belanja-form, setor-pajak, rkas/create, salin-arkas, rkas/show, dan perencanaan |
 | Sintaks PHP | `php -l` (PHP 8.5 WebAssembly) + parser `php-parser` | `KeamananHeader.php` dan `CspHandlerInlineTest.php` tanpa kesalahan sintaks |
-| Regresi otomatis di CI | `php artisan test` (SQLite + PostgreSQL 16, workflow `tests.yml`) | **belum dijalankan di lingkungan ini** — tidak ada biner PHP native, `vendor/` tidak ada, dan Packagist tidak dapat dijangkau; lihat laporan akhir |
+| Regresi otomatis di CI | `php artisan test` (SQLite + PostgreSQL 16, workflow `tests.yml`) | ✅ run [40173173222](https://github.com/amhyer/siapbosp/actions/runs/40173173222) pada PR #10: **201 tes lulus, 1.040 assertion** di kedua driver. Seluruh suite tetap **tidak dapat** dijalankan di lingkungan kerja ini (tidak ada biner PHP native, `vendor/` tidak ada, Packagist tidak dapat dijangkau) |
 
 Regresi PHPUnit baru: `tests/Feature/CspHandlerInlineTest.php` — memeriksa header CSP,
 memindai semua berkas Blade, memeriksa markup ter-render beberapa halaman kunci, dan
