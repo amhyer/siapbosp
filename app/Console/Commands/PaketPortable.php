@@ -60,6 +60,21 @@ class PaketPortable extends Command
             return 1;
         }
 
+        // Agen Tarik ARKAS wajib ada di paket: tanpa `agen/TarikArkas/node.exe`
+        // dan `tarik.cjs`, tombol "Tarik Data ARKAS" tidak muncul sama sekali
+        // (TarikArkasService::tersedia() = false) dan bendahara tidak bisa
+        // menarik data ARKAS dari laptop. ZIP agen TIDAK ikut repository,
+        // jadi kegagalan ini mudah terjadi pada build dari clone baru.
+        $agenZipPeriksa = $this->option('agen-zip') ?: storage_path('app/agen/TarikArkas-v1.0.0.zip');
+        if (! $this->option('tanpa-agen') && ! is_file($agenZipPeriksa)) {
+            $this->error('ZIP agen Tarik ARKAS tidak ditemukan: '.$agenZipPeriksa);
+            $this->line('Tanpa agen, tombol "Tarik Data ARKAS" tidak tersedia di laptop sekolah.');
+            $this->line('Buat dulu paket agen (lihat agen-arkas/README.md), letakkan ZIP-nya di path di atas,');
+            $this->line('atau jalankan ulang dengan --tanpa-agen bila paket ini memang tanpa agen.');
+
+            return 1;
+        }
+
         $base = base_path();
         $nama = $this->option('nama');
         $out = storage_path('app/paket/'.$nama);

@@ -44,6 +44,11 @@ PAKAI SEHARI-HARI:
    Atau lebih singkat: di dalam aplikasi buka "Utility - Profil
    Sekolah" -> tombol "Tarik Data ARKAS - 1 Klik" (tahun tinggal
    dipilih, hasil langsung tampil di kartu yang sama).
+   Bila tombol itu TIDAK muncul, periksa di browser:
+       http://127.0.0.1:8000/_arkas
+   Halaman itu menunjukkan apakah agen dan database ARKAS terbaca.
+   Tambahkan ?uji=1 pada alamat itu untuk mencoba tarik sungguhan
+   (tidak mengubah data).
 3. KIRIM KE WEBSITE PUSAT: klik "Sinkron ke Pusat - SiapBOSP".
    Butuh internet. Boleh diulang kapan saja — aman, tidak duplikat.
 4. Selesai: tutup jendela aplikasi + jendela "SiapBOSP-Server".

@@ -16,6 +16,28 @@ use ZipArchive;
  */
 class PaketPortableTest extends TestCase
 {
+
+    /**
+     * Paket tanpa agen Tarik ARKAS tidak boleh dibuat diam-diam: tombol
+     * "Tarik Data ARKAS" akan hilang dan bendahara tidak bisa menarik data
+     * dari ARKAS. Cacat ini mudah terjadi karena ZIP agen tidak ikut repo.
+     */
+    public function test_paket_ditolak_bila_zip_agen_tidak_ada(): void
+    {
+        if (! class_exists(ZipArchive::class)) {
+            $this->markTestSkipped('Ekstensi zip tidak tersedia.');
+        }
+        if (! is_file(public_path('build/manifest.json'))) {
+            $this->markTestSkipped('Aset build belum dibangun pada lingkungan ini.');
+        }
+
+        $this->artisan('siapbos:paket-portable', [
+            '--agen-zip' => base_path('storage/app/agen/tidak-ada-'.uniqid().'.zip'),
+            '--nama' => 'uji-tolak-agen.zip',
+        ])->expectsOutputToContain('ZIP agen Tarik ARKAS tidak ditemukan')
+            ->assertExitCode(1);
+    }
+
     public function test_close_zip_butuh_berkas_sumber_masih_ada(): void
     {
         $dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'uji-zip-'.uniqid();
