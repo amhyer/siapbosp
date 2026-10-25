@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Aset;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,18 +32,35 @@ class KeamananHeader
         $headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
         $headers->set('X-Permitted-Cross-Domain-Policies', 'none');
         $headers->set('X-Frame-Options', 'SAMEORIGIN');
+
+        $scriptSrc = "'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net";
+        $styleSrc = "'self' 'unsafe-inline' https://fonts.bunny.net https://fonts.googleapis.com";
+        $connectSrc = "'self'";
+
+        // Mode pengembangan (`npm run dev`): aset dilayani server Vite pada port
+        // lain, jadi TIDAK tercakup 'self'. Tanpa pengecualian ini seluruh CSS
+        // dev diblokir CSP dan halaman tampil polos — walau dev server hidup.
+        if (($asalDev = Aset::hotAsal()) !== null) {
+            $scriptSrc .= ' '.$asalDev;
+            $styleSrc .= ' '.$asalDev;
+            $connectSrc .= ' '.$asalDev;
+            if (($wsDev = Aset::hotWs()) !== null) {
+                $connectSrc .= ' '.$wsDev;
+            }
+        }
+
         $headers->set('Content-Security-Policy', implode('; ', [
             "default-src 'self'",
             "base-uri 'self'",
             "object-src 'none'",
             "frame-ancestors 'self'",
             "form-action 'self'",
-            "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
+            "script-src {$scriptSrc}",
             "script-src-attr 'none'",
-            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://fonts.googleapis.com",
+            "style-src {$styleSrc}",
             "img-src 'self' data: blob:",
             "font-src 'self' data: https://fonts.bunny.net https://fonts.gstatic.com",
-            "connect-src 'self'",
+            "connect-src {$connectSrc}",
             "frame-src 'self'",
         ]));
 

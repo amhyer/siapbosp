@@ -99,6 +99,18 @@ pause
 exit /b 1
 :server_ok
 echo  Server OK.
+
+REM --- cek aset tampilan (CSS/JS) supaya tidak muncul halaman polos ---
+!PHPBIN! artisan siapbos:cek-aset >nul 2>nul
+if errorlevel 1 (
+  echo.
+  echo  [PERINGATAN] Aset tampilan belum siap - halaman bisa tampil polos.
+  echo  Pada laptop ini (tanpa Node.js) sebaiknya pasang ulang paket
+  echo  aplikasi versi terbaru. Pada komputer pengembang jalankan:
+  echo      npm ci ^&^& npm run build
+  echo.
+)
+
 goto buka_browser
 
 :buka_browser
