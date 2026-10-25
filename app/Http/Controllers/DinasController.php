@@ -32,6 +32,7 @@ use App\Services\RkasExportService;
 use App\Support\Csv;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -259,9 +260,7 @@ class DinasController extends Controller
             'role' => 'required|in:operator,kepsek,dinas',
             'school_id' => 'nullable|integer|exists:schools,id',
         ]);
-        if (! Peran::bolehMenetapkan(auth()->user(), $data['role'])) {
-            abort(403, Peran::pesanTolak($data['role']));
-        }
+        Gate::authorize('assign-user-role', $data['role']);
         if (in_array($data['role'], ['operator', 'kepsek']) && empty($data['school_id'])) {
             return back()->with('error', 'Operator/Kepsek wajib dipilihkan sekolahnya.');
         }
@@ -326,7 +325,7 @@ class DinasController extends Controller
             }
             // Jangan biarkan impor CSV menjadi jalan pintas eskalasi peran
             // (R-09): akun dinas/superadmin hanya boleh dibuat superadmin.
-            if (! Peran::bolehMenetapkan($aktor, $role)) {
+            if (! Gate::forUser($aktor)->allows('assign-user-role', $role)) {
                 $dilewati[] = "baris {$n}: ".Peran::pesanTolak($role);
 
                 continue;
@@ -628,6 +627,7 @@ class DinasController extends Controller
 
     public function alokasi()
     {
+        Gate::authorize('allocation');
         $tahun = $this->tahun();
 
         return view('dinas.alokasi', [
@@ -642,6 +642,7 @@ class DinasController extends Controller
 
     public function alokasiStore(Request $r)
     {
+        Gate::authorize('allocation');
         $data = $r->validate([
             'school_id' => 'required|integer|exists:schools,id', 'tahun' => 'required|integer',
             'bos_type_id' => 'required|integer', 'stage_id' => 'nullable|integer',
@@ -754,9 +755,7 @@ class DinasController extends Controller
      */
     private function pastikanBolehKelola(User $target): void
     {
-        if (! Peran::bolehKelola(auth()->user(), $target)) {
-            abort(403, Peran::pesanTolak($target->role));
-        }
+        Gate::authorize('manage-user', $target);
     }
 
     /** Perbarui identitas/peran/sekolah akun pengguna. */
@@ -769,9 +768,7 @@ class DinasController extends Controller
             'role' => 'required|in:operator,kepsek,dinas',
             'school_id' => 'nullable|integer|exists:schools,id',
         ]);
-        if (! Peran::bolehMenetapkan(auth()->user(), $data['role'])) {
-            abort(403, Peran::pesanTolak($data['role']));
-        }
+        Gate::authorize('assign-user-role', $data['role']);
         if (in_array($data['role'], ['operator', 'kepsek']) && empty($data['school_id'])) {
             return back()->with('error', 'Operator/Kepsek wajib dipilihkan sekolahnya.');
         }
@@ -865,6 +862,7 @@ class DinasController extends Controller
     /** ===== MASTER REKENING & KOMPONEN ===== */
     public function master()
     {
+        Gate::authorize('master-data');
         $komponens = Komponen::withCount('rekenings')->with('rekenings')->orderBy('kode')->get();
         $rekeningBelanja = Rekening::where('tipe', 'belanja')->count();
         $rekeningPendapatan = Rekening::where('tipe', 'pendapatan')->count();
@@ -875,6 +873,7 @@ class DinasController extends Controller
     /** Impor CSV: kode_rek;nama_rek;kode_komponen;nama_komponen;tipe (upsert aman). */
     public function masterImpor(Request $r)
     {
+        Gate::authorize('master-data');
         $r->validate(['berkas' => 'required|file|max:2048']);
         $isi = file($r->file('berkas')->getRealPath());
         if (! $isi) {
@@ -932,6 +931,7 @@ class DinasController extends Controller
     /** Contoh berkas CSV untuk impor master. */
     public function masterTemplate()
     {
+        Gate::authorize('master-data');
         $csv = "kode_rekening;nama_rekening;kode_komponen;nama_komponen;tipe\n"
             ."5.1.02.04.01.0005;Pengadaan buku teks pendamping;02;Pengembangan Perpustakaan;belanja\n"
             ."4.3.1.01.01.0003;Dana BOSP Tahap 3;;;pendapatan\n";

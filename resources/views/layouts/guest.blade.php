@@ -13,7 +13,7 @@
 @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 @else
-    <script src="/tailwind.js"></script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
 @endif
 </head>
 <body class="min-h-screen bg-slate-950">

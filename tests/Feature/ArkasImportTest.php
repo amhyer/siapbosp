@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Allocation;
+use App\Models\ArkasImportRun;
 use App\Models\ArkasKode;
 use App\Models\BosType;
 use App\Models\KasNota;
@@ -19,6 +20,8 @@ use App\Models\User;
 use App\Services\ArkasImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -213,8 +216,10 @@ class ArkasImportTest extends TestCase
             ->where('school_id', $this->sekolahA->id)->where('arkas_id', 'kas:KAS-BARU-1')->first());
     }
 
-    public function test_arkas_push_api_menerima_berkas_dengan_token(): void
+    public function test_arkas_push_api_mengantrikan_berkas_dengan_token_dan_membatasi_status(): void
     {
+        Queue::fake();
+        Storage::fake('local');
         $token = 'token-agen-tarik-arkas';
         $this->operatorA->forceFill(['api_token' => hash('sha256', $token)])->save();
         $res = $this->withHeader('Authorization', 'Bearer '.$token)->postJson('/api/v1/arkas-push', [
@@ -223,9 +228,27 @@ class ArkasImportTest extends TestCase
                 $this->mini, 'arkas-mini.xlsx',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
         ]);
-        $res->assertOk()->assertJsonPath('ok', true);
-        $this->assertSame(5, KasTransaction::withoutGlobalScope('school')
+        $res->assertStatus(202)
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('status', 'queued');
+        $runId = $res->json('import_id');
+        $this->assertDatabaseHas('arkas_import_runs', [
+            'id' => $runId, 'user_id' => $this->operatorA->id,
+            'school_id' => $this->sekolahA->id, 'status' => 'queued',
+            'jenis' => ArkasImportRun::JENIS_IMPOR,
+        ]);
+        $this->assertSame(0, KasTransaction::withoutGlobalScope('school')
             ->where('school_id', $this->sekolahA->id)->count());
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/arkas-import/'.$runId)
+            ->assertStatus(202)->assertJsonPath('status', 'queued');
+
+        $tokenLain = 'token-operator-b';
+        $operatorB = User::where('email', 'b@tes.test')->firstOrFail();
+        $operatorB->forceFill(['api_token' => hash('sha256', $tokenLain)])->save();
+        $this->withHeader('Authorization', 'Bearer '.$tokenLain)
+            ->getJson('/api/v1/arkas-import/'.$runId)->assertNotFound();
+        Queue::assertPushed(\App\Jobs\ProsesImporArkas::class);
     }
 
     public function test_arkas_push_api_menolak_token_asing_dan_npsn_asing(): void

@@ -8,8 +8,10 @@ use App\Models\KasTransaction;
 use App\Models\RkasHeader;
 use App\Models\TutupBuku;
 use App\Services\Aktivitas;
+use App\Support\Peran;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -60,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->daftarkanKemampuan();
         $this->pasangBundelCa();
         $this->pasangPembatasLaju();
         $this->periksaKonfigurasiProduksi();
@@ -105,6 +108,33 @@ class AppServiceProvider extends ServiceProvider
             Log::warning('KEAMANAN: APP_URL sudah https tetapi SESSION_SECURE_COOKIE belum true — cookie sesi '
                 .'dapat terkirim lewat koneksi tidak terenkripsi.');
         }
+
+        $auditChannel = config('logging.audit_remote_channel');
+        if ($auditChannel !== null && $auditChannel !== '' && ! in_array($auditChannel, ['local', 'syslog', 'socket'], true)) {
+            Log::warning('AUDIT: AUDIT_REMOTE_CHANNEL tidak dikenal; salinan remote tidak diaktifkan.');
+        }
+        if ($auditChannel === 'socket' && ! config('logging.audit_remote_tls_valid')) {
+            Log::warning('AUDIT: AUDIT_REMOTE_URL tidak valid; format yang diterima adalah tls://host:port. Salinan lokal tetap berjalan.');
+        }
+    }
+
+    /**
+     * Daftarkan izin berbasis kemampuan agar controller tidak menafsirkan peran
+     * secara terpisah (R-09). Setiap aksi sensitif tetap memeriksa Gate di sisi
+     * server; menyembunyikan tombol bukan kontrol akses.
+     */
+    protected function daftarkanKemampuan(): void
+    {
+        Gate::define('manage-user', fn (\App\Models\User $actor, \App\Models\User $target): bool =>
+            Peran::bolehKelola($actor, $target));
+        Gate::define('assign-user-role', fn (\App\Models\User $actor, string $role): bool =>
+            Peran::bolehMenetapkan($actor, $role));
+        Gate::define('backup', fn (\App\Models\User $actor): bool =>
+            $actor->role === 'superadmin' || \App\Http\Controllers\UnduhAplikasiController::isPortable());
+        Gate::define('allocation', fn (\App\Models\User $actor): bool =>
+            in_array($actor->role, ['superadmin', 'dinas'], true));
+        Gate::define('master-data', fn (\App\Models\User $actor): bool =>
+            in_array($actor->role, ['superadmin', 'dinas'], true));
     }
 
     /**
@@ -120,6 +150,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('unggah', fn (Request $r) => Limit::perMinutes(10, 10)->by('unggah|'.$kunci($r)));
         RateLimiter::for('unggah-api', fn (Request $r) => Limit::perMinutes(10, 6)->by('unggah-api|'.$kunci($r)));
+        RateLimiter::for('unggah-status', fn (Request $r) => Limit::perMinute(30)->by('unggah-status|'.$kunci($r)));
+        RateLimiter::for('unggah-api-status', fn (Request $r) => Limit::perMinute(25)->by('unggah-api-status|'.$kunci($r)));
         RateLimiter::for('pengumuman', fn (Request $r) => Limit::perHour(5)->by('pengumuman|'.$kunci($r)));
     }
 

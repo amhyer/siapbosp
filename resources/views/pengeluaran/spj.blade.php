@@ -495,7 +495,7 @@
   <p class="text-xs mt-4 text-slate-400">BKU #{{ $belanja->no_bku }} · {{ $tgl->translatedFormat('d/m/Y') }} · {{ $belanja->stage?->nama }} · Satuan Pendidikan: {{ $sekolah->nama }}</p>
 </div>
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   document.querySelectorAll('.isi').forEach(function (el) {
     el.onkeydown = function (e) {
       if (e.key === 'Enter') { e.preventDefault(); this.blur(); }

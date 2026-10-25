@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/impor-arkas/unduh-agen', [ImportArkasController::class, 'unduhAgen'])->name('impor-arkas.unduh');
         Route::get('/impor-arkas/unduh-gui', [ImportArkasController::class, 'unduhGui'])->name('impor-arkas.unduhGui');
         Route::post('/impor-arkas', [ImportArkasController::class, 'proses'])->middleware('throttle:unggah')->name('impor-arkas.proses');
+        Route::get('/impor-arkas/status/{impor}', [ImportArkasController::class, 'status'])->whereNumber('impor')->middleware('throttle:unggah-status')->name('impor-arkas.status');
         Route::get('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'form'])->name('impor-arkas.cek-integritas');
         Route::post('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'jalankan'])->middleware('throttle:unggah')->name('impor-arkas.cek-integritas.jalankan');
         Route::get('/unduh-aplikasi', [UnduhAplikasiController::class, 'unduh'])->name('unduh-aplikasi');

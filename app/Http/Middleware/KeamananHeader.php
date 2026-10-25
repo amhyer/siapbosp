@@ -9,18 +9,17 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Header keamanan untuk seluruh respons web (R-03).
  *
- * Bingkai dibatasi ke origin sendiri (`SAMEORIGIN` + `frame-ancestors 'self'`):
- * pratinjau cetak memakai iframe internal sehingga bingkai se-origin tetap
- * diizinkan, sementara clickjacking dari situs lain ditolak.
- *
- * CSP sengaja minimal (hanya frame-ancestors/base-uri/object-src) karena
- * antarmuka memakai atribut `onsubmit`/`onclick` inline; `default-src` baru
- * bisa dipasang setelah skrip inline dipindahkan ke berkas terpisah.
+ * CSP membatasi asal sumber secara eksplisit dan memberi nonce acak untuk blok
+ * <script> inline. Handler atribut inline masih dipertahankan sementara agar
+ * antarmuka lama tetap berjalan; CSP memisahkannya ke script-src-attr sehingga
+ * migrasi event handler bisa dilakukan bertahap tanpa melemahkan script-src.
  */
 class KeamananHeader
 {
     public function handle(Request $request, Closure $next): Response
     {
+        $nonce = rtrim(base64_encode(random_bytes(18)), '=');
+        $request->attributes->set('csp_nonce', $nonce);
         $response = $next($request);
 
         $headers = $response->headers;
@@ -29,7 +28,20 @@ class KeamananHeader
         $headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
         $headers->set('X-Permitted-Cross-Domain-Policies', 'none');
         $headers->set('X-Frame-Options', 'SAMEORIGIN');
-        $headers->set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'");
+        $headers->set('Content-Security-Policy', implode('; ', [
+            "default-src 'self'",
+            "base-uri 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'self'",
+            "form-action 'self'",
+            "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
+            "script-src-attr 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://fonts.googleapis.com",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data: https://fonts.bunny.net https://fonts.gstatic.com",
+            "connect-src 'self'",
+            "frame-src 'self'",
+        ]));
 
         if ($request->isSecure() && ! $headers->has('Strict-Transport-Security')) {
             $headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

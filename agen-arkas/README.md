@@ -3,8 +3,11 @@
 `tarik-arkas.js` — Node 18+, CommonJS. Membaca `arkas.db` lokal (SQLCipher,
 read-only), membangun `.xlsx` di memori (sheet Sekolah/RAPBS/KAS_Umum/Nota/
 Pajak_NTPN), lalu `POST {server}/api/v1/arkas-push` (Bearer token sekolah).
-Server memakai ulang `ArkasImportService` — seluruh aturan impor berlaku sama
-(idempoten + migrasi kunci legacy→baru, tutup buku, tanpa hapus).
+Server menyimpan unggahan di disk privat lalu memprosesnya melalui antrean `imports`
+dengan `ArkasImportService` — seluruh aturan impor berlaku sama (idempoten +
+migrasi kunci legacy→baru, tutup buku, tanpa hapus). Agen menunggu status melalui
+`GET /api/v1/arkas-import/{import_id}`; pekerjaan yang tetap berjalan setelah 25 menit
+tidak diunggah ulang otomatis dan harus diperiksa menggunakan ID tersebut.
 
 ## Perintah
 
@@ -51,5 +54,9 @@ mkdir dist-portable\TarikArkas\lib ...
 
 ## Endpoint server terkait
 
-`POST /api/v1/arkas-push` (`auth.api` + `role:operator,kepsek`) — lihat
-`SiapBOSP_API.md`. Diuji di `tests/Feature/ArkasImportTest.php`.
+`POST /api/v1/arkas-push` mengembalikan HTTP 202 dan `import_id`; poll
+`GET /api/v1/arkas-import/{import_id}` untuk hasil. Keduanya memerlukan
+`auth.api` + `role:operator,kepsek`, dan status hanya dapat dibaca pemilik pekerjaan.
+Batas unggahan 20 MB; polling dibatasi 25/menit per akun atau IP. Lihat `SiapBOSP_API.md` dan
+`docs/AUDIT-KEAMANAN.md` untuk pengoperasian queue worker. Diuji di
+`tests/Feature/ArkasImportTest.php`.

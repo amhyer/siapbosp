@@ -39,7 +39,7 @@
 
 <div class="card">
   <h3 class="font-semibold text-slate-700 text-sm mb-1">📥 Impor Kertas Kerja RKAS dari CSV</h3>
-  <p class="text-[11px] text-slate-400 mb-2">Format: <code>kode_rekening;uraian;satuan;banyak;harga;sumber_dana</code> (sumber dana opsional).</p>
+  <p class="text-[11px] text-slate-400 mb-2">Format: <code>kode_rekening;uraian;satuan;banyak;harga;sumber_dana</code> (sumber dana opsional). Berkas CSV maks. 2 MB; pemrosesan dilakukan di antrean dan statusnya dapat dipantau setelah unggah.</p>
   <form method="post" action="{{ route('rkas.impor') }}" enctype="multipart/form-data" class="flex gap-2 items-center">
     @csrf
     <input type="file" name="berkas" accept=".csv,.txt" class="inp" required>

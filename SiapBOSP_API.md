@@ -1,6 +1,6 @@
-# SiapBOSP — API Baca-Saja v1
+# SiapBOSP — API v1
 
-Aplikasi lain (mis. dashboard Dinas, aplikasi pelaporan, spreadsheet) dapat membaca data SiapBOSP melalui REST API **read-only** ini.
+Aplikasi lain (mis. dashboard Dinas, aplikasi pelaporan, spreadsheet) dapat membaca data SiapBOSP melalui REST API. API juga menyediakan integrasi impor ARKAS terbatas untuk akun sekolah; endpoint ini memproses unggahan secara asinkron.
 
 ## Autentikasi
 
@@ -29,6 +29,25 @@ Respons gagal autentikasi: `401 {"ok":false,"pesan":"..."}`.
 | `GET /api/v1/transaksi?tahun=&stage=&jenis=&per_page=` | sekolah | transaksi BKU lengkap dengan rincian rekening & pajak (paginasi) |
 | `GET /api/v1/dinas/sekolah` | dinas | daftar seluruh sekolah |
 | `GET /api/v1/dinas/konsolidasi?tahun=` | dinas | ringkasan pagu/serapan/pajak per sekolah + total wilayah |
+| `POST /api/v1/arkas-push` | operator/kepsek | unggah XLSX ARKAS (maks. 20 MB) ke antrean impor; HTTP 202 berisi `import_id` |
+| `GET /api/v1/arkas-import/{import_id}` | pemilik pekerjaan | status antrean/proses, atau laporan akhir; akses dibatasi ke pengguna dan sekolah pengunggah |
+
+## Impor ARKAS asinkron
+
+```bash
+# Unggah berkas Excel, respons akan berisi import_id (HTTP 202).
+curl -s -H "Authorization: Bearer $TOKEN" \
+  -F "tahun=2026" -F "berkas=@arkas-2026.xlsx" \
+  "$BASE/arkas-push"
+
+# Polling (maks. 25 permintaan/menit per akun atau IP); status queued/processing memberi HTTP 202.
+curl -s -H "Authorization: Bearer $TOKEN" "$BASE/arkas-import/123"
+```
+
+Saat `status` menjadi `completed`, respons menyertakan `laporan`. Status `failed`
+memberi HTTP 422. Berkas diproses oleh worker pada queue `imports`, tidak oleh
+request web; jalankan worker persisten sesuai `docs/AUDIT-KEAMANAN.md` dan
+jangan unggah ulang pekerjaan yang masih berjalan.
 
 ## Contoh
 
@@ -60,7 +79,7 @@ curl -s -H "Authorization: Bearer $TOKEN" "$BASE/dinas/konsolidasi?tahun=2026"  
 
 ## Batasan & Keamanan
 
-- API ini **read-only** — tidak ada endpoint tulis.
+- Endpoint pembacaan bersifat read-only; integrasi tulis hanya `POST /api/v1/arkas-push` (impor ARKAS terbatas, antrean) dan endpoint sinkronisasi yang didokumentasikan terpisah. Token dan role tetap divalidasi server-side.
 - Token operator/kepsek hanya dapat mengakses data sekolahnya sendiri (cakupan global `school`).
 - Endpoint `/dinas/*` menolak token sekolah dengan `403`.
 - Taruh aplikasi di balik **HTTPS** (lihat `DEPLOY.md`) agar token tidak tersadap.

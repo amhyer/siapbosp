@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\RekonsiliasiService;
+use App\Exceptions\ArkasRunAktifException;
+use App\Models\ArkasImportRun;
+use App\Services\AntreanArkasService;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 /**
- * Rekonsiliasi ARKAS ↔ SiapBOS: unggah file, bandingkan, tanpa menulis DB.
+ * Rekonsiliasi ARKAS ↔ SiapBOSP: unggah file, bandingkan, tanpa menulis DB.
  */
 class RekonsiliasiController extends Controller
 {
@@ -15,21 +18,29 @@ class RekonsiliasiController extends Controller
         return view('rekonsiliasi.form', ['tahun' => (int) session('tahun', now()->year)]);
     }
 
-    public function proses(Request $r)
+    public function proses(Request $request, AntreanArkasService $antrean)
     {
-        $data = $r->validate([
-            'berkas' => 'required|file|mimes:xlsx|max:20480',
+        $data = $request->validate([
+            'berkas' => 'required|file|mimes:xlsx|max:40960',
             'tahun' => 'required|integer|min:2020|max:2030',
         ]);
-        try {
-            $hasil = RekonsiliasiService::bandingkan(
-                auth()->user()->school_id, $data['berkas']->getRealPath(), (int) $data['tahun']);
-        } catch (\Throwable $e) {
-            report($e);
 
-            return back()->with('error', 'Berkas tidak bisa dibaca sebagai Excel ARKAS.');
+        try {
+            $run = $antrean->daftarkan(
+                $data['berkas'],
+                $request->user(),
+                ArkasImportRun::JENIS_REKONSILIASI,
+                (int) $data['tahun'],
+                'Unggah file ekspor ARKAS'
+            );
+        } catch (ArkasRunAktifException $exception) {
+            return back()->with('error', $exception->getMessage());
+        } catch (RuntimeException $exception) {
+            report($exception);
+
+            return back()->with('error', 'Berkas tidak dapat disimpan untuk antrean. Coba lagi atau hubungi administrator.');
         }
 
-        return view('rekonsiliasi.hasil', compact('hasil'));
+        return redirect()->route('impor-arkas.status', $run);
     }
 }

@@ -60,7 +60,7 @@
   </div>
 </div>
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 (function(){
   const pass = document.getElementById('password');
   const tog = document.getElementById('toggle-pass');

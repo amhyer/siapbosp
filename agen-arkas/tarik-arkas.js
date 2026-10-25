@@ -245,11 +245,28 @@ async function kirim(server, token, tahun, npsnHarapan) {
   form.append('tahun', String(tahun));
   form.append('berkas', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `arkas-${tahun}.xlsx`);
   cetak('Mengirim ' + (buf.byteLength / 1024).toFixed(0) + ' KB ke ' + server + ' ...');
-  const r = await fetch(server.replace(/\/$/, '') + '/api/v1/arkas-push', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: form,
-  });
-  const j = await r.json();
+  const baseUrl = server.replace(/\/$/, '');
+  const headers = { Authorization: 'Bearer ' + token };
+  const r = await fetch(baseUrl + '/api/v1/arkas-push', { method: 'POST', headers, body: form });
+  let j = await r.json();
   if (!r.ok || !j.ok) throw new Error('Ditolak: ' + (j.pesan || r.status));
+  if (r.status === 202 || j.status === 'queued' || j.status === 'processing') {
+    const batasWaktu = Date.now() + 25 * 60 * 1000;
+    cetak('Berkas diterima. Menunggu impor selesai...');
+    while (Date.now() < batasWaktu) {
+      await new Promise((resolve) => setTimeout(resolve, (j.polling_interval_seconds || 3) * 1000));
+      const statusResponse = await fetch(baseUrl + '/api/v1/arkas-import/' + encodeURIComponent(j.import_id), { headers });
+      j = await statusResponse.json();
+      if (j.status === 'completed' && j.ok) break;
+      if (j.status === 'failed' || !statusResponse.ok && statusResponse.status !== 202) {
+        throw new Error('Impor gagal: ' + (j.pesan || statusResponse.status));
+      }
+      if (j.status === 'queued' || j.status === 'processing') cetak('Status impor: ' + j.status + '...');
+    }
+    if (j.status !== 'completed' || !j.ok) {
+      throw new Error('Impor masih berjalan di server. ID pekerjaan: ' + j.import_id + '. Periksa status API sebelum mengirim ulang.');
+    }
+  }
   const l = j.laporan;
   cetak('SELESAI — transaksi +' + l.dibuat.transaksi + '/~' + l.diperbarui.transaksi
     + ', RKAS +' + l.dibuat.rkas + ', terima pajak +' + l.dibuat.pajak_terima + ', setor +' + l.dibuat.pajak_setor

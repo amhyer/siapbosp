@@ -10,6 +10,7 @@ use App\Services\VersiArkasService;
 use App\Support\KonfigLokal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Pengaturan: Koneksi ARKAS (pusat), Backup, Deteksi Versi, dan Log Sistem.
@@ -91,7 +92,7 @@ class PengaturanController extends Controller
     /** Apakah pengguna berhak mengunduh dump basis data penuh. */
     public static function bolehUnduhBackup(): bool
     {
-        return auth()->user()?->role === 'superadmin' || UnduhAplikasiController::isPortable();
+        return Gate::allows('backup');
     }
 
     /** Deteksi versi ARKAS & kesiapan data master. */

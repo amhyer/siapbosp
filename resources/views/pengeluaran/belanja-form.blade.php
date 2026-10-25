@@ -139,7 +139,7 @@
   <td><button type="button" class="badge bg-rose-50 text-rose-600" onclick="this.closest('tr').remove()">✖</button></td>
 </tr></template>
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 const saldo = {tunai: {{ $saldo['tunai'] }}, bank: {{ $saldo['bank'] }}};
 const PAJAK_ID_BY_KODE = @json($pajaks->pluck('id', 'kode'));
 function fmt(n){return 'Rp '+Math.round(n).toLocaleString('id-ID');}

@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\CekIntegritasService;
+use App\Models\ArkasImportRun;
+use App\Services\AntreanArkasService;
 use App\Services\TarikArkasService;
 use Illuminate\Http\Request;
+use RuntimeException;
+use Throwable;
 
 /**
  * "Cek Ulang Integritas Impor" — bandingkan data ARKAS terbaru dengan
@@ -23,53 +26,51 @@ class CekIntegritasController extends Controller
         ]);
     }
 
-    public function jalankan(Request $r)
+    public function jalankan(Request $request, AntreanArkasService $antrean)
     {
-        $data = $r->validate([
+        $data = $request->validate([
             'tahun' => 'required|integer|min:2020|max:2030',
-            'berkas' => 'nullable|file|max:40960',
+            'berkas' => 'nullable|file|mimes:xlsx|max:40960',
         ]);
+        $user = $request->user();
         $tahun = (int) $data['tahun'];
-        $u = auth()->user();
-        if (! $u->school_id) {
-            return back()->with('error', 'Akun Anda tidak terikat ke sekolah mana pun.');
-        }
-        $sekolah = $u->school;
+        $temporaryPath = null;
+        $source = null;
+        $file = $request->file('berkas');
 
-        $sumber = null;
-        $berkas = null;
-        $sementara = false;
-        try {
-            if ($r->hasFile('berkas')) {
-                $berkas = $r->file('berkas')->getRealPath();
-                $sumber = 'Unggah file ekspor ARKAS';
-            } elseif (TarikArkasService::tersedia()) {
+        if ($file) {
+            $source = 'Unggah file ekspor ARKAS';
+        } elseif (TarikArkasService::tersedia()) {
+            try {
                 $hasilTarik = TarikArkasService::eksporDb($tahun);
-                $berkas = $hasilTarik['path'];
-                $sementara = true;
-                $sumber = 'Tarik langsung dari ARKAS di laptop ini (NPSN '.($hasilTarik['npsn'] ?: '?').')';
-            } else {
-                return back()->with('error', 'Di server pusat, unggah file ekspor ARKAS (Excel) untuk diperiksa. Di aplikasi portabel, cukup klik tombol tarik.');
+                $temporaryPath = $hasilTarik['path'];
+                $file = $temporaryPath;
+                $source = 'Tarik langsung dari ARKAS di laptop ini (NPSN '.($hasilTarik['npsn'] ?: '?').')';
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return back()->with('error', 'Ekspor dari ARKAS lokal gagal. Pastikan ARKAS ditutup lalu coba lagi.');
             }
+        } else {
+            return back()->with('error', 'Di server pusat, unggah file ekspor ARKAS (Excel .xlsx) untuk diperiksa. Di aplikasi portabel, cukup klik tombol tarik.');
+        }
 
-            $hasil = CekIntegritasService::bandingkan($berkas, $sekolah, $tahun);
-        } catch (\RuntimeException $e) {
-            return back()->with('error', 'Cek integritas gagal: '.$e->getMessage());
-        } catch (\Throwable $e) {
-            report($e);
-
-            return back()->with('error', 'Cek integritas gagal mendadak. Pastikan file yang diunggah adalah ekspor ARKAS (Excel .xlsx).');
+        try {
+            $run = $antrean->daftarkan(
+                $file,
+                $user,
+                ArkasImportRun::JENIS_INTEGRITAS,
+                $tahun,
+                $source
+            );
+        } catch (RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
         } finally {
-            if ($sementara && $berkas) {
-                @unlink($berkas);
+            if ($temporaryPath !== null) {
+                @unlink($temporaryPath);
             }
         }
 
-        return view('impor-arkas.cek-integritas', [
-            'tahun' => $tahun,
-            'portabel' => TarikArkasService::tersedia(),
-            'hasil' => $hasil,
-            'sumber' => $sumber,
-        ]);
+        return redirect()->route('impor-arkas.status', $run);
     }
 }

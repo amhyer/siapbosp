@@ -96,7 +96,7 @@
       <table class="tbl"><tbody>@foreach($stages as $s)<tr><td>{{ $s->tahun }}</td><td>{{ $s->nama }}</td><td>{{ $s->is_open ? '🟢 buka' : '🔴 tutup' }}</td></tr>@endforeach</tbody></table></div>
   </div>
 </div>
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 document.querySelectorAll('#tabs [data-t]').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('#tabs [data-t]').forEach(x=>x.classList.remove('!bg-indigo-600','!text-white'));
   b.classList.add('!bg-indigo-600','!text-white');

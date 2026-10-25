@@ -7,7 +7,7 @@
 | **Commit dasar** | `d048d2e` (`main`) |
 | **Metode** | *Reverse engineering* statis: enumerasi rute → middleware → controller → model → view, analisis alur data (taint), pencarian sink berbahaya, pengujian isolasi multi-tenant, serta telaah mekanisme sesi/token/unggahan/ekspor |
 | **Lingkup** | Kode aplikasi (bukan server, jaringan, atau ARKAS Desktop), tanpa pengujian aktif terhadap instalasi produksi |
-| **Hasil** | 8 temuan material (1 Kritis, 2 Tinggi, 5 Sedang) **+ 12 catatan pengerasan**; semua temuan material sudah diperbaiki pada branch ini beserta uji regresinya |
+| **Hasil** | 8 temuan material diperbaiki; R-04 sampai R-11 telah ditutup pada kode; R-03 masih memerlukan migrasi handler inline, dan uji R-12 di SIEM produksi memerlukan endpoint infrastruktur — lihat §5 |
 
 > Dokumen ini disusun untuk pemilik aplikasi. Jangan dijadikan panduan menyerang sistem milik pihak lain.
 
@@ -21,13 +21,13 @@ SiapBOSP adalah aplikasi multi-tenant: satu basis data menampung **seluruh sekol
 2. **Akun `dinas` dapat mereset sandi / mengubah email akun `superadmin`** (panel pengguna tidak memeriksa peran target) → eskalasi `dinas` → `superadmin`.
 3. **Jejak audit lintas sekolah bocor** ke setiap sekolah (`/pengaturan/log`, `/arsip/impor`, `/arsip/ekspor`), memuat uraian transaksi dan nominal sekolah lain.
 
-Kedelapan temuan material (K-01…K-08) dan dua belas butir pengerasan lanjutan (R-01…R-12) **sudah diperbaiki** di repositori ini; status per butir ada di §3 dan §5, berkas yang berubah di §6.
+Kedelapan temuan material (K-01…K-08) sudah diperbaiki. Pada pengerasan lanjutan, R-04 sampai R-11 kini selesai pada kode aplikasi; R-03 tetap parsial karena handler atribut inline belum dimigrasi, sedangkan penerimaan R-12 di SIEM produksi belum dapat diverifikasi sebelum operator menentukan endpoint dan trust/certifikatnya. Status, batasan, dan langkah operasional ada di §5.
 
 Satu lagi: **pemetaan HPP** (`POST /hpp`) memungkinkan operator sekolah lain menulis `rkas_detail_id`/`sumber` pada rincian belanja sekolah mana pun (IDOR tulis), karena `KasDetail`/`RkasDetail` tidak memakai global scope.
 
 Temuan lain yang layak segera ditutup: pembatasan percobaan login dapat dilewati dengan memalsukan `X-Forwarded-For` (karena `trustProxies('*')`), akun/sekolah yang dinonaktifkan tetap bisa memakai token API & sesi lama, sekolah bisa menulis tabel **pagu** sendiri lewat menu Profil, dan seluruh ekspor CSV/XLSX rentan **formula injection** (sekolah menanam formula, Dinas yang mengeksekusinya di Excel).
 
-Semua butir di atas sudah ditambal pada branch `arena/fb3aef67-siapbosp` dan dilindungi uji regresi `tests/Feature/KeamananAuditTest.php`. Sisa risiko dijelaskan di §5.
+Temuan historis di atas telah ditambal pada kode aplikasi dan dilindungi uji regresi `tests/Feature/KeamananAuditTest.php`; pekerjaan lanjutan yang masih parsial dicatat di §5.
 
 ### Matriks temuan
 
@@ -43,16 +43,16 @@ Semua butir di atas sudah ditambal pada branch `arena/fb3aef67-siapbosp` dan dil
 | K-08 | Penulisan lintas sekolah lewat pemetaan HPP | **Sedang** | `HppController::store` | ✅ Diperbaiki |
 | R-01 | Kebijakan sandi lemah (`min:6`, default `password`) | Rendah | `DinasController::pengguna*` | ⚠️ Rekomendasi |
 | R-02 | Token API tanpa kedaluwarsa & tanpa rotasi paksa | Rendah | `ApiTokenAuth`, Profil | ⚠️ Rekomendasi |
-| R-03 | Tanpa CSP/`X-Frame-Options` (clickjacking) | Rendah | respons web | ◐ Sebagian (header lain sudah) |
-| R-04 | Beban/DoS lewat unggahan besar & arsip XLSX | Rendah | API ARKAS, rekonsiliasi, cek integritas | ⚠️ Rekomendasi |
-| R-05 | Pengumuman Dinas memicu email massal | Rendah | `DinasController::pengumumanStore` | ⚠️ Rekomendasi |
-| R-06 | `APP_DEBUG=true` pada `.env.example` | Rendah | konfigurasi | ⚠️ Rekomendasi |
-| R-07 | Tautan surel bergantung pada header `Host` | Rendah | `NotifMail`/`EmailNotif` | ⚠️ Rekomendasi |
-| R-08 | `sync_states` global tampil di arsip ekspor | Info | `ArsipController::ekspor` | ⚠️ Rekomendasi |
-| R-09 | Peran `dinas` dan `superadmin` nyaris setara | Info | model peran | ⚠️ Rekomendasi |
-| R-10 | Backup tidak dienkripsi | Info | `BackupService` | ⚠️ Rekomendasi |
+| R-03 | CSP tidak lengkap / inline script & handler | Rendah | respons web | ◐ CSP nonce + kebijakan sumber aktif; handler atribut masih inline |
+| R-04 | Beban/DoS lewat unggahan besar & arsip XLSX/CSV | Rendah | impor ARKAS, rekonsiliasi, cek integritas, impor RKAS CSV | ✅ Semua pemrosesan impor/analisis ARKAS berat kini masuk antrean privat; worker wajib dioperasikan |
+| R-05 | Pengumuman Dinas memicu email massal | Rendah | `DinasController::pengumumanStore` | ✅ Throttle, batas penerima aktif, email diantrekan pada queue async |
+| R-06 | `APP_DEBUG=true` pada `.env.example` | Rendah | konfigurasi | ✅ Debug dinonaktifkan, konfigurasi berbahaya diperingatkan |
+| R-07 | Tautan surel bergantung pada header `Host` | Rendah | `NotifMail`/`EmailNotif` | ✅ `TRUSTED_HOSTS` dikonfigurasi |
+| R-08 | `sync_states` global tampil di arsip ekspor | Info | `ArsipController::ekspor` | ✅ Baris global hanya disertakan di aplikasi portabel |
+| R-09 | Peran `dinas` dan `superadmin` nyaris setara | Info | `Peran`, Gate kemampuan | ✅ Gate diterapkan pada aksi sensitif |
+| R-10 | Backup tidak dienkripsi / belum terjadwal | Info | `BackupService`, `BackupTerjadwalService` | ✅ Backup otomatis AES-256 (wajib password), harian, retensi |
 | R-11 | `pg_dump` dipanggil lewat shell | Info | `DinasController::backup` | ✔️ Aman (argumen di-*escape*) |
-| R-12 | Lampiran tanpa batas jumlah total per transaksi | Rendah | `LampiranController` | ◐ Maks 10/permintaan |
+| R-12 | Jejak audit belum dikirim ke syslog/SIEM | Info | `Aktivitas`, `config/logging.php` | ◐ File lokal + syslog host atau socket TLS JSON langsung tersedia; target produksi belum dihubungkan/diverifikasi |
 
 ---
 
@@ -65,7 +65,7 @@ Semua butir di atas sudah ditambal pada branch `arena/fb3aef67-siapbosp` dan dil
 5. **Analisis otorisasi per peran** — matriks `superadmin` / `dinas` / `operator` / `kepsek`, termasuk aksi yang menyentuh akun & data lintas sekolah.
 6. **Telaah ekspor & antarmuka** — CSV/XLSX/PDF, nama berkas, isi pesan email, serta rendering Blade.
 
-**Verifikasi:** seluruh 176 berkas PHP (`app/`, `bootstrap/`, `routes/`, `tests/`, `database/`, `config/`) lolos `php -l` pada PHP 8.5 (runtime *WebAssembly*, karena host audit tidak menyediakan PHP native). Uji regresi ditulis mengikuti pola suite yang ada: **20 uji** `tests/Feature/KeamananAuditTest.php` (temuan K-01…K-08), **12 uji** `tests/Feature/PerbaikanLanjutanTest.php` (R-01…R-12), dan **3 uji** `tests/Unit/CsvTest.php` (netralisir formula, tanpa basis data) — total 35 uji, siap dijalankan dengan `php artisan test` di lingkungan ber-Composer. Tidak ada pengujian DoS aktif, pemindaian port, atau pengujian terhadap domain produksi.
+**Verifikasi audit sebelumnya:** 176 berkas PHP (`app/`, `bootstrap/`, `routes/`, `tests/`, `database/`, `config/`) lolos `php -l` pada PHP 8.5 (runtime WebAssembly, karena host audit tidak menyediakan PHP native saat itu). Regresi yang tercakup meliputi CSP nonce, antrean/isolasi status, Gate, serta backup terenkripsi/retensi. Jumlah uji regresi yang dicakup di berkas-berkas audit ini kini 54: **20** `KeamananAuditTest.php`, **17** `PerbaikanLanjutanTest.php`, **3** `CsvTest.php`, **1** `BackupTerjadwalTest.php`, **2** `ArsipXlsxAmanTest.php`, **7** `CekIntegritasTest.php`, dan **4** `RekonsiliasiTest.php`. Patch tindak lanjut ini belum dapat menjalankan `php artisan test` atau `php -l` di host sekarang karena PHP tidak tersedia; jumlah tersebut adalah hitungan test yang didefinisikan, bukan jumlah yang telah dijalankan/lulus. Tidak ada pengujian DoS aktif, pemindaian port, atau pengujian terhadap domain produksi.
 
 ### Lingkungan serangan (hasil pemetaan)
 
@@ -74,7 +74,7 @@ Semua butir di atas sudah ditambal pada branch `arena/fb3aef67-siapbosp` dan dil
 | Publik tanpa sesi | `GET /login`, `POST /login` (throttle), `GET /up` (health), `GET /api/v1/ping`, aset statis `public/` (`pendamping-arkas.html`, `robots.txt`) |
 | Berbasis sesi | `/dashboard`, `/rkas`, `/pembukuan/*`, `/laporan*`, `/pengaturan/*`, `/arsip/*`, `/utility/*` — grup `role:operator,kepsek` |
 | Panel Dinas | `/dinas/*` — grup `role:superadmin,dinas` (melihat semua sekolah) |
-| API Bearer | `/api/v1/{profil,tahap,saldo,transaksi,sync-referensi}`, `POST /arkas-push`, `POST /sync-push` (`role:operator,kepsek`), `/dinas/*` (`role:superadmin,dinas`) |
+| API Bearer | `/api/v1/{profil,tahap,saldo,transaksi,sync-referensi}`, `POST /arkas-push` + `GET /arkas-import/{id}` (status milik sendiri), `POST /sync-push` (`role:operator,kepsek`), `/dinas/*` (`role:superadmin,dinas`) |
 | Isolasi tenant | Global scope `school` pada 9 model; binding rute memakai scope tersebut; `ActivityLog`, `Attachment`, `RkasDetail`, `KasTax`, `LpjSubmission` **tidak** memakai scope → wajib disaring manual |
 
 ---
@@ -310,18 +310,22 @@ pekerjaan yang memang butuh perubahan arsitektur/infrastruktur, ditandai ◐.
 
 1. **R-01 Kebijakan sandi — ✅ selesai.** `App\Support\Sandi` + `App\Rules\SandiKuat`: minimal 10 karakter, wajib huruf & angka, menolak daftar sandi umum, menolak sandi yang memuat nama/email. Diterapkan pada pembuatan akun, reset sandi Dinas, ganti sandi mandiri, dan impor CSV (yang sebelumnya memberi sandi bawaan `password` — sekarang sandi acak kuat dan **semua** akun hasil impor/admin wajib mengganti sandi saat login pertama lewat kolom `must_change_password`, dipaksa middleware `PastikanAkunAktif`). Sandi acak hasil reset hanya ditampilkan di layar bila `MAIL_MAILER=log` (demo); di produksi cukup lewat email.
 2. **R-02 Siklus hidup token API — ✅ selesai.** Kolom `api_token_expires_at` & `api_token_used_at`; token berlaku `API_TOKEN_UMUR_HARI` (default 180 hari), ditolak 401 setelah kedaluwarsa, jejak pemakaian dicatat (maks. 1×/10 menit), tombol **Cabut Token** di Profil, serta audit setiap penerbitan/pencabutan. Pencabutan otomatis saat akun dinonaktifkan/sandi berubah tetap berlaku.
-3. **R-03 Header keamanan — ✅ selesai (CSP masih minimal).** `X-Frame-Options: SAMEORIGIN` + `Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'` ditambahkan ke `KeamananHeader`. ◐ CSP penuh (`default-src`/`script-src`) belum dipasang karena antarmuka masih memakai handler inline (`onsubmit`/`onclick`); perlu pemindahan ke berkas JS dulu.
-4. **R-04 DoS / unggahan — ✅ selesai (pembatas laju).** Limit bernama `unggah` (10/10 menit) untuk `POST /impor-arkas`, `/impor-arkas/cek-integritas`, `/rekonsiliasi`, `/rkas-impor`, dan `unggah-api` (6/10 menit) untuk `POST /api/v1/arkas-push`. Batas ukuran sudah ada (20 MB / 40 MB) dan lampiran maks. 10 berkas. ◐ Antrean/worker untuk impor besar belum dibuat.
-5. **R-05 Email massal — ✅ selesai.** `pengumumanStore` dibatasi `throttle:pengumuman` (5/jam per akun), hanya mengirim ke akun **aktif**, jumlah penerima dibatasi `PENGUMUMAN_MAKS_PENERIMA` (default 3000) dengan pemberitahuan bila terpotong, dan setiap pengumuman dicatat di jejak audit.
+3. **R-03 Header keamanan — ◐ CSP ketat untuk script aktif, handler lama masih diizinkan.** `X-Frame-Options: SAMEORIGIN`, `default-src` dan direktif sumber CSP diterapkan. Setiap blok `<script>` Blade memakai nonce acak per respons; nonce dipasang oleh template tepercaya, bukan dengan memodifikasi HTML keluaran. `script-src-attr 'unsafe-inline'` masih diperlukan karena banyak handler atribut (`onclick`/`onsubmit`/`onchange`) belum dipindah ke JavaScript eksternal. Penghapusan pengecualian itu memerlukan migrasi antarmuka dan uji browser sebelum enforcement penuh.
+4. **R-04 DoS / unggahan — ✅ ditutup pada kode aplikasi.** Limit bernama `unggah` (10/10 menit), `unggah-api` (6/10 menit), status browser (30/menit) dan status API (25/menit) melindungi antrean; validasi ukuran 20 MB/40 MB serta lampiran maks. 10 berkas tetap berlaku. Impor XLSX utama, cek integritas, rekonsiliasi, impor CSV RKAS (maks. 2 MB), dan API `/arkas-push` kini seluruhnya disalin ke disk privat dan diproses oleh satu worker queue dengan run ID, isolasi pemilik sekolah/pengguna, larangan unggah kedua saat masih ada pekerjaan aktif, status polling, perlindungan job duplikat, pemeriksaan ZIP XLSX (maks. 512 entri/200 MiB terurai, rasio kompresi dibatasi), file 0600 dan timeout 600 detik, dua percobaan, serta penghapusan file ketika selesai/gagal. Pembersihan terjadwal menandai run macet setelah 24 jam, membersihkan file yatim, serta menghapus riwayat 90 hari. Tes regresi ditambah untuk ketiga alur browser/API dan impor CSV. Deployment tetap harus menjalankan worker `imports` dan scheduler.
+5. **R-05 Email massal — ✅ selesai.** `pengumumanStore` dibatasi `throttle:pengumuman` (5/jam per akun), hanya mengirim ke akun **aktif**, jumlah penerima dibatasi `PENGUMUMAN_MAKS_PENERIMA` (default 3000) dengan pemberitahuan bila terpotong, email dikirim lewat `KirimEmailNotif` pada koneksi queue non-sync (sinkron hanya untuk mode uji/demo), dan setiap pengumuman dicatat di jejak audit.
 6. **R-06 Konfigurasi produksi — ✅ selesai.** `.env.example` kini `APP_DEBUG=false` + dokumentasi `SESSION_SECURE_COOKIE`/`SESSION_ENCRYPT`/`LOG_LEVEL`. `AppServiceProvider` menulis peringatan ke log bila `APP_DEBUG=true` di produksi atau bila `APP_URL` https tetapi cookie sesi belum `secure`.
 7. **R-07 Host header — ✅ selesai.** `$middleware->trustHosts(at: …)` di `bootstrap/app.php`, dikonfigurasi lewat `TRUSTED_HOSTS` (mis. `siapbosp.makassar.go.id,*.makassar.go.id`); bila kosong, berlaku bawaan Laravel (host `APP_URL` + subdomain).
 8. **R-08 `sync_states` — ✅ selesai.** Baris `sync_states` hanya ditampilkan di aplikasi portabel (satu sekolah per perangkat); di server pusat disembunyikan karena tidak relevan dan berpotensi membocorkan jejak perangkat.
-9. **R-09 Pemisahan peran — ✅ selesai (sebagian).** `App\Support\Peran`: `superadmin` mengelola semua akun; `dinas` **hanya** boleh mengelola `operator`/`kepsek` dan tidak boleh membuat/menetapkan peran `dinas` atau `superadmin` (termasuk lewat impor CSV). Formulir pengguna menyembunyikan aksi yang tidak berhak. ◐ Migrasi penuh ke `Gate`/`Policy` per kemampuan (mis. `backup`, `alokasi`, `master-data`) masih terbuka.
-10. **R-10 Backup terenkripsi — ✅ selesai.** ZIP backup memakai AES-256 untuk entri `database.sqlite` bila `BACKUP_PASSWORD` diisi (gagal keras dengan pesan jelas bila pustaka ZIP tidak mendukung), berkas sementara selalu `chmod 0600`, nama berkas disanitasi, dan dump SQL PostgreSQL ikut dibungkus ZIP berpassword. ◐ Retensi/penjadwalan backup otomatis belum ada.
+9. **R-09 Pemisahan peran — ✅ selesai.** Aturan peran tetap dipusatkan pada `App\Support\Peran` dan kini dipanggil melalui Gate `manage-user` serta `assign-user-role`. Gate kemampuan `backup`, `allocation`, dan `master-data` diterapkan pada aksi terkait; pemeriksaan dilakukan server-side dan bukan hanya menyembunyikan tombol.
+10. **R-10 Backup — ✅ selesai.** Backup otomatis harian pukul 02.00 menurut `config('app.timezone')` (default UTC) dibuat oleh `backup:automatic`, disimpan privat di `storage/app/private/backups/`, dienkripsi AES-256, memakai berkas sementara `0600`, dan retensinya dapat diatur lewat `BACKUP_RETENTION_DAYS` (default 30 hari). Mendukung snapshot SQLite (`VACUUM INTO`) dan PostgreSQL (`pg_dump`); tugas gagal tertutup bila `BACKUP_PASSWORD` atau dukungan AES-256 tidak tersedia. Scheduler server tetap perlu dijalankan.
 11. **R-11 `pg_dump` — ✅ selesai.** Fitur hanya jalan bila driver `pgsql` (SQLite diarahkan ke backup ZIP), pencarian biner lewat `command -v` + glob `/usr/lib/postgresql/*/bin/pg_dump`, dan keluaran perintah **tidak** lagi ditampilkan ke pengguna (hanya kode galat; detail ke log server).
-12. **R-12 Jejak audit — ✅ selesai.** `ActivityLog` kini *append-only* (event `updating`/`deleting` melempar `RuntimeException`), fitur "Hapus Data" sekolah **tidak** lagi menghapus log, dan setiap entri disalin ke `storage/logs/audit.log` (kanal `audit`, retensi `AUDIT_LOG_DAYS`, izin `0600`) sehingga bukti tetap ada walau basis data direset. ◐ Pengiriman ke syslog/SIEM eksternal belum dikonfigurasi.
+12. **R-12 Jejak audit — ◐ jalur kode siap, verifikasi SIEM produksi menunggu konfigurasi.** `ActivityLog` append-only, tidak ikut terhapus saat reset data; setiap peristiwa tersimpan pada tabel dan salinan lokal harian `storage/logs/audit-*.log` (retensi `AUDIT_LOG_DAYS`, izin `0600`). `AUDIT_REMOTE_CHANNEL=syslog` menyalin ke syslog sistem, atau `AUDIT_REMOTE_CHANNEL=socket` + `AUDIT_REMOTE_URL=tls://host:port` mengirim JSON newline-delimited langsung melalui TLS ke collector. Salinan lokal tetap aktif; error remote tidak menggagalkan aksi aplikasi dan koneksi dibatasi dua detik. Konfigurasi TLS memakai validasi sertifikat PHP/OpenSSL standar. Karena target, format penerimaan, kebijakan jaringan, dan kebutuhan mTLS SIEM belum tersedia, konektivitas serta penerimaan event produksi belum diuji; ini tetap *partial operational closure*, bukan klaim SIEM aktif.
 
-**Verifikasi wajib setelah deploy:** (a) isi `TRUSTED_PROXIES`/`TRUSTED_HOSTS` dengan benar lalu ulangi uji K-04/R-07; (b) pastikan `/pengaturan/backup/unduh` menghasilkan 403 untuk operator di server pusat; (c) set `BACKUP_PASSWORD` dan uji buka ZIP hasil backup; (d) jalankan `php artisan test` (seluruh suite) di lingkungan ber-PHP.
+**Operasional setelah deploy:**
+- Antrean R-04/R-05: jalankan migrasi baru dan worker persisten terpisah: `php artisan queue:work database --queue=imports --timeout=600 --tries=2` (`DB_QUEUE_RETRY_AFTER` >600 detik; contoh `.env.example`: 720) serta `php artisan queue:work database --queue=default --timeout=90 --tries=3` untuk email. Jalankan scheduler agar `arkas-imports:prune` menutup run macet dan membersihkan file/riwayat. Worker dan scheduler adalah syarat layanan; tanpa worker, impor tetap aman tetapi tidak selesai dan email antre tidak terkirim.
+- Backup terjadwal R-10: set `BACKUP_PASSWORD` sebagai rahasia kuat dan terpisah dari backup, set `BACKUP_RETENTION_DAYS`, lalu daftarkan `php artisan schedule:run` setiap menit pada cron/scheduler host. Verifikasi hasil `php artisan backup:automatic` dan uji ekstraksi ZIP.
+- SIEM R-12: pilih salah satu (a) `AUDIT_REMOTE_CHANNEL=syslog` dan konfigurasikan daemon syslog host untuk forward; atau (b) `AUDIT_REMOTE_CHANNEL=socket` serta `AUDIT_REMOTE_URL=tls://FQDN:PORT` pada receiver yang menerima JSON newline-delimited. Pastikan sertifikat server sah/trusted, izinkan egress firewall, lalu kirim event uji dan konfirmasi diterima pada SIEM. Jangan menandai R-12 operasional selesai sebelum uji ini lolos.
+- Tetap isi `TRUSTED_PROXIES`/`TRUSTED_HOSTS` dengan benar, pastikan `/pengaturan/backup/unduh` menghasilkan 403 untuk operator di server pusat, lalu jalankan `php artisan test` di lingkungan ber-PHP.
 
 ---
 
@@ -355,13 +359,13 @@ pekerjaan yang memang butuh perubahan arsitektur/infrastruktur, ditandai ◐.
 | `app/Http/Middleware/KeamananHeader.php` | `X-Frame-Options` + CSP `frame-ancestors` (R-03) |
 | `app/Http/Middleware/PastikanAkunAktif.php` | Paksa ganti sandi akun hasil impor/reset (R-01) |
 | `app/Http/Middleware/ApiTokenAuth.php` | Tolak token kedaluwarsa, catat pemakaian (R-02) |
-| `app/Providers/AppServiceProvider.php` | Pembatas laju `unggah`/`unggah-api`/`pengumuman` (R-04/R-05), peringatan konfigurasi produksi (R-06) |
+| `app/Providers/AppServiceProvider.php` | Pembatas unggah/status impor (R-04), pengumuman (R-05), peringatan konfigurasi produksi (R-06) |
 | `bootstrap/app.php` | `TRUSTED_HOSTS` (R-07) |
 | `app/Http/Controllers/ArsipController.php` | `sync_states` hanya di instalasi portabel (R-08) |
 | `database/migrations/2026_10_25_000001_…` *(baru)* | `must_change_password`, `api_token_expires_at`, `api_token_used_at` |
 | `config/logging.php` | Kanal `audit` (R-12) |
 | `.env.example` | `TRUSTED_HOSTS`, `BACKUP_PASSWORD`, `API_TOKEN_UMUR_HARI`, `PENGUMUMAN_MAKS_PENERIMA`, `APP_DEBUG=false`, catatan sesi HTTPS |
-| `tests/Feature/PerbaikanLanjutanTest.php` *(baru)* | 12 uji R-01…R-12 |
+| `tests/Feature/PerbaikanLanjutanTest.php`, `tests/Feature/{CekIntegritas,Rekonsiliasi}Test.php`, `tests/Unit/ArsipXlsxAmanTest.php` | Regresi R-01…R-12, Gate/CSP, antrean XLSX/CSV, isolasi status, dan ZIP-bomb screening |
 | `app/Http/Controllers/UnduhAplikasiController.php` | Nama berkas paket portabel memakai NPSN yang disanitasi |
 | `app/Models/School.php` | Cast `is_active` → boolean (dasar pemeriksaan status sekolah) |
 | `resources/views/pengaturan/backup.blade.php` | Sembunyikan tombol unduh bagi yang tidak berhak |
@@ -371,6 +375,14 @@ pekerjaan yang memang butuh perubahan arsitektur/infrastruktur, ditandai ◐.
 | `tests/Feature/KeamananAuditTest.php` *(baru)* | 20 uji regresi temuan K-01…K-08 |
 | `tests/Unit/CsvTest.php` *(baru)* | 3 uji netralisir formula (`App\Support\Csv`, tanpa DB) |
 | `tests/Feature/MenuDanArsipTest.php` | Ekspektasi backup disesuaikan (403 di server pusat) |
+| `app/Services/AntreanArkasService.php`, `app/Services/ArsipXlsxAman.php`, `app/Services/RkasCsvImportService.php`, `app/Jobs/ProsesImporArkas.php`, `app/Models/ArkasImportRun.php`, migrations `000002` + `000003` | Queue privat/status terisolasi untuk XLSX impor, cek integritas, rekonsiliasi, API, CSV RKAS, dan pemeriksaan arsip XLSX sebelum parse (R-04) |
+| `app/Console/Commands/BersihkanImporArkas.php`, `routes/console.php` | Tandai pekerjaan stale, retensi run 90 hari, bersihkan berkas yatim (R-04) |
+| `app/Http/Controllers/{Api,ImportArkas,CekIntegritas,Rekonsiliasi,Rkas}Controller.php`, `resources/views/impor-arkas/status.blade.php` | Kontrak async, polling berizin, respons hasil tiap jenis pekerjaan (R-04) |
+| `app/Console/Commands/BackupOtomatis.php`, `app/Services/BackupTerjadwalService.php`, `config/backup.php`, `routes/console.php` | Backup terenkripsi otomatis harian + retensi (R-10) |
+| `config/logging.php`, `.env.example` | Stack audit lokal + syslog host atau socket TLS JSON langsung (R-12; koneksi produksi belum diverifikasi) |
+| `app/Providers/AppServiceProvider.php`, `app/Http/Controllers/{Dinas,Pengaturan}Controller.php` | Gate `manage-user`, `assign-user-role`, `backup`, `allocation`, `master-data` (R-09) |
+| `app/Http/Middleware/KeamananHeader.php`, `resources/views/**` | CSP sumber-per-origin + nonce script inline (handler atribut masih perlu migrasi) (R-03) |
+| `tests/Feature/PerbaikanLanjutanTest.php`, `tests/Feature/BackupTerjadwalTest.php` | Regresi antrean impor, CSP, Gate, enkripsi dan retensi backup |
 
 ---
 
@@ -401,3 +413,13 @@ Daftar uji regresi baru:
 10. `test_ekspor_bku_menetralkan_formula_csv_injection`
 11. `test_tidak_bisa_memetakan_rincian_belanja_sekolah_lain_lewat_hpp`
 12. `test_sekolah_tidak_bisa_menulis_pagu_lewat_profil`
+13. `test_csp_memakai_nonce_acak_di_script_inline`
+14. `test_unggahan_arkas_dikirim_ke_antrean_dan_dibatasi_milik_pengunggah`
+15. `test_gate_memisahkan_kemampuan_akun_alokasi_master_dan_backup`
+16. `test_backup_sqlite_terenkripsi_dan_retensi_menghapus_berkas_lama`
+17. `test_arkas_push_api_mengantrikan_berkas_dengan_token_dan_membatasi_status`
+18. `test_unggahan_cek_integritas_diproses_asinkron_dan_berkasnya_privat`
+19. `test_unggahan_rekonsiliasi_diproses_asinkron_dan_berkasnya_privat`
+20. `test_impor_csv_rkas_dibatasi_dan_dikirim_ke_antrean`
+21. `test_fixture_xlsx_valid_lolos_pemeriksaan_arsip`
+22. `test_entri_jalur_traversal_di_arsip_ditolak`

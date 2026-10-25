@@ -34,6 +34,13 @@
   </ol>
   @endif
 </div>
+@if($imporTerakhir)
+<div class="card max-w-2xl border-sky-200 !bg-sky-50/50">
+  <h3 class="card-title mb-1">⏳ Impor terakhir</h3>
+  <p class="page-desc mb-2">Tahun {{ $imporTerakhir->tahun }} · status: <b>{{ $imporTerakhir->status }}</b> · {{ $imporTerakhir->created_at->format('d/m/Y H:i') }}</p>
+  <a href="{{ route('impor-arkas.status', $imporTerakhir) }}" class="btn2 btn-sm">Lihat status dan hasil</a>
+</div>
+@endif
 <div class="card max-w-2xl">
   <h3 class="card-title mb-1">📤 Opsi 2 — Unggah Excel manual</h3>
   <p class="page-desc mb-3">Sheet yang dibaca: <b>Sekolah</b>, <b>RAPBS</b>, <b>KAS_Umum</b>, <b>Nota</b>, <b>Pajak_NTPN</b>. Maks 20 MB.</p>

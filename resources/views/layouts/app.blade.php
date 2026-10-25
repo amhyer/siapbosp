@@ -14,7 +14,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 @else
     {{-- Fallback darurat bila aset Vite belum dibangun (jalankan: npm run build) --}}
-    <script src="/tailwind.js"></script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="/tailwind.js"></script>
     <style>
       body{font-family:ui-sans-serif,system-ui,sans-serif}
       .inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.45rem .7rem;font-size:.875rem;background:#fff}
