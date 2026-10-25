@@ -22,49 +22,77 @@ use Illuminate\Http\Request;
 
 class RkasController extends Controller
 {
+    /**
+     * Daftar Kertas Kerja dengan struktur ARKAS 4:
+     * tab sumber dana di atas, lalu satu baris per TAHUN ANGGARAN.
+     *
+     * Seluruh revisi pada tahun yang sama dilipat menjadi satu baris
+     * (representasi = revisi terbaru), persis seperti ARKAS 4. Riwayat
+     * revisinya tetap bisa dibuka lewat tombol "riwayat" pada baris tersebut.
+     */
     public function index(Request $r)
     {
         $tahun = (int) session('tahun', now()->year);
         $sekolah = auth()->user()->school;
-        $sumberFilter = trim((string) $r->query('sumber', ''));
 
-        $items = RkasHeader::with('details.rekening.komponen')
-            ->where('tahun', $tahun)
-            ->when($sumberFilter !== '', fn ($q) => $q->where('sumber_dana', $sumberFilter))
+        // Tab sumber dana (ARKAS 4). Tautan lama ?sumber=… tetap dihormati.
+        $tabs = RkasHeader::TAB_SUMBER_DANA;
+        $tabAktif = (string) $r->query('tab', '');
+        if (! isset($tabs[$tabAktif])) {
+            $tabAktif = RkasHeader::tabDariSumber($r->query('sumber'));
+        }
+        $daftarSumber = $tabs[$tabAktif]['sumber'];
+
+        // ARKAS 4 menampilkan riwayat 3 tahun sekaligus dalam satu daftar.
+        $rentangTahun = [$tahun, $tahun - 1, $tahun - 2];
+
+        $headers = RkasHeader::with('details')
+            ->where('school_id', $sekolah->id)
+            ->whereIn('tahun', $rentangTahun)
+            ->whereIn('sumber_dana', $daftarSumber)
             ->orderByDesc('revisi_ke')
-            ->get();
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('tahun');
 
-        $pagu = JuknisBosp2026Service::paguSumberDana($sekolah, $tahun, $sumberFilter ?: 'BOS Reguler');
-        $adaTahunLalu = RkasHeader::where('school_id', $sekolah->id)
-            ->where('tahun', $tahun - 1)
-            ->exists();
-        $aktifTerakhir = $items->first(fn ($x) => $x->status !== 'draft') ?? $items->first();
-
-        // Rekap anggaran per sumber dana (revisi terbaru per sumber, tak
-        // dijumlahkan ganda antar revisi).
-        $rekapSumber = collect();
-        foreach ($items as $h) {
-            foreach ($h->details->groupBy('sumber_dana') as $sumber => $rows) {
-                if ($rekapSumber->has($sumber)) {
-                    continue;
-                }
-                $rekapSumber->put($sumber, [
-                    'nilai' => (int) $rows->sum('jumlah'),
-                    'baris' => $rows->count(),
-                ]);
-            }
+        $dokumen = [];
+        foreach ($rentangTahun as $th) {
+            $riwayat = ($headers->get($th) ?? collect())->sortByDesc('revisi_ke')->values();
+            $utama = $riwayat->first();
+            $dokumen[] = [
+                'tahun' => $th,
+                'tahun_aktif' => $th === $tahun,
+                'utama' => $utama,
+                'riwayat' => $riwayat,
+                'total' => (int) ($utama?->details->sum('jumlah') ?? 0),
+                'jml_revisi' => $riwayat->count(),
+            ];
         }
 
+        // Pagu tab yang sedang dibuka (dipakai untuk chip "Belum Dianggarkan").
+        $pagu = JuknisBosp2026Service::paguSumberDana($sekolah, $tahun, $daftarSumber[0] ?? 'BOS Reguler');
+
+        // Acuan untuk tombol Pergeseran/Perubahan: revisi terakhir yang bukan draf
+        // pada tahun aktif & tab aktif.
+        $itemsTahunAktif = $headers->get($tahun) ?? collect();
+        $aktifTerakhir = $itemsTahunAktif->first(fn ($x) => $x->status !== 'draft') ?? $itemsTahunAktif->first();
+
+        $adaTahunLalu = RkasHeader::where('school_id', $sekolah->id)
+            ->where('tahun', $tahun - 1)
+            ->whereIn('sumber_dana', $daftarSumber)
+            ->exists();
+
         return view('rkas.index', [
-            'items' => $items,
             'tahun' => $tahun,
-            'pagu' => $pagu,
             'sekolah' => $sekolah,
-            'sumberFilter' => $sumberFilter,
-            'sumberList' => RkasHeader::SUMBER_DANA_ARKAS,
+            'tabs' => $tabs,
+            'tabAktif' => $tabAktif,
+            'tabLabel' => $tabs[$tabAktif]['label'],
+            'sumberTab' => $daftarSumber[0] ?? 'BOS Reguler',
+            'dokumen' => $dokumen,
+            'pagu' => $pagu,
             'adaTahunLalu' => $adaTahunLalu,
             'aktifTerakhir' => $aktifTerakhir,
-            'rekapSumber' => $rekapSumber,
         ]);
     }
 

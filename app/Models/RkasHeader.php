@@ -49,6 +49,26 @@ class RkasHeader extends Model
         'perubahan' => 'Perubahan RKAS',
     ];
 
+    /**
+     * Tab sumber dana seperti di ARKAS 4 v4.3.0:
+     * BOSP Reguler · BOSP Daerah · BOSP Kinerja · SiLPA BOSP Kinerja ·
+     * Lainnya · Sumber Dana Tambahan.
+     *
+     * Nilai `sumber_dana` di database tetap 7 nilai bebas (SUMBER_DANA_ARKAS),
+     * lalu dipetakan ke tab di bawah ini agar pengguna ARKAS menemukan letak
+     * dokumennya tanpa belajar istilah baru.
+     *
+     * @var array<string,array{label:string,sumber:array<int,string>}>
+     */
+    public const TAB_SUMBER_DANA = [
+        'reguler' => ['label' => 'BOSP Reguler', 'sumber' => ['BOS Reguler', 'BOSP Reguler']],
+        'daerah' => ['label' => 'BOSP Daerah', 'sumber' => ['BOSP Daerah']],
+        'kinerja' => ['label' => 'BOSP Kinerja', 'sumber' => ['BOS Kinerja', 'BOSP Kinerja']],
+        'silpa_kinerja' => ['label' => 'SiLPA BOSP Kinerja', 'sumber' => ['SiLPA BOSP Kinerja', 'SILPA']],
+        'lainnya' => ['label' => 'Lainnya', 'sumber' => ['Sumber Dana Lainnya', 'Lainnya']],
+        'tambahan' => ['label' => 'Sumber Dana Tambahan', 'sumber' => ['BOSP Afirmasi', 'Afirmasi']],
+    ];
+
     public const SUMBER_DANA_ARKAS = [
         'BOS Reguler',
         'BOS Kinerja',
@@ -77,6 +97,38 @@ class RkasHeader extends Model
     public function labelJenis(): string
     {
         return self::LABEL_JENIS[$this->jenis_rkas ?? 'murni'] ?? ucfirst((string) $this->jenis_rkas);
+    }
+
+    /**
+     * Kunci tab sumber dana untuk sebuah nilai `sumber_dana`.
+     * Nilai yang tidak dikenali jatuh ke tab "Lainnya" agar tidak ada dokumen
+     * yang "hilang" dari daftar.
+     */
+    public static function tabDariSumber(?string $sumber): string
+    {
+        $cari = mb_strtolower(trim((string) $sumber));
+        if ($cari === '') {
+            return 'reguler';
+        }
+
+        foreach (self::TAB_SUMBER_DANA as $kunci => $tab) {
+            foreach ($tab['sumber'] as $nilai) {
+                if (mb_strtolower($nilai) === $cari) {
+                    return $kunci;
+                }
+            }
+        }
+
+        // Cocokkan longgar (mis. "BOS Reguler " atau "BOSP Reguler 2026").
+        foreach (self::TAB_SUMBER_DANA as $kunci => $tab) {
+            foreach ($tab['sumber'] as $nilai) {
+                if (str_contains($cari, mb_strtolower($nilai))) {
+                    return $kunci;
+                }
+            }
+        }
+
+        return 'lainnya';
     }
 
     /** Label status menurut kosakata ARKAS 4 (dipakai di chip kedua). */
