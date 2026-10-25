@@ -149,6 +149,26 @@ class P:
         self.img.paste(box, (int(x * S), int(y * S)))
         self.d = ImageDraw.Draw(self.img)
 
+    def ikon(self, x, y, jenis='buka', warna='#475569'):
+        """Ikon garis 14x14 sederhana (glyph UI tidak tersedia di DejaVu)."""
+        if jenis == 'buka':
+            self.rect(x, y, 13, 13, fill=None, stroke=warna, r=2, lw=1)
+            self.d.line([(x + 8) * S, (y + 5) * S, (x + 13) * S, (y + 5) * S], fill=warna, width=S)
+            self.d.line([(x + 8) * S, (y + 5) * S, (x + 8) * S, (y + 10) * S], fill=warna, width=S)
+        elif jenis == 'hapus':
+            self.d.line([(x + 1) * S, (y + 3) * S, (x + 13) * S, (y + 3) * S], fill=warna, width=S)
+            self.rect(x + 3, y + 5, 8, 8, fill=None, stroke=warna, r=1, lw=1)
+            self.d.line([(x + 5) * S, (y + 1) * S, (x + 9) * S, (y + 1) * S], fill=warna, width=S)
+        elif jenis == 'cetak':
+            self.rect(x + 1, y + 5, 12, 6, fill=None, stroke=warna, r=1, lw=1)
+            self.rect(x + 4, y + 1, 6, 4, fill=None, stroke=warna, r=0, lw=1)
+            self.rect(x + 4, y + 11, 6, 3, fill=None, stroke=warna, r=0, lw=1)
+        elif jenis == 'dokumen':
+            self.rect(x, y, 11, 14, fill=None, stroke=warna, r=2, lw=1)
+            for i in range(3):
+                self.d.line([(x + 3) * S, (y + 5 + i * 3) * S, (x + 8) * S, (y + 5 + i * 3) * S],
+                            fill=warna, width=S)
+
     def crop(self, pad=0):
         bg = self.img.getpixel((0, 0))
         diff = ImageChops.difference(self.img, Image.new('RGB', self.img.size, bg))
@@ -176,124 +196,102 @@ def judul(p, no, teks, sub=None):
 
 
 # =====================================================================
-# PANEL 1 — top bar + kartu sumber dana
+# PANEL 1 — kerangka ARKAS 4: sidebar 3 area kerja + tab sumber dana
+#            + daftar dokumen per tahun (sesuai tangkapan layar v4.3.0)
 # =====================================================================
 def panel1(path):
-    TOP, PAD = 42, 16
-    y_top = TOP
-    y_note = y_top + 46
-    y_head = y_note + 40
-    y_grid = y_head + 52
-    ch, gap = 196, 14
-    cw = (W - PAD * 2 - gap) / 2
-    y_end = y_grid + ch * 2 + gap + 16 + 30
+    JUDUL = 40
+    SB = 210                      # lebar sidebar
+    x_konten = SB + 24
+    w_konten = W - x_konten - 24
+
+    y_top = JUDUL + 30            # topbar
+    h_top = 46
+    y_tab = y_top + h_top + 26    # tab sumber dana
+    h_tab = 40
+    y_isi = y_tab + h_tab + 18
+    h_baris = 74
+    n_baris = 3
+    y_end = y_isi + n_baris * h_baris + 3 * 12 + 20
 
     p = P(1200, y_end + 8)
-    judul(p, '1', 'Top bar & kartu sumber dana', '· pengganti halaman depan Penganggaran (P1-4)')
+    judul(p, '1', 'Kerangka ARKAS 4: sidebar 3 area kerja + tab sumber dana',
+          '· dan daftar dokumen per tahun (v4.3.0)')
 
-    p.frame_top(TOP, y_end - TOP)
+    # ---------- topbar ----------
+    p.rect(0, y_top, W, h_top, fill=CARD, stroke=LINE)
+    p.d.ellipse([16 * S, (y_top + 16) * S, 27 * S, (y_top + 27) * S], outline='#1d4ed8', width=int(1.5 * S))
+    p.text(34, y_top + 15, 'ARKAS', 12.5, True, '#1f2937')
+    p.right(W - 30, y_top + 16, '\u25be', 10, color='#64748b')
+    p.right(W - 42, y_top + 15, 'UPT SPF SD NEGERI UNGGULAN MONGISIDI 1', 11, True, '#1f2937')
+    xa = W - 42 - p.tw('UPT SPF SD NEGERI UNGGULAN MONGISIDI 1', 11, True) - 30
+    p.d.ellipse([xa * S, (y_top + 13) * S, (xa + 19) * S, (y_top + 32) * S], fill='#1e3a8a')
+    p.mid(xa + 9.5, y_top + 18, 'U', 9, True, '#ffffff')
 
-    # --- top bar ---
-    p.rect(0, y_top, W, 46, fill=DARK, r=12)
-    p.rect(0, y_top + 30, W, 16, fill=DARK)
-    p.text(20, y_top + 15, 'SIAP', 13.5, True, '#e6fffb')
-    p.text(20 + p.tw('SIAP', 13.5, True), y_top + 15, 'BOSP', 13.5, True, '#5eead4')
-
-    nav = ['Data Sekolah', 'Penganggaran', 'Penatausahaan', 'Laporan', 'Arsip', 'Referensi', 'Pengaturan']
-    nx = 108
-    for i, item in enumerate(nav):
-        twi = p.tw(item, 11.5, bold=(i == 1))
-        if i == 1:
-            p.rect(nx - 8, y_top + 11, twi + 16, 24, fill='#12564e', r=7)
-            p.text(nx, y_top + 16, item, 11.5, True, '#ffffff')
+    # ---------- sidebar ----------
+    p.rect(0, y_top + h_top, SB, y_end - (y_top + h_top), fill='#1e3a8a')
+    nav = [('Penganggaran', True), ('Penatausahaan', False), ('Arsip', False)]
+    yy = y_top + h_top + 26
+    for label, aktif in nav:
+        if aktif:
+            p.rect(14, yy - 6, SB - 28, 34, fill='#2563eb', r=6)
+            p.text(30, yy + 3, label, 12.5, True, '#ffffff')
         else:
-            p.text(nx, y_top + 16, item, 11.5, color='#c7f9f2')
-        nx += twi + 24
+            p.text(30, yy + 3, label, 12.5, True, '#dbeafe')
+        yy += 42
 
-    # right chips
-    cx = W - 20
-    for label, dot in [('Bendahara \u25be', False), ('ARKAS 4.2.15 -> 4.3.0', True), ('2026 \u25be', False)]:
-        cwid = p.tw(label, 10.5) + 18
-        cx -= cwid
-        p.rect(cx, y_top + 13, cwid, 20, fill='#14524a', r=10)
-        if dot:
-            p.d.ellipse([(cx + 7) * S, (y_top + 19) * S, (cx + 13) * S, (y_top + 25) * S],
-                        fill='#fb7185')
-            p.text(cx + 17, y_top + 17, label, 10.5, color='#e6fffb')
+    # utilitas bawah
+    util = [('info', 'Tutorial'), ('\u25a4', 'Pertanyaan Umum'),
+            ('\u25ce', 'Hubungi Kami'), ('\u21bb', 'Perbarui Aplikasi')]
+    yu = y_end - 152
+    for ikon, label in util:
+        if ikon == 'info':
+            p.d.ellipse([22 * S, (yu + 1) * S, 34 * S, (yu + 13) * S], outline='#bfdbfe', width=int(1.2 * S))
+            p.mid(28, yu + 1, 'i', 8.5, True, '#bfdbfe')
         else:
-            p.mid(cx + cwid / 2, y_top + 17, label, 10.5, color='#e6fffb')
-        cx -= 8
+            p.text(22, yu, ikon, 11.5, color='#bfdbfe')
+        p.text(46, yu, label, 11.5, color='#bfdbfe')
+        yu += 30
 
-    # --- baris pengingat ---
-    p.hline(0, W, y_note)
-    p.text(20, y_note + 14, 'PENGINGAT', 9.5, True, MUTE)
-    bw = p.badge(100, y_note + 10, 'Pajak September belum dilaporkan - jatuh tempo 20 Okt', 'rose')
-    p.badge(100 + bw + 8, y_note + 10, 'BKU Juli belum ditutup', 'amber')
-    p.badge(W - 20, y_note + 10, '2 sumber dana menunggu review Dinas', 'blue', right=True)
-    p.hline(0, W, y_head)
+    # ---------- tab sumber dana ----------
+    tabs = ['BOSP Reguler', 'BOSP Daerah', 'BOSP Kinerja', 'SiLPA BOSP Kinerja',
+            'Lainnya', 'Sumber Dana Tambahan']
+    xt = x_konten
+    p.hline(xt, xt + w_konten, y_tab + h_tab, LINE)
+    for i, t in enumerate(tabs):
+        aktif = (i == 0)
+        tw = p.tw(t, 11.0, bold=aktif)
+        if xt + tw > W - 30:
+            break
+        p.text(xt, y_tab + 12, t, 11.0, aktif, '#1d4ed8' if aktif else '#475569')
+        if aktif:
+            p.rect(xt - 8, y_tab + h_tab - 3, tw + 16, 3, fill='#2563eb', r=1.5)
+        xt += tw + 34
 
-    # --- header aksi ---
-    p.text(20, y_head + 16, 'Aktivasi & Penyusunan Kertas Kerja', 13.0, True)
-    p.text(20 + p.tw('Aktivasi & Penyusunan Kertas Kerja', 13.0, True) + 8, y_head + 18,
-           '- Tahun 2026', 11.5, color=MUTE)
-    x = W - 20
-    w = p.btn(x, y_head + 13, '+ Aktivasi Sumber Dana', primary=True, right=True)
-    x -= w + 8
-    w = p.btn(x, y_head + 13, 'Salin dari 2025', right=True)
-    x -= w + 8
-    p.btn(x, y_head + 13, 'Riwayat 3 tahun \u25be', right=True)
-    p.hline(0, W, y_head + 52)
-
-    # --- kartu ---
-    cards = [
-        dict(nama='BOSP Reguler', sub='Dana pusat - DAU', badge=('Disahkan', 'green'),
-             pagu=1234000000, sudah=1234000000, belum=0, pct=1.0, col=GREEN,
-             aksi='Perubahan', hapus=True),
-        dict(nama='BOSP Kinerja', sub='Tahap 1 sudah cair', badge=('Perlu Diajukan Ulang', 'amber'),
-             pagu=180000000, sudah=155500000, belum=24500000, pct=.86, col=AMBER,
-             aksi='Kirim Pengajuan', hapus=True),
-        dict(nama='BOSP Afirmasi', sub='Sumber dana tambahan', badge=('Perlu Revisi', 'rose'),
-             pagu=45000000, sudah=40000000, belum=5000000, pct=.89, col=ROSE,
-             aksi='Revisi Kertas Kerja', hapus=True),
-        dict(nama='BOSP Daerah', sub='Belum ada penetapan', badge=('Belum Aktif', 'slate'),
-             pagu=None, sudah=None, belum=None, pct=0.0, col='#cbd5e1',
-             aksi='Aktivasi', hapus=False),
+    # ---------- baris dokumen ----------
+    yy = y_isi
+    baris = [
+        ('RKAS BOSP Reguler 2026', 'Ver. Pergeseran - 29 Sep 2026', 'Sudah Disahkan', 'green', True),
+        ('RKAS BOSP Reguler 2025', 'Ver. Pergeseran - 22 Jan 2026', 'Sudah Disahkan', 'green', True),
+        ('RKAS BOSP Reguler 2024', 'Ver. Pergeseran - 24 Jun 2024', 'Sudah Disahkan', 'green', True),
     ]
+    for nama, ver, chip, nada, ikon in baris:
+        p.rect(x_konten, yy, w_konten, h_baris, fill='#f8fafc', stroke='#eef2f7', r=10)
+        # ikon dokumen + 3 ikon aksi
+        p.ikon(x_konten + 20, yy + 27, 'dokumen', '#64748b')
+        p.text(x_konten + 52, yy + 18, nama, 13.0, True)
+        bw = p.badge(x_konten + 52 + p.tw(nama, 13.0, True) + 12, yy + 16, chip, nada, size=9.5)
+        p.text(x_konten + 52, yy + 42, ver, 10.0, color=MUTE)
+        if ikon:
+            xi = x_konten + w_konten - 90
+            for jenis in ('buka', 'hapus', 'cetak'):
+                p.ikon(xi, yy + 30, jenis, '#475569')
+                xi += 30
+        yy += h_baris + 12
 
-    p.rect(0, y_grid - PAD + 2, W, y_end - (y_grid - PAD + 2), fill=SOFT)
-    for i, c in enumerate(cards):
-        x = PAD + (i % 2) * (cw + gap)
-        y = y_grid + (i // 2) * (ch + gap)
-        p.rect(x, y, cw, ch, fill=CARD, stroke=LINE, r=12)
-        p.rect(x + 1, y + 12, 4, ch - 24, fill=c['col'], r=2)
-        p.text(x + 16, y + 12, c['nama'], 13.5, True)
-        p.text(x + 16, y + 32, c['sub'], 10.5, color=MUTE)
-        p.badge(x + cw - 14, y + 12, c['badge'][0], c['badge'][1], right=True)
-
-        rows = [('Pagu', c['pagu']), ('Sudah dianggarkan', c['sudah']),
-                ('Belum dianggarkan', c['belum'])]
-        for j, (lab, val) in enumerate(rows):
-            yy = y + 56 + j * 22
-            p.text(x + 16, yy, lab, 11.5, color=MUTE)
-            txt = '-' if val is None else rp(val)
-            col = INK
-            if j == 2 and val is not None:
-                col = GREEN if val == 0 else ROSE
-            p.right(x + cw - 16, yy, txt, 11.5, True, col)
-        p.bar(x + 16, y + 130, cw - 32, c['pct'], color=c['col'])
-        p.dashed(x + 16, x + cw - 16, y + 150)
-
-        bx = x + 16
-        for lab, dis in [('Lihat', c['pagu'] is None), ('Cetak', c['pagu'] is None),
-                         ('Hapus', not c['hapus'])]:
-            bw2 = p.btn(bx, y + 160, lab, h=24, size=10.5, disabled=dis)
-            bx += bw2 + 6
-        p.btn(x + cw - 16, y + 160, c['aksi'], h=24, size=10.5,
-              primary=(c['badge'][1] in ('amber', 'rose')), right=True)
-
-    p.text(20, y_end - 40,
-           'Chip status memakai kosakata Dinas; alur internal Kepsek tetap ada di dalam kartu, bukan sebagai status utama.',
-           11.0, color=MUTE)
+    p.text(x_konten, y_end - 6,
+           'Riwayat 3 tahun tampil sekaligus. Tiap baris: nama + chip status + versi + ikon buka/hapus/cetak.',
+           10.0, color=MUTE)
     p.save(path)
 
 
