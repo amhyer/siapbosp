@@ -196,7 +196,10 @@ Hasil baca langsung `arkas.db` (56 tabel, 1 sekolah 40313912). Yang ditarik:
 | Pengesahan/RKA/report | pengesahan dkk. | — | kosong / laporan baca-saja ARKAS, dilewati |
 
 `ref_rekening` dipakai untuk melampirkan NAMA kode asing agar Dinas mudah
-menambah master. `RAPBS_Periode` (rincian triwulan) diskip — RKAS SiapBOS tahunan.
+menambah master. `RAPBS_Periode` **dipakai** untuk dua hal: `periode_volume` RKAS
+(alokasi Tahap 1..N) dan kode kegiatan pada detail transaksi
+(`KAS_Umum.id_rapbs_periode` → kegiatan). Agen `tarik-arkas.js` karena itu wajib
+mengekspor sheet ini (agen 1.0.1+; lihat `docs/AUDIT-TARIK-ARKAS.md`).
 
 ---
 
@@ -254,7 +257,8 @@ kertas kerja resmi. Nilai kolom/urutan disalin persis dari workbook itu
 o_bukti, tanggal_nota, no_nota, nama_toko, alamat_toko, no_telp, npwp, total, lunas_bayar | Daftar Nota + penerima |
 | kas_transactions.arkas_nota_id | id_kas_nota mentah ARKAS | penghubung BKU ↔ nota |
 | kas_details.volume | kolom olume KAS_Umum | volume transaksi (harga satuan = nilai/volume) |
-| kas_details.periode_volume | JSON {"1": v1, ...} dari RAPBS_Periode (v1..v4, fallback urutan baris) | alokasi Tahap 1..N |
+| 
+kas_details.periode_volume | JSON {"1": v1, ...} dari RAPBS_Periode (v1..v4, fallback urutan baris) | alokasi Tahap 1..N |
 
 ### 10.2 Halaman baru (menu **📋 Laporan ARKAS**, semua baca-saja)
 

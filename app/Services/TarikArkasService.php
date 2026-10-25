@@ -144,6 +144,87 @@ class TarikArkasService
         return $hasil;
     }
 
+
+    /** Ukuran berkas agen (null = tidak ada) — untuk diagnosa. */
+    public static function berkasAgen(): array
+    {
+        $node = base_path('agen/TarikArkas/node.exe');
+        $cjs = base_path('agen/TarikArkas/tarik.cjs');
+
+        return [
+            'node' => is_file($node) ? (int) filesize($node) : null,
+            'tarik' => is_file($cjs) ? (int) filesize($cjs) : null,
+            'node_mtime' => is_file($node) ? date('Y-m-d H:i', (int) filemtime($node)) : null,
+            'tarik_mtime' => is_file($cjs) ? date('Y-m-d H:i', (int) filemtime($cjs)) : null,
+        ];
+    }
+
+    /**
+     * Status lengkap jalur "Tarik Data ARKAS" untuk diagnosa.
+     *
+     * `$uji = true` menjalankan agen mode `lokal` (membaca ARKAS, menulis
+     * Excel sementara) dan melaporkan sheet + jumlah barisnya — bukti bahwa
+     * data ARKAS benar-benar bisa ditarik di laptop ini. Impor ke database
+     * TIDAK dijalankan.
+     *
+     * @return array<string, mixed>
+     */
+    public static function statusLengkap(?int $tahun = null, bool $uji = false): array
+    {
+        $tahun = $tahun ?? (int) now()->year;
+        $agen = self::berkasAgen();
+        $hasil = [
+            'portable' => UnduhAplikasiController::isPortable(),
+            'agen' => $agen,
+            'tersedia' => self::tersedia(),
+            'db_path' => self::pathDb(),
+            'db_ada' => self::dbAda(),
+            'tahun' => $tahun,
+            'info' => null,
+            'uji' => null,
+        ];
+
+        if (! $hasil['tersedia'] || ! $hasil['db_ada']) {
+            return $hasil;
+        }
+
+        $hasil['info'] = self::info();
+
+        if ($uji) {
+            $hasil['uji'] = self::ujiEkspor($tahun);
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Uji tarik nyata: bangun Excel dari ARKAS lalu laporkan isinya.
+     *
+     * @return array{ok:bool,pesan?:string,npsn?:?string,berkas_kb?:int,sheets?:array<string,int>}
+     */
+    public static function ujiEkspor(int $tahun): array
+    {
+        try {
+            $berkas = self::eksporDb($tahun);
+            $path = $berkas['path'];
+            $kb = is_file($path) ? (int) round(filesize($path) / 1024) : 0;
+            $sheets = [];
+            try {
+                $buku = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+                foreach ($buku->getSheetNames() as $nama) {
+                    $sheets[$nama] = $buku->getSheetByName($nama)?->getHighestDataRow() ?? 0;
+                }
+                $buku->disconnectWorksheets();
+            } finally {
+                @unlink($path);
+            }
+
+            return ['ok' => true, 'npsn' => $berkas['npsn'], 'berkas_kb' => $kb, 'sheets' => $sheets];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'pesan' => $e->getMessage()];
+        }
+    }
+
     /**
      * Jalankan agen mode `lokal` → berkas Excel ARKAS (tanpa impor).
      *

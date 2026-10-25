@@ -26,6 +26,9 @@ function muatDb() {
   }
 }
 
+// Versi agen — dilaporkan pada `info --json` supaya aplikasi/diagnosa bisa
+// membedakan agen lama (tanpa sheet RAPBS_Periode) dari agen terbaru.
+const AGEN_VERSI = '1.0.1';
 const DB_KEY = 'K3md1kbudRIS3n4yan';
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null; };
 const adaFlag = (n) => process.argv.includes(n);
@@ -58,6 +61,11 @@ async function cek(server) {
 
 function bangunExcel(db, tahun) {
   const q = (sql) => db.prepare(sql).all();
+  // Tabel yang tidak ada di versi ARKAS tertentu tidak boleh menggagalkan
+  // seluruh ekspor (mis. rapbs_periode pada ARKAS lama).
+  const qOpsional = (sql) => {
+    try { return q(sql); } catch (e) { return []; }
+  };
   const wb = new ExcelJS.Workbook();
   wb.creator = 'TarikArkas';
   const isi = (nama, baris) => {
@@ -70,6 +78,11 @@ function bangunExcel(db, tahun) {
   isi('Anggaran', q(`SELECT a.*, (SELECT nama_sumber_dana FROM ref_sumber_dana s WHERE s.id_ref_sumber_dana = a.id_ref_sumber_dana) AS sumber_dana FROM anggaran a WHERE a.tahun_anggaran = ${tahun} LIMIT 5000`));
   isi('RAPBS', q(`SELECT r.*, a.tahun_anggaran, (SELECT nama_sumber_dana FROM ref_sumber_dana s WHERE s.id_ref_sumber_dana = a.id_ref_sumber_dana) AS sumber_dana FROM rapbs r LEFT JOIN anggaran a ON a.id_anggaran = r.id_anggaran WHERE a.tahun_anggaran = ${tahun} ORDER BY r.kode_rekening LIMIT 20000`));
   isi('KAS_Umum', q(Q_KAS(tahun)));
+  // WAJIB: ArkasImportService memakai sheet ini untuk memetakan
+  // KAS_Umum.id_rapbs_periode → kode kegiatan, dan untuk periode_volume RKAS.
+  // Tanpa sheet ini transaksi masuk tanpa kode_kegiatan dan RKAS tanpa
+  // periode_volume (laporan per kegiatan/tahap jadi kosong).
+  isi('RAPBS_Periode', qOpsional('SELECT * FROM rapbs_periode LIMIT 20000'));
   isi('Nota', q('SELECT * FROM kas_umum_nota LIMIT 10000'));
   isi('Pajak_NTPN', q('SELECT * FROM kas_umum_nota_pajak'));
   // Master kode kegiatan (Ref_Kode) + master rekening (Ref_Rekening): sumber
@@ -79,7 +92,7 @@ function bangunExcel(db, tahun) {
   isi('Ref_Rekening', q('SELECT * FROM ref_rekening LIMIT 5000'));
   isi('Ref_Sumber_Dana', q('SELECT * FROM ref_sumber_dana'));
   isi('Ref_Satuan', q('SELECT * FROM ref_satuan LIMIT 5000'));
-  isi('PTK', q('SELECT * FROM ptk WHERE soft_delete <> \'1\' LIMIT 20000'));
+  isi('PTK', qOpsional('SELECT * FROM ptk WHERE CAST(IFNULL(soft_delete, \'0\') AS TEXT) <> \'1\' LIMIT 20000'));
   return wb;
 }
 
@@ -220,7 +233,7 @@ async function bangunLokal(keluar, tahun) {
     const wb = bangunExcel(db, tahun);
     const buf = await wb.xlsx.writeBuffer();
     fs.writeFileSync(keluar, buf);
-    return { ok: true, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024), versi: bacaVersiArkas() };
+    return { ok: true, agen: AGEN_VERSI, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024), versi: bacaVersiArkas() };
   } finally {
     try { db.close(); } catch (_) {}
   }
@@ -303,7 +316,7 @@ async function tesKoneksi(server, token) {
       if (cmd === 'info') {
         console.log(JSON.stringify({
           ok: true, adaDb: fs.existsSync(DB_PATH), npsnFile: bacaNpsnLokal(),
-          versi: bacaVersiArkas(),
+          agen: AGEN_VERSI, versi: bacaVersiArkas(),
         }));
       } else if (cmd === 'tes') {
         console.log(JSON.stringify(await tesKoneksi(butuhFlag('--server'), butuhFlag('--token'))));

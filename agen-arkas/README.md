@@ -1,8 +1,15 @@
 # Agen TarikArkas (satu-klik per laptop sekolah)
 
-`tarik-arkas.js` — Node 18+, CommonJS. Membaca `arkas.db` lokal (SQLCipher,
-read-only), membangun `.xlsx` di memori (sheet Sekolah/RAPBS/KAS_Umum/Nota/
-Pajak_NTPN), lalu `POST {server}/api/v1/arkas-push` (Bearer token sekolah).
+`tarik-arkas.js` — Node 18+, CommonJS (versi agen saat ini **1.0.1**, dilaporkan
+lewat `info --json` sebagai `agen`). Membaca `arkas.db` lokal (SQLCipher,
+read-only), membangun `.xlsx` di memori — sheet: Sekolah, Anggaran, RAPBS,
+**RAPBS_Periode**, KAS_Umum, Nota, Pajak_NTPN, Ref_Kode, Ref_Rekening,
+Ref_Sumber_Dana, Ref_Satuan, PTK — lalu `POST {server}/api/v1/arkas-push`
+(Bearer token sekolah).
+
+`RAPBS_Periode` WAJIB ada: dipakai `ArkasImportService` untuk kode kegiatan
+transaksi dan `periode_volume` RKAS. Tanpa sheet itu data tetap masuk, tetapi
+dua kolom tersebut kosong (cacat agen ≤1.0.0).
 Server menyimpan unggahan di disk privat lalu memprosesnya melalui antrean `imports`
 dengan `ArkasImportService` — seluruh aturan impor berlaku sama (idempoten +
 migrasi kunci legacy→baru, tutup buku, tanpa hapus). Agen menunggu status melalui

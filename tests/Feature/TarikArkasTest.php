@@ -45,6 +45,74 @@ class TarikArkasTest extends TestCase
             ->assertDontSee('Tarik Data ARKAS');
     }
 
+
+    /**
+     * Kontrak sheet: agen wajib mengekspor semua sheet yang dibaca
+     * ArkasImportService. Regresi nyata — agen sempat tidak mengekspor
+     * `RAPBS_Periode`, sehingga transaksi masuk tanpa kode kegiatan dan RKAS
+     * tanpa volume per tahap.
+     */
+    public function test_agen_mengekspor_semua_sheet_yang_dibutuhkan_impor(): void
+    {
+        $sumber = (string) file_get_contents(base_path('agen-arkas/tarik-arkas.js'));
+
+        preg_match_all("/isi\\('([A-Za-z_]+)'/", $sumber, $m);
+        $dibuat = array_values(array_unique($m[1]));
+
+        $wajib = ['Sekolah', 'Anggaran', 'RAPBS', 'RAPBS_Periode', 'KAS_Umum', 'Nota', 'Pajak_NTPN', 'Ref_Kode', 'Ref_Rekening'];
+        $hilang = array_values(array_diff($wajib, $dibuat));
+
+        $this->assertSame([], $hilang,
+            'Agen tidak mengekspor sheet yang dibutuhkan ArkasImportService: '.implode(', ', $hilang));
+
+        // Semua sheet yang dibaca importer harus jelas statusnya: diekspor agen,
+        // atau terdaftar sebagai celah yang sudah diketahui (docs/AUDIT-TARIK-ARKAS.md).
+        // Bila importer mulai membaca sheet baru, tes ini gagal supaya celahnya
+        // tidak bertambah tanpa disadari.
+        $layanan = (string) file_get_contents(app_path('Services/ArkasImportService.php'));
+        preg_match_all("/sheetAssoc\(\$wb, '([A-Za-z_]+)'/", $layanan, $n);
+        $dibaca = array_values(array_unique($n[1]));
+
+        // Celah yang diketahui: belum diekspor agen karena nama tabelnya di
+        // arkas.db belum terverifikasi. Penjab = penandatangan (isi manual bila
+        // kosong), Salur & Aktivasi_BKU = info silang baca-saja.
+        $celahDikenal = ['Penjab', 'Salur', 'Aktivasi_BKU'];
+
+        $takTerduga = array_values(array_diff(array_diff($dibaca, $dibuat), $celahDikenal));
+        $this->assertSame([], $takTerduga,
+            'Sheet yang dibaca importer tetapi tidak diekspor agen dan belum terdaftar sebagai celah: '
+            .implode(', ', $takTerduga));
+    }
+
+    public function test_agen_melaporkan_versinya(): void
+    {
+        $sumber = (string) file_get_contents(base_path('agen-arkas/tarik-arkas.js'));
+
+        $this->assertMatchesRegularExpression("/const AGEN_VERSI = '[0-9.]+'/", $sumber);
+        $this->assertStringContainsString('agen: AGEN_VERSI', $sumber,
+            'Versi agen harus dilaporkan lewat info/lokal --json supaya diagnosa bisa membedakan agen lama.');
+    }
+
+    public function test_diagnosa_arkas_hanya_untuk_localhost(): void
+    {
+        $this->get('/_arkas')->assertOk()->assertSee('Diagnosa Tarik Data ARKAS');
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])
+            ->get('/_arkas')
+            ->assertNotFound();
+    }
+
+    public function test_status_lengkap_di_luar_portabel(): void
+    {
+        $s = TarikArkasService::statusLengkap(2025, true);
+
+        $this->assertFalse($s['portable']);
+        $this->assertFalse($s['tersedia']);
+        $this->assertNull($s['info'], 'Di luar aplikasi portabel tidak boleh menjalankan agen.');
+        $this->assertNull($s['uji'], 'Uji tarik hanya berjalan bila agen & database tersedia.');
+        $this->assertSame(2025, $s['tahun']);
+    }
+
     public function test_tarik_menolak_tahun_tidak_valid(): void
     {
         $this->actingAs($this->operator)

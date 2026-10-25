@@ -102,6 +102,15 @@ Route::get('/_aset', function (Illuminate\Http\Request $request) {
     return response($html)->header('Content-Type', 'text/html; charset=utf-8');
 })->name('diagnosa.aset');
 
+/**
+ * Diagnosa jalur "Tarik Data ARKAS" (khusus localhost).
+ *
+ * Menjawab apakah agen terbundel, database ARKAS ditemukan, dan — dengan
+ * `?uji=1` — apakah data benar-benar bisa ditarik (sheet + jumlah baris),
+ * tanpa mengimpor apa pun ke database.
+ */
+Route::get('/_arkas', [App\Http\Controllers\DiagnosaArkasController::class, 'index'])->name('diagnosa.arkas');
+
 Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');

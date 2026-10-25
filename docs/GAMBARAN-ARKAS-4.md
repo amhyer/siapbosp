@@ -292,3 +292,6 @@ arsip, 2 halaman data sekolah, 5 halaman pengaturan (+ unduhan backup), laporan 
 tab referensi baru, daftar kegiatan, pembatasan akses role (Dinas tidak bisa membuka arsip
 sekolah), halaman *Review & Proporsi Anggaran* (label proporsi benar-benar tampil), serta penjaga
 anti-duplikat/tautan mati. Suite penuh: **149 test hijau (820 asersi)**.
+
+> Audit jalur tarik data (agen → impor) dan cara memeriksanya di laptop:
+> lihat `docs/AUDIT-TARIK-ARKAS.md`.
