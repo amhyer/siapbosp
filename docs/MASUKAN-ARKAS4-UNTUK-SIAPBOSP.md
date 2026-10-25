@@ -257,6 +257,23 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 | Footer cetak: *"Dicetak dari SiapBOSP — bukan dokumen resmi ARKAS"* | mencegah salah pakai di Dinas |
 | Kolom **Panduan** (tautan Juknis) per baris rincian | dikerjakan sekali di partial |
 
+
+---
+
+## 4a. Gambar tampilan usulan
+
+Berkas PNG di `docs/mockup/` (digambar manual dengan Pillow, teks & angka identik dengan dokumen ini — **bukan** hasil AI generator). Sumber: `docs/mockup/render_mockup.py`.
+
+| Gambar | Menunjukkan | Terkait |
+|---|---|---|
+| ![Top bar & kartu sumber dana](mockup/01-penganggaran-kartu.png) | Top bar + **kartu per sumber dana** dengan chip status Dinas, ikon hapus nonaktif saat disahkan | P0-1, P1-4 |
+| ![Kertas kerja & gerbang](mockup/02-kertas-kerja-gerbang.png) | **Gerbang pra-pengajuan**: tombol *Ajukan* nonaktif, 3 pelanggaran disorot, baris baru kilat kuning | P0-2 |
+| ![Lembar BKU](mockup/03-bku.png) | **BKU**: tab Jan–Des, tarik/setor tunai di lembar, badge **wajib lapor** | P1-5 |
+| ![Wizard belanja](mockup/04-wizard-belanja.png) | **Wizard 3 langkah** mengikuti urutan ARKAS | P1-7 |
+| ![Arsip & cetak](mockup/05-arsip-cetak.png) | **Arsip terpadu** (3 filter + 2 mode) & pratinjau cetak ber-watermark **DRAFT** | P0-3, P1-6 |
+
+Lembar gabungan semua panel: [`mockup/00-semua-tampilan.png`](mockup/00-semua-tampilan.png). Cara regenerasi ada di [`mockup/README.md`](mockup/README.md).
+
 ---
 
 ## 5. Yang sebaiknya *tidak* ditiru
@@ -308,4 +325,4 @@ Tiap sprint: `php artisan test`, uji cetak (A4), dan cek `Belum Dianggarkan` pad
 
 ---
 
-*Dokumen ini masukan, bukan komitmen implementasi. Mockup visual: `docs/mockup-paritas-arkas4.html`.*
+*Dokumen ini masukan, bukan komitmen implementasi. Mockup interaktif: `docs/mockup-paritas-arkas4.html` · gambar PNG: `docs/mockup/`.*
