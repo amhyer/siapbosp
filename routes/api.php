@@ -15,6 +15,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/transaksi', [ApiController::class, 'transaksi']);
         // Agen satu-klik di laptop sekolah: unggah Excel ARKAS (maks 20 MB).
         Route::post('/arkas-push', [ApiController::class, 'arkasPush'])->middleware(['role:operator,kepsek', 'throttle:unggah-api']);
+        Route::get('/arkas-import/{impor}', [ApiController::class, 'arkasImportStatus'])
+            ->whereNumber('impor')->middleware(['role:operator,kepsek', 'throttle:unggah-api-status']);
         // Sync lokal → pusat (Tahap C): dorong transaksi idempoten.
         Route::post('/sync-push', [ApiController::class, 'syncPush'])->middleware('role:operator,kepsek');
         // Snapshot master pusat → lokal.

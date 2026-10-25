@@ -265,7 +265,7 @@
   </table>
 </div>
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function setTabReview(tab){
   ['proporsi','tahapan','tahunan'].forEach(t => {
     document.getElementById('tabReview-' + t).classList.toggle('hidden', t !== tab);

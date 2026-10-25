@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ArkasRunAktifException;
+use App\Models\ArkasImportRun;
 use App\Models\ArkasKode;
 use App\Models\Penandatangan;
 use App\Models\Rekening;
@@ -11,6 +13,7 @@ use App\Models\StandarHarga;
 use App\Models\User;
 use App\Notifications\InfoNotif;
 use App\Services\Aktivitas;
+use App\Services\AntreanArkasService;
 use App\Services\EmailNotif;
 use App\Services\JuknisBosp2026Service;
 use App\Services\RkasExportService;
@@ -400,47 +403,30 @@ class RkasController extends Controller
         return back()->with('ok', 'Status input ARKAS diperbarui untuk: '.$detail->uraian);
     }
 
-    public function impor(Request $r)
+    public function impor(Request $request, AntreanArkasService $antrean)
     {
-        $r->validate(['berkas' => 'required|file|max:2048']);
+        $data = $request->validate([
+            'berkas' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
         $tahun = (int) session('tahun', now()->year);
-        $isi = file($r->file('berkas')->getRealPath());
-        if (! $isi) {
-            return back()->with('error', 'Berkas kosong.');
-        }
-        $sep = substr_count($isi[0], ';') >= substr_count($isi[0], ',') ? ';' : ',';
-        $baris = [];
-        $takDikenal = [];
-        $rekeningMap = Rekening::belanja()->pluck('id', 'kode');
-        foreach ($isi as $no => $b) {
-            $kol = array_map('trim', str_getcsv($b, $sep));
-            if (count($kol) < 5 || empty($kol[0]) || str_contains(strtolower($kol[0]), 'kode')) {
-                continue;
-            }
-            [$kode, $uraian, $satuan, $banyak, $harga, $sumber] = array_pad($kol, 6, null);
-            $rid = $rekeningMap[$kode] ?? null;
-            if (! $rid) {
-                $takDikenal[] = ($no + 1)." (kode $kode)";
 
-                continue;
-            }
-            $baris[] = [$rid, $uraian ?: 'Item RKAS', $satuan ?: 'paket', max(1, (int) $banyak), max(0, (int) str_replace(['.', ' '], '', (string) $harga)), $sumber ?: 'BOS Reguler'];
-        }
-        if (! $baris) {
-            return back()->with('error', 'Tidak ada rincian valid. Periksa kode rekeningnya.');
-        }
-        $sid = auth()->user()->school_id;
-        $revisi = (int) RkasHeader::where('school_id', $sid)->where('tahun', $tahun)->max('revisi_ke') + 1;
-        $h = RkasHeader::create(['tahun' => $tahun, 'revisi_ke' => $revisi, 'status' => 'draft', 'catatan' => 'Impor CSV']);
-        foreach ($baris as [$rid, $uraian, $satuan, $banyak, $harga, $sumber]) {
-            $h->details()->create(['rekening_id' => $rid, 'uraian' => $uraian, 'satuan' => $satuan, 'banyak' => $banyak, 'harga_satuan' => $harga, 'jumlah' => $banyak * $harga, 'sumber_dana' => $sumber]);
-        }
-        $msg = 'RKAS revisi ke-'.$revisi.' dibuat dari '.count($baris).' rincian CSV.';
-        if ($takDikenal) {
-            $msg .= ' Kode tak dikenal baris: '.implode(', ', $takDikenal);
+        try {
+            $run = $antrean->daftarkan(
+                $data['berkas'],
+                $request->user(),
+                ArkasImportRun::JENIS_RKAS_CSV,
+                $tahun,
+                'Impor CSV RKAS'
+            );
+        } catch (ArkasRunAktifException $exception) {
+            return back()->with('error', $exception->getMessage());
+        } catch (\RuntimeException $exception) {
+            report($exception);
+
+            return back()->with('error', 'Berkas CSV belum dapat dimasukkan ke antrean. Coba lagi atau hubungi administrator.');
         }
 
-        return redirect()->route('rkas.show', $h)->with('ok', $msg);
+        return redirect()->route('impor-arkas.status', $run);
     }
 
     /**

@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
   // Preview cetak: halaman cetak dimuat di iframe tersembunyi lalu dialog
   // cetak browser langsung dibuka — pengguna tetap di halaman ini, tak ada
   // tab HTML yang terbuka. Fallback: buka tab baru bila iframe gagal.

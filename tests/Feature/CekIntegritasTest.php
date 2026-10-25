@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProsesImporArkas;
+use App\Models\ArkasImportRun;
 use App\Models\BosType;
 use App\Models\Rekening;
 use App\Models\RekeningPajak;
@@ -11,6 +13,9 @@ use App\Models\User;
 use App\Services\ArkasImportService;
 use App\Services\CekIntegritasService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -89,6 +94,26 @@ class CekIntegritasTest extends TestCase
             ->get('/impor-arkas/cek-integritas')
             ->assertOk()
             ->assertSee('Cek Ulang Integritas Impor');
+    }
+
+    public function test_unggahan_cek_integritas_diproses_asinkron_dan_berkasnya_privat(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $response = $this->actingAs($this->operator)->post('/impor-arkas/cek-integritas', [
+            'tahun' => 2025,
+            'berkas' => new UploadedFile(
+                $this->mini, 'arkas-mini.xlsx',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true
+            ),
+        ]);
+
+        $run = ArkasImportRun::firstOrFail();
+        $response->assertRedirect(route('impor-arkas.status', $run));
+        $this->assertSame(ArkasImportRun::JENIS_INTEGRITAS, $run->jenis);
+        $this->assertSame('queued', $run->status);
+        Storage::disk('local')->assertExists($run->file_path);
+        Queue::assertPushed(ProsesImporArkas::class);
     }
 
     public function test_tahun_tidak_valid_ditolak(): void

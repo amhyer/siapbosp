@@ -2,14 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProsesImporArkas;
 use App\Models\ActivityLog;
+use App\Models\ArkasImportRun;
 use App\Models\School;
 use App\Models\User;
 use App\Services\HapusDataService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -269,5 +274,90 @@ class PerbaikanLanjutanTest extends TestCase
         $this->assertSame(1, $hasil['log']);
         $this->assertSame(1, ActivityLog::where('school_id', $this->sekolah->id)
             ->where('keterangan', 'bukti aktivitas')->count());
+    }
+
+    public function test_csp_memakai_nonce_acak_di_script_inline(): void
+    {
+        $response = $this->get('/login')->assertOk();
+        $csp = (string) $response->headers->get('Content-Security-Policy');
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString("default-src 'self'", $csp);
+        $this->assertStringContainsString("script-src 'self' 'nonce-", $csp);
+        preg_match("/nonce-([^' ]+)/", $csp, $nonce);
+        $this->assertNotEmpty($nonce[1] ?? null);
+        $this->assertStringContainsString('nonce="'.$nonce[1].'"', $html);
+    }
+
+    public function test_unggahan_arkas_dikirim_ke_antrean_dan_dibatasi_milik_pengunggah(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $berkas = UploadedFile::fake()->create(
+            'ekspor.xlsx',
+            10,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+
+        $response = $this->actingAs($this->operator)->post('/impor-arkas', [
+            'berkas' => $berkas,
+            'tahun' => 2026,
+        ]);
+
+        $impor = ArkasImportRun::firstOrFail();
+        $response->assertRedirect(route('impor-arkas.status', $impor));
+        $this->assertSame('queued', $impor->status);
+        $this->assertSame($this->sekolah->id, $impor->school_id);
+        Queue::assertPushed(ProsesImporArkas::class, fn (ProsesImporArkas $job): bool =>
+            $job->importRunId === $impor->id && $job->queue === 'imports');
+        $this->actingAs($this->operator)->post('/impor-arkas', [
+            'berkas' => UploadedFile::fake()->create(
+                'ekspor-ulang.xlsx',
+                10,
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+            'tahun' => 2026,
+        ])->assertSessionHas('error');
+
+        $sekolahLain = School::create([
+            'npsn' => '92000002', 'nama' => 'SD Tetangga', 'jenjang' => 'SD',
+            'kecamatan' => 'Mamajang', 'kab_kota' => 'Kota Makassar', 'provinsi' => 'Sulawesi Selatan',
+        ]);
+        $runLain = ArkasImportRun::create([
+            'school_id' => $sekolahLain->id, 'user_id' => $this->dinas->id,
+            'file_path' => 'imports/arkas/rahasia.xlsx', 'tahun' => 2026, 'status' => 'completed',
+        ]);
+        $this->actingAs($this->operator)->get(route('impor-arkas.status', $runLain))->assertNotFound();
+    }
+
+    public function test_impor_csv_rkas_dibatasi_dan_dikirim_ke_antrean(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $file = UploadedFile::fake()->createWithContent(
+            'rkas.csv',
+            "kode_rekening;uraian;satuan;jumlah;harga\n5.1.02;ATK;paket;1;100000\n"
+        );
+
+        $response = $this->actingAs($this->operator)->post('/rkas-impor', ['berkas' => $file]);
+        $run = ArkasImportRun::firstOrFail();
+
+        $response->assertRedirect(route('impor-arkas.status', $run));
+        $this->assertSame(ArkasImportRun::JENIS_RKAS_CSV, $run->jenis);
+        $this->assertSame('queued', $run->status);
+        $this->assertStringEndsWith('.csv', $run->file_path);
+        Storage::disk('local')->assertExists($run->file_path);
+        Queue::assertPushed(ProsesImporArkas::class);
+    }
+
+    public function test_gate_memisahkan_kemampuan_akun_alokasi_master_dan_backup(): void
+    {
+        $this->assertTrue(Gate::forUser($this->dinas)->allows('manage-user', $this->operator));
+        $this->assertFalse(Gate::forUser($this->dinas)->allows('manage-user', $this->superadmin));
+        $this->assertFalse(Gate::forUser($this->dinas)->allows('assign-user-role', 'superadmin'));
+        $this->assertTrue(Gate::forUser($this->superadmin)->allows('assign-user-role', 'superadmin'));
+        $this->assertTrue(Gate::forUser($this->dinas)->allows('allocation'));
+        $this->assertTrue(Gate::forUser($this->dinas)->allows('master-data'));
+        $this->assertFalse(Gate::forUser($this->operator)->allows('backup'));
     }
 }

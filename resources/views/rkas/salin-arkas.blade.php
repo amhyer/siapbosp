@@ -78,7 +78,7 @@
 </div>
 @endforeach
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function salinTeks(txt, el){
   navigator.clipboard?.writeText(String(txt));
   const asli = el.textContent;

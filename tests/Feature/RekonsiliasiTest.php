@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProsesImporArkas;
+use App\Models\ArkasImportRun;
 use App\Models\BosType;
 use App\Models\KasTransaction;
 use App\Models\Rekening;
@@ -12,6 +14,9 @@ use App\Models\User;
 use App\Services\ArkasImportService;
 use App\Services\RekonsiliasiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -71,6 +76,26 @@ class RekonsiliasiTest extends TestCase
         $h = RekonsiliasiService::bandingkan($this->sekolah->id, $this->mini, 2025);
         $this->assertCount(1, $h['selisih_nominal']);
         $this->assertCount(1, $h['hilang_di_sipbos']);
+    }
+
+    public function test_unggahan_rekonsiliasi_diproses_asinkron_dan_berkasnya_privat(): void
+    {
+        Queue::fake();
+        Storage::fake('local');
+        $response = $this->actingAs($this->operator)->post('/rekonsiliasi', [
+            'tahun' => 2025,
+            'berkas' => new UploadedFile(
+                $this->mini, 'arkas-mini.xlsx',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true
+            ),
+        ]);
+
+        $run = ArkasImportRun::query()->latest('id')->firstOrFail();
+        $response->assertRedirect(route('impor-arkas.status', $run));
+        $this->assertSame(ArkasImportRun::JENIS_REKONSILIASI, $run->jenis);
+        $this->assertSame('queued', $run->status);
+        Storage::disk('local')->assertExists($run->file_path);
+        Queue::assertPushed(ProsesImporArkas::class);
     }
 
     public function test_halaman_rekonsiliasi_bisa_dibuka_operator(): void

@@ -71,7 +71,7 @@
   <input name="nilai_pajak[]" type="number" min="1" class="inp" placeholder="nilai" style="width:130px" required>
   <button type="button" class="badge bdel" onclick="this.parentElement.remove()">✖</button>
 </div></template>
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function total(){let g=0;document.querySelectorAll('input[name="tax_id[]"]:checked').forEach(c=>{g+=+c.parentElement.querySelector('.nilp').dataset.v;});const e=document.getElementById('grandT');if(e)e.textContent='Rp '+g.toLocaleString('id-ID');}
 function tambahU(){document.getElementById('rowsU').appendChild(document.getElementById('tplU').content.cloneNode(true));}
 total(); tambahU();

@@ -3,9 +3,37 @@
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
+use Monolog\Handler\SocketHandler;
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Processor\PsrLogMessageProcessor;
 
+$auditChannels = ['audit_file'];
+$auditRemoteChannel = env('AUDIT_REMOTE_CHANNEL');
+if ($auditRemoteChannel === 'syslog') {
+    $auditChannels[] = 'audit_syslog';
+}
+$auditRemoteUrl = (string) env('AUDIT_REMOTE_URL', '');
+$auditRemoteParts = parse_url($auditRemoteUrl);
+$auditRemoteTlsValid = is_array($auditRemoteParts)
+    && ($auditRemoteParts['scheme'] ?? null) === 'tls'
+    && ! empty($auditRemoteParts['host'])
+    && isset($auditRemoteParts['port'])
+    && $auditRemoteParts['port'] >= 1
+    && $auditRemoteParts['port'] <= 65535
+    && ! isset($auditRemoteParts['user'])
+    && ! isset($auditRemoteParts['pass'])
+    && ! isset($auditRemoteParts['path'])
+    && ! isset($auditRemoteParts['query'])
+    && ! isset($auditRemoteParts['fragment']);
+if ($auditRemoteChannel === 'socket' && $auditRemoteTlsValid) {
+    $auditChannels[] = 'audit_remote_socket';
+}
+
 return [
+
+    // Configuration status for deployment-time warnings; never contains a secret.
+    'audit_remote_channel' => $auditRemoteChannel,
+    'audit_remote_tls_valid' => $auditRemoteTlsValid,
 
     /*
     |--------------------------------------------------------------------------
@@ -73,15 +101,43 @@ return [
             'replace_placeholders' => true,
         ],
 
-        // Salinan jejak audit di luar basis data (R-12). Tetap ada walau log
-        // basis data direset/dipulihkan, dan mudah dikirim ke syslog/SIEM.
+        // Salinan lokal selalu dipertahankan. Remote dapat melalui syslog
+        // host atau socket TLS langsung ke collector SIEM yang dikonfigurasi.
         'audit' => [
+            'driver' => 'stack',
+            'channels' => $auditChannels,
+            'ignore_exceptions' => true,
+        ],
+        'audit_file' => [
             'driver' => 'daily',
             'path' => storage_path('logs/audit.log'),
             'level' => 'info',
-            'max_files' => env('AUDIT_LOG_DAYS', 365),
+            'days' => env('AUDIT_LOG_DAYS', 365),
             'replace_placeholders' => true,
             'permission' => 0600,
+        ],
+        'audit_syslog' => [
+            'driver' => 'syslog',
+            'level' => 'info',
+            'facility' => (int) env('AUDIT_SYSLOG_FACILITY', LOG_USER),
+            'replace_placeholders' => true,
+        ],
+        'audit_remote_socket' => [
+            'driver' => 'monolog',
+            'level' => 'info',
+            'handler' => SocketHandler::class,
+            'handler_with' => [
+                'connectionString' => $auditRemoteUrl,
+                'timeout' => 2.0,
+                'writingTimeout' => 2.0,
+                'persistent' => false,
+            ],
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'batchMode' => JsonFormatter::BATCH_MODE_NEWLINES,
+                'appendNewline' => true,
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
         ],
 
         'monthly' => [

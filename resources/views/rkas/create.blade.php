@@ -170,7 +170,7 @@
 </tr>
 </template>
 
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 const PAGU_ACUAN = {{ (int) $pagu }};
 const PREFILL = @json($prefillRows ?? []);
 

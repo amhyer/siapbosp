@@ -76,7 +76,7 @@
     <button type="button" class="badge bdel" onclick="this.parentElement.remove();hitung()">✖</button>
   </div>
 </template>
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function tambah(){document.getElementById('rows').appendChild(document.getElementById('tpl').content.cloneNode(true));}
 function hitung(){let g=0;document.querySelectorAll('.nilai').forEach(i=>g+=+i.value||0);document.getElementById('grand').textContent='Rp '+g.toLocaleString('id-ID');}
 tambah();

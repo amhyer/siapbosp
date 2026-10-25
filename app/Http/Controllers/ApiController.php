@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ArkasRunAktifException;
 use App\Models\ActivityLog;
+use App\Models\ArkasImportRun;
 use App\Models\BosType;
 use App\Models\KasTransaction;
 use App\Models\Komponen;
@@ -17,7 +19,7 @@ use App\Models\Stage;
 use App\Models\TutupBuku;
 use App\Models\User;
 use App\Notifications\InfoNotif;
-use App\Services\ArkasImportService;
+use App\Services\AntreanArkasService;
 use App\Services\KasService;
 use App\Services\RingkasanService;
 use Illuminate\Http\Request;
@@ -119,33 +121,85 @@ class ApiController extends Controller
         return response()->json(['ok' => true, 'transaksi' => $data]);
     }
 
-    /** Agen satu-klik: terima Excel ARKAS, impor ke sekolah pemilik token. */
-    public function arkasPush(Request $r)
+    /** Agen satu-klik: daftarkan Excel ARKAS untuk diproses di antrean. */
+    public function arkasPush(Request $request, AntreanArkasService $antrean)
     {
-        $u = auth()->user();
-        if (! $u->school_id) {
+        $user = $request->user();
+        if (! $user->school_id) {
             return response()->json(['ok' => false, 'pesan' => 'Endpoint ini untuk akun sekolah.'], 403);
         }
-        // Validasi manual: agen satu-klik tidak memakai Accept: application/json,
-        // jadi balasannya harus tetap JSON (bukan halaman HTML pengalihan).
-        $v = Validator::make($r->all(), [
+
+        $validator = Validator::make($request->all(), [
             'berkas' => 'required|file|mimes:xlsx|max:20480',
             'tahun' => 'nullable|integer|min:2020|max:2030',
         ]);
-        if ($v->fails()) {
-            return response()->json(['ok' => false,
-                'pesan' => 'Berkas Excel ARKAS (.xlsx, maks 20 MB) wajib diunggah. '.implode(' ', $v->errors()->all())], 422);
-        }
-        $data = $v->validated();
-        try {
-            $lap = ArkasImportService::import(
-                $data['berkas']->getRealPath(), $u->school_id, $u->id,
-                isset($data['tahun']) ? (int) $data['tahun'] : null);
-        } catch (\RuntimeException $e) {
-            return response()->json(['ok' => false, 'pesan' => $e->getMessage()], 422);
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'pesan' => 'Berkas Excel ARKAS (.xlsx, maks 20 MB) wajib diunggah. '
+                    .implode(' ', $validator->errors()->all()),
+            ], 422);
         }
 
-        return response()->json(['ok' => true, 'laporan' => $lap]);
+        $data = $validator->validated();
+        try {
+            $run = $antrean->daftarkan(
+                $data['berkas'],
+                $user,
+                ArkasImportRun::JENIS_IMPOR,
+                isset($data['tahun']) ? (int) $data['tahun'] : (int) now()->year,
+                'Agen ARKAS via API'
+            );
+        } catch (ArkasRunAktifException $exception) {
+            return response()->json(['ok' => false, 'pesan' => $exception->getMessage()], 409);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json(['ok' => false, 'pesan' => 'Antrean ARKAS tidak tersedia. Coba lagi nanti.'], 503);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'status' => $run->status,
+            'import_id' => $run->id,
+            'tahun' => $run->tahun,
+            'polling_interval_seconds' => 3,
+        ], 202);
+    }
+
+    /** Status/hasil impor API hanya dapat dibaca akun dan sekolah pemilik run. */
+    public function arkasImportStatus(Request $request, ArkasImportRun $impor)
+    {
+        abort_unless(
+            $impor->user_id === $request->user()->id
+                && $impor->school_id === $request->user()->school_id,
+            404
+        );
+
+        if ($impor->status === 'completed') {
+            return response()->json([
+                'ok' => true,
+                'status' => 'completed',
+                'import_id' => $impor->id,
+                'laporan' => $impor->result,
+            ]);
+        }
+        if ($impor->status === 'failed') {
+            return response()->json([
+                'ok' => false,
+                'status' => 'failed',
+                'import_id' => $impor->id,
+                'pesan' => $impor->error,
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'status' => $impor->status,
+            'import_id' => $impor->id,
+            'tahun' => $impor->tahun,
+            'polling_interval_seconds' => 3,
+        ], 202);
     }
 
     public function dinasSekolah()

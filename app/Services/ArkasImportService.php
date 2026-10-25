@@ -79,6 +79,7 @@ class ArkasImportService
 
     public static function import(string $path, int $schoolId, int $userId, ?int $tahun = null): array
     {
+        ArsipXlsxAman::periksa($path);
         $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(true);
         $wb = $reader->load($path);
@@ -1037,6 +1038,7 @@ class ArkasImportService
      */
     public static function ekstrakKas(string $path, int $tahun): array
     {
+        ArsipXlsxAman::periksa($path);
         $reader = IOFactory::createReaderForFile($path);
         $reader->setReadDataOnly(true);
         $wb = $reader->load($path);
