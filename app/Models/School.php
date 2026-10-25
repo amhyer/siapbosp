@@ -9,6 +9,7 @@ class School extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'is_active' => 'boolean',
         'jumlah_siswa' => 'integer',
         'satuan_biaya_bosp' => 'integer',
         'akhir_jabatan_bulan' => 'integer',

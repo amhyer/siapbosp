@@ -15,6 +15,7 @@ use App\Services\EmailNotif;
 use App\Services\KasService;
 use App\Services\LpjExportService;
 use App\Services\LpjService;
+use App\Support\Csv;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -163,7 +164,7 @@ class LaporanController extends Controller
         $csv = function (array $rows) {
             $s = fopen('php://temp', 'r+');
             foreach ($rows as $r) {
-                fputcsv($s, $r, ';');
+                fputcsv($s, Csv::baris($r), ';');
             }
             rewind($s);
             $c = stream_get_contents($s);
@@ -275,13 +276,13 @@ class LaporanController extends Controller
         if ($r->boolean('csv')) {
             $nm = "Pajak_Triwulan_{$tw}_{$tahun}.csv";
             $tmp = fopen('php://temp', 'r+');
-            fputcsv($tmp, ["Rekap Pajak TW{$tw} Tahun {$tahun} (pungut per bulan)"], ';');
+            fputcsv($tmp, Csv::baris(["Rekap Pajak TW{$tw} Tahun {$tahun} (pungut per bulan)"]), ';');
             $nmBulan = fn ($b) => ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][$b];
-            fputcsv($tmp, array_merge(['Jenis Pajak'], array_map($nmBulan, $bulan), ['Dipungut (TW)', 'Disetor (TW)', 'Sisa']), ';');
+            fputcsv($tmp, Csv::baris(array_merge(['Jenis Pajak'], array_map($nmBulan, $bulan), ['Dipungut (TW)', 'Disetor (TW)', 'Sisa'])), ';');
             foreach ($jenis as $j) {
-                fputcsv($tmp, array_merge([$j['nama']],
+                fputcsv($tmp, Csv::baris(array_merge([$j['nama']],
                     array_map(fn ($b) => $j['dipungut'][$b] ?? 0, $bulan),
-                    [$j['td'], $j['ts'], $j['sisa']]), ';');
+                    [$j['td'], $j['ts'], $j['sisa']])), ';');
             }
             rewind($tmp);
             $csv = stream_get_contents($tmp) ?: '';

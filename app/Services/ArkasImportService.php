@@ -64,6 +64,19 @@ class ArkasImportService
         'is_pph_4' => 'pph42',
     ];
 
+    /**
+     * Boleh tidaknya proses impor menulis pagu resmi (`allocations`).
+     *
+     * Dinas/superadmin menetapkan pagu melalui menu Alokasi; di aplikasi
+     * portabel (satu sekolah per laptop) pemilik akun sekolah boleh mengisi
+     * pagunya sendiri. Selain itu angka pagu dari berkas ARKAS hanya dilaporkan.
+     */
+    public static function bolehTetapkanPagu(): bool
+    {
+        return in_array(auth()->user()?->role, ['superadmin', 'dinas'], true)
+            || \App\Http\Controllers\UnduhAplikasiController::isPortable();
+    }
+
     public static function import(string $path, int $schoolId, int $userId, ?int $tahun = null): array
     {
         $reader = IOFactory::createReaderForFile($path);
@@ -567,7 +580,15 @@ class ArkasImportService
 
         // Pagu dari Anggaran (revisi aktif terbaru per sumber). Hanya isi yang
         // belum ada — pagu Dinas tak ditimpa; selisih dilaporkan.
+        //
+        // PENTING: berkas ARKAS diunggah oleh SEKOLAH, jadi angka "Anggaran" di
+        // dalamnya adalah data yang dikendalikan sekolah. Menetapkan pagu resmi
+        // (`allocations`) dari angka itu sama dengan membiarkan sekolah mengisi
+        // pagunya sendiri (temuan K-06). Karena itu pengisian otomatis hanya
+        // dilakukan oleh Dinas/superadmin, atau di aplikasi portabel satu
+        // sekolah; selain itu nilainya hanya dilaporkan sebagai selisih.
         try {
+            $bolehPagu = self::bolehTetapkanPagu();
             $perSumber = self::anggaranTerpilih($wb, $tahun);
             foreach ($perSumber as $sumberId => $a) {
                 $kodeBos = self::SUMBER_MAP[$sumberId] ?? null;
@@ -579,6 +600,12 @@ class ArkasImportService
                     ->where('tahun', $tahun)->where('bos_type_id', $bosMap[$kodeBos])
                     ->whereNull('stage_id')->first();
                 if (! $eksis) {
+                    if (! $bolehPagu) {
+                        $lap['selisih_pagu'][] = $kodeBos.' '.$tahun.': ARKAS '.rp($nilai)
+                            .' belum dipakai sebagai pagu — pagu resmi ditetapkan Dinas (menu Alokasi).';
+
+                        continue;
+                    }
                     Allocation::create([
                         'school_id' => $sekolah->id, 'tahun' => $tahun,
                         'bos_type_id' => $bosMap[$kodeBos], 'nilai' => $nilai,

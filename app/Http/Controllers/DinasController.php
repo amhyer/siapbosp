@@ -16,8 +16,12 @@ use App\Models\School;
 use App\Models\Stage;
 use App\Models\TutupBuku;
 use App\Models\User;
+use App\Rules\SandiKuat;
+use App\Support\Peran;
+use App\Support\Sandi;
 use App\Notifications\InfoNotif;
 use App\Services\Aktivitas;
+use App\Services\BackupService;
 use App\Services\EmailNotif;
 use App\Services\KasService;
 use App\Services\KonsolidasiExportService;
@@ -25,8 +29,10 @@ use App\Services\LpjExportService;
 use App\Services\LpjService;
 use App\Services\RingkasanService;
 use App\Services\RkasExportService;
+use App\Support\Csv;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class DinasController extends Controller
@@ -186,9 +192,9 @@ class DinasController extends Controller
 
         return response()->streamDownload(function () use ($schools) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['NPSN', 'Sekolah', 'Jenjang', 'Kecamatan', 'Pagu', 'Dana Diterima', 'Belanja', 'Serapan (%)', 'Pajak Belum Disetor'], ';');
+            fputcsv($out, Csv::baris(['NPSN', 'Sekolah', 'Jenjang', 'Kecamatan', 'Pagu', 'Dana Diterima', 'Belanja', 'Serapan (%)', 'Pajak Belum Disetor']), ';');
             foreach ($schools as $s) {
-                fputcsv($out, [$s->npsn, $s->nama, $s->jenjang, $s->kecamatan, $s->pagu, $s->pendapatan, $s->belanja, $s->serapan, $s->pajakBelum], ';');
+                fputcsv($out, Csv::baris([$s->npsn, $s->nama, $s->jenjang, $s->kecamatan, $s->pagu, $s->pendapatan, $s->belanja, $s->serapan, $s->pajakBelum]), ';');
             }
             fclose($out);
         }, "konsolidasi_{$tahun}.csv", ['Content-Type' => 'text/csv']);
@@ -248,16 +254,22 @@ class DinasController extends Controller
     public function penggunaStore(Request $r)
     {
         $data = $r->validate([
-            'name' => 'required', 'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6', 'role' => 'required|in:operator,kepsek,dinas',
+            'name' => 'required|max:255', 'email' => 'required|email|unique:users,email',
+            'password' => ['required', 'string', new SandiKuat((string) $r->input('email'), (string) $r->input('name'))],
+            'role' => 'required|in:operator,kepsek,dinas',
             'school_id' => 'nullable|integer|exists:schools,id',
         ]);
+        if (! Peran::bolehMenetapkan(auth()->user(), $data['role'])) {
+            abort(403, Peran::pesanTolak($data['role']));
+        }
         if (in_array($data['role'], ['operator', 'kepsek']) && empty($data['school_id'])) {
             return back()->with('error', 'Operator/Kepsek wajib dipilihkan sekolahnya.');
         }
+        // Akun baru dibuat oleh admin → sandi wajib diganti saat login pertama.
+        $data['must_change_password'] = true;
         User::create($data);
 
-        return back()->with('ok', 'Pengguna dibuat.');
+        return back()->with('ok', 'Pengguna dibuat. Pemilik akun wajib mengganti sandi saat login pertama.');
     }
 
     /** Impor massal pengguna dari CSV: nama;email;npsn_sekolah;role;password(?) — password & role opsional. */
@@ -269,8 +281,10 @@ class DinasController extends Controller
         $delim = substr_count($baris1, ';') >= substr_count($baris1, ',') ? ';' : ',';
         rewind($fh);
         $schoolsByNpsn = School::pluck('id', 'npsn');
+        $aktor = auth()->user();
         $dibuat = 0;
         $dilewati = [];
+        $sandiBaru = [];
         $n = 0;
         while (($row = fgetcsv($fh, 0, $delim)) !== false) {
             $n++;
@@ -282,7 +296,15 @@ class DinasController extends Controller
             $email = strtolower($row[1] ?? '');
             $npsn = $row[2] ?? '';
             $role = strtolower($row[3] ?? 'operator');
-            $pass = $row[4] ?? 'password';
+            // R-01: jangan pernah memakai sandi bawaan. Sandi dari CSV harus
+            // memenuhi kebijakan; bila kosong/lemah, dibuatkan sandi acak kuat
+            // (ditampilkan sekali ke admin) dan wajib diganti saat login.
+            $pass = trim((string) ($row[4] ?? ''));
+            $sandiAcak = false;
+            if ($pass === '' || Sandi::masalah($pass, $email, $nama) !== null) {
+                $pass = Sandi::acak();
+                $sandiAcak = true;
+            }
             if (! $nama || ! $email) {
                 $dilewati[] = "baris {$n}: nama/email kosong";
 
@@ -302,16 +324,34 @@ class DinasController extends Controller
             if (! in_array($role, User::ROLES)) {
                 $role = 'operator';
             }
+            // Jangan biarkan impor CSV menjadi jalan pintas eskalasi peran
+            // (R-09): akun dinas/superadmin hanya boleh dibuat superadmin.
+            if (! Peran::bolehMenetapkan($aktor, $role)) {
+                $dilewati[] = "baris {$n}: ".Peran::pesanTolak($role);
+
+                continue;
+            }
             if (in_array($role, ['superadmin', 'dinas'])) {
                 $schoolId = null;
             }
-            User::create(['name' => $nama, 'email' => $email, 'password' => $pass, 'role' => $role, 'school_id' => $schoolId]);
+            User::create([
+                'name' => $nama, 'email' => $email, 'password' => $pass, 'role' => $role,
+                'school_id' => $schoolId, 'must_change_password' => true,
+            ]);
             $dibuat++;
+            if ($sandiAcak) {
+                $sandiBaru[] = "{$email} → {$pass}";
+            }
         }
         fclose($fh);
-        $msg = "Impor selesai: {$dibuat} akun dibuat.";
+        $msg = "Impor selesai: {$dibuat} akun dibuat (semua wajib ganti sandi saat login pertama).";
         if ($dilewati) {
             $msg .= ' Dilewati: '.implode(' · ', array_slice($dilewati, 0, 8));
+        }
+        if ($sandiBaru) {
+            $msg .= ' Sandi acak (salin sekarang, hanya tampil sekali): '
+                .implode(' | ', array_slice($sandiBaru, 0, 25))
+                .(count($sandiBaru) > 25 ? ' … dan '.(count($sandiBaru) - 25).' lainnya' : '');
         }
 
         return back()->with($dibuat ? 'ok' : 'error', $msg);
@@ -499,25 +539,77 @@ class DinasController extends Controller
         return back()->with('ok', 'LPJ ditolak dengan catatan. Sekolah bisa memperbaiki & mengirim ulang.');
     }
 
-    /** Unduh backup database penuh (SQL) — sekali klik. */
+    /**
+     * Unduh backup database penuh (SQL) — sekali klik.
+     *
+     * R-11: hanya berjalan pada PostgreSQL; bila `pg_dump` tidak ada, pesannya
+     * jelas (tanpa menampilkan keluaran perintah mentah ke pengguna — keluaran
+     * itu bisa memuat nama basis data, pengguna, atau path server).
+     * R-10: berkas sementara `0600`, dan bila `BACKUP_PASSWORD` diisi hasilnya
+     * dibungkus ZIP AES-256.
+     */
     public function backup()
     {
-        $c = config('database.connections.pgsql');
-        $bin = trim((string) shell_exec('command -v pg_dump')) ?: '/usr/lib/postgresql/17/bin/pg_dump';
+        if (config('database.default') !== 'pgsql') {
+            return back()->with('error', 'Backup SQL satu-klik hanya tersedia bila basis data PostgreSQL. '
+                .'Pada instalasi SQLite, gunakan menu Pengaturan → Backup (ZIP) untuk mencadangkan data.');
+        }
+
+        $bin = self::cariPgDump();
+        if ($bin === null) {
+            return back()->with('error', '`pg_dump` tidak ditemukan di server ini. Pasang paket postgresql-client, '
+                .'atau gunakan backup ZIP dari menu Pengaturan → Backup.');
+        }
+
+        $c = (array) config('database.connections.pgsql');
         $file = tempnam(sys_get_temp_dir(), 'backup_').'.sql';
         $cmd = sprintf('PGPASSWORD=%s %s -h %s -p %s -U %s -d %s -f %s 2>&1',
             escapeshellarg((string) ($c['password'] ?? '')), escapeshellarg($bin),
-            escapeshellarg((string) $c['host']), escapeshellarg((string) $c['port']),
-            escapeshellarg((string) $c['username']), escapeshellarg((string) $c['database']),
+            escapeshellarg((string) ($c['host'] ?? '127.0.0.1')), escapeshellarg((string) ($c['port'] ?? '5432')),
+            escapeshellarg((string) ($c['username'] ?? '')), escapeshellarg((string) ($c['database'] ?? '')),
             escapeshellarg($file));
-        exec($cmd, $out, $code);
+        $out = [];
+        $code = 0;
+        @exec($cmd, $out, $code);
+
         if ($code !== 0 || ! is_file($file) || filesize($file) < 100) {
-            return back()->with('error', 'Backup gagal ('.$code.'): '.implode(' | ', array_slice($out, 0, 3)));
+            Log::warning('Backup pg_dump gagal', ['kode' => $code, 'keluaran' => array_slice($out, 0, 5)]);
+            @unlink($file);
+
+            return back()->with('error', 'Backup gagal (kode '.$code.'). Periksa koneksi basis data & izin `pg_dump`; '
+                .'detail teknis dicatat di log server, tidak ditampilkan di sini.');
         }
+
+        @chmod($file, 0600);
         Aktivitas::catat('backup', 'Backup database diunduh ('.round(filesize($file) / 1024).' KB)');
+
+        $zip = BackupService::bungkusTerenkripsi($file, 'database.sql');
+        if ($zip !== null) {
+            @unlink($file);
+
+            return response()->download($zip, 'siapbosp_backup_'.now()->format('Ymd_His').'.sql.zip',
+                ['Content-Type' => 'application/zip'])->deleteFileAfterSend(true);
+        }
 
         return response()->download($file, 'siapbosp_backup_'.now()->format('Ymd_His').'.sql',
             ['Content-Type' => 'application/sql'])->deleteFileAfterSend(true);
+    }
+
+    /** Cari biner `pg_dump` (R-11). Null bila tidak ada. */
+    private static function cariPgDump(): ?string
+    {
+        $dariPath = trim((string) @shell_exec('command -v pg_dump 2>/dev/null'));
+        if ($dariPath !== '' && is_file($dariPath) && is_executable($dariPath)) {
+            return $dariPath;
+        }
+
+        foreach (glob('/usr/lib/postgresql/*/bin/pg_dump') ?: [] as $kandidat) {
+            if (is_file($kandidat) && is_executable($kandidat)) {
+                return $kandidat;
+            }
+        }
+
+        return null;
     }
 
     /** Jejak audit seluruh sekolah (filterable). */
@@ -567,19 +659,31 @@ class DinasController extends Controller
 
     public function pengumumanStore(Request $r)
     {
-        $data = $r->validate(['judul' => 'required', 'isi' => 'required']);
+        $data = $r->validate(['judul' => 'required|max:200', 'isi' => 'required|max:5000']);
         $data['created_by'] = auth()->id();
         $baru = Announcement::create($data);
-        // Kirim notifikasi lonceng ke seluruh pengguna sekolah
-        $penerima = User::whereNotNull('school_id')->get();
+
+        // R-05: batasi jumlah penerima & kirim bergelombang agar satu akun
+        // Dinas yang bocor tidak bisa membanjiri sekolah / menghabiskan kuota
+        // SMTP (rute ini juga dibatasi 5 pengumuman/jam per akun).
+        $maks = max(10, (int) env('PENGUMUMAN_MAKS_PENERIMA', 3000));
+        $total = User::whereNotNull('school_id')->where('is_active', true)->count();
+        $penerima = User::whereNotNull('school_id')->where('is_active', true)
+            ->orderBy('id')->limit($maks)->get();
         $penerima->each(fn ($usr) => $usr->notify(new InfoNotif(
             '📣', 'Pengumuman Dinas: '.$baru->judul,
             Str::limit($baru->isi, 140), route('dashboard'))));
         EmailNotif::kirim($penerima, 'Pengumuman Dinas: '.$baru->judul, [
             $baru->isi,
         ], route('dashboard'));
+        Aktivitas::catat('pengumuman', 'Pengumuman "'.$baru->judul.'" dikirim ke '.$penerima->count()
+            .' akun aktif'.($total > $maks ? " (dibatasi dari {$total} akun)" : ''), null);
 
-        return back()->with('ok', 'Pengumuman terbit + notifikasi dikirim ke semua sekolah.');
+        $catatan = $total > $maks
+            ? " Penerima dibatasi {$maks} dari {$total} akun aktif demi keamanan. Jalankan lagi setelah jeda bila perlu."
+            : '';
+
+        return back()->with('ok', 'Pengumuman terbit + notifikasi dikirim ke '.$penerima->count().' akun aktif.'.$catatan);
     }
 
     public function pengumumanDestroy(Announcement $announcement)
@@ -642,15 +746,32 @@ class DinasController extends Controller
         ]);
     }
 
+    /**
+     * Cegah eskalasi hak akses: akun Dinas (bukan superadmin) tidak boleh
+     * mengubah, mereset sandi, menonaktifkan, atau menghapus akun superadmin.
+     * Tanpa batas ini, admin Dinas dapat mengambil alih akun superadmin
+     * (ganti email → reset sandi → masuk sebagai superadmin).
+     */
+    private function pastikanBolehKelola(User $target): void
+    {
+        if (! Peran::bolehKelola(auth()->user(), $target)) {
+            abort(403, Peran::pesanTolak($target->role));
+        }
+    }
+
     /** Perbarui identitas/peran/sekolah akun pengguna. */
     public function penggunaUpdate(Request $r, User $user)
     {
+        $this->pastikanBolehKelola($user);
         $data = $r->validate([
             'name' => 'required|max:255',
             'email' => 'required|email|unique:users,email,'.$user->id,
             'role' => 'required|in:operator,kepsek,dinas',
             'school_id' => 'nullable|integer|exists:schools,id',
         ]);
+        if (! Peran::bolehMenetapkan(auth()->user(), $data['role'])) {
+            abort(403, Peran::pesanTolak($data['role']));
+        }
         if (in_array($data['role'], ['operator', 'kepsek']) && empty($data['school_id'])) {
             return back()->with('error', 'Operator/Kepsek wajib dipilihkan sekolahnya.');
         }
@@ -669,32 +790,57 @@ class DinasController extends Controller
     /** Reset sandi akun (manual atau acak) + pemberitahuan email. */
     public function penggunaReset(Request $r, User $user)
     {
-        $data = $r->validate(['password' => 'nullable|string|min:6']);
+        $this->pastikanBolehKelola($user);
+        $data = $r->validate([
+            'password' => ['nullable', 'string', new SandiKuat($user->email, $user->name)],
+        ]);
         $inputSandi = $data['password'] ?? null;
         $acak = empty($inputSandi);
-        $sandi = $inputSandi ?: ucfirst(Str::camel(Str::random(6))).random_int(100, 999).'!';
-        $user->update(['password' => $sandi]);
-        Aktivitas::catat('pengguna', "Sandi akun {$user->email} direset Dinas");
+        $sandi = $inputSandi ?: Sandi::acak();
+        // Sandi baru = kredensial baru: token API lama dicabut agar perangkat
+        // yang sebelumnya terhubung tidak ikut memakai akun ini.
+        $user->forceFill([
+            'password' => $sandi,
+            'api_token' => null,
+            'api_token_expires_at' => null,
+            'api_token_used_at' => null,
+            'remember_token' => Str::random(60),
+            // Sandi baru (terutama yang diacak) wajib diganti saat login.
+            'must_change_password' => true,
+        ])->save();
+        Aktivitas::catat('pengguna', "Sandi akun {$user->email} direset Dinas (token API dicabut)");
         EmailNotif::kirim(collect([$user]), 'Kata sandi akun Anda di-reset', [
             'Kata sandi akun SiapBOSP Anda baru saja di-reset oleh Admin Dinas.',
             "Kata sandi baru Anda: {$sandi}",
             'Segera masuk, lalu ganti sandi ini melalui menu Ganti Kata Sandi.',
         ], '/login');
 
-        $ket = $acak ? "dibuat acak: {$sandi}" : 'sesuai yang Anda isi';
+        // Sandi acak hanya ditampilkan bila email tidak benar-benar terkirim
+        // (MAIL_MAILER=log) — di produksi cukup lewat email, jangan di layar.
+        $mailer = (string) config('mail.default');
+        $ket = $acak
+            ? ($mailer === 'log' ? "dibuat acak: {$sandi}" : 'dibuat acak dan dikirim melalui email')
+            : 'sesuai yang Anda isi';
 
-        return back()->with('ok', "Sandi {$user->email} direset ({$ket}). Pemberitahuan email juga dikirim ke akun tersebut.");
+        return back()->with('ok', "Sandi {$user->email} direset ({$ket}). Sesi lama dan token API akun tersebut sudah dicabut. Pemberitahuan email juga dikirim.");
     }
 
     /** Aktifkan / nonaktifkan akun (blokir login). */
     public function penggunaToggle(User $user)
     {
+        $this->pastikanBolehKelola($user);
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Tidak bisa menonaktifkan akun diri sendiri.');
         }
         $user->update(['is_active' => ! $user->is_active]);
+        if ($user->is_active === false) {
+            // Penonaktifan harus benar-benar mencabut akses mesin, bukan hanya
+            // diblokir saat permintaan (token API ikut dihanguskan).
+            $user->forceFill(['api_token' => null, 'remember_token' => Str::random(60)])->save();
+        }
         Aktivitas::catat('pengguna',
-            "Akun {$user->email} ".($user->is_active ? 'diaktifkan' : 'dinonaktifkan').' oleh Dinas');
+            "Akun {$user->email} ".($user->is_active ? 'diaktifkan' : 'dinonaktifkan').' oleh Dinas'
+            .($user->is_active ? '' : ' (token API dicabut)'));
 
         return back()->with('ok', "Akun {$user->email} kini ".($user->is_active ? 'AKTIF' : 'NONAKTIF').'.');
     }
@@ -702,6 +848,7 @@ class DinasController extends Controller
     /** Hapus akun pengguna. */
     public function penggunaHapus(User $user)
     {
+        $this->pastikanBolehKelola($user);
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Tidak bisa menghapus akun diri sendiri.');
         }

@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use App\Support\Csv;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /** Membangun berkas Excel LPJ multi-sheet untuk satu tahap (dipakai Sekolah & Dinas). */
@@ -60,9 +61,14 @@ class LpjExportService
     }
 
     /** Nama berkas unduhan yang rapi: LPJ_Tahap-1_2026_sd-negeri-012345.pdf */
+    /**
+     * Nama berkas unduhan. Semua bagian yang berasal dari basis data
+     * (nama tahap diisi Dinas, nama sekolah diisi sekolah) di-slug agar tidak
+     * ada kutip/CR-LF yang bisa menyusup ke header `Content-Disposition`.
+     */
     public static function namaBerkas(array $d, $sekolah, string $ext): string
     {
-        return 'LPJ_'.str_replace(' ', '-', $d[1]->nama).'_'.$d[10].'_'.
+        return 'LPJ_'.Str::slug((string) $d[1]->nama).'_'.(int) $d[10].'_'.
                Str::slug($sekolah->nama).'.'.$ext;
     }
 
@@ -70,7 +76,7 @@ class LpjExportService
     private static function titleBlock($sheet, string $judul, string $lastCol): void
     {
         $sheet->mergeCells("A1:{$lastCol}1")->mergeCells("A2:{$lastCol}2");
-        $sheet->setCellValue('A1', $judul);
+        $sheet->setCellValue('A1', Csv::sel($judul));
         $sheet->setCellValue('A2', 'Sumber: SiapBOSP · Dinas Pendidikan Kota Makassar');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(9);
@@ -79,7 +85,7 @@ class LpjExportService
 
     private static function headerRow($sheet, int $row, array $cols): void
     {
-        $sheet->fromArray($cols, null, "A{$row}");
+        $sheet->fromArray(Csv::baris($cols), null, "A{$row}");
         $last = chr(ord('A') + count($cols) - 1);
         $sheet->getStyle("A{$row}:{$last}{$row}")->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
@@ -119,7 +125,8 @@ class LpjExportService
         ];
         $r = 4;
         foreach ($ident as [$k, $v]) {
-            $s->setCellValue("A{$r}", $k)->setCellValue("B{$r}", $v);
+            // Nama/alamat sekolah diisi pengguna → jangan biarkan jadi formula.
+            $s->setCellValue("A{$r}", $k)->setCellValue("B{$r}", Csv::sel($v));
             $s->getStyle("A{$r}")->getFont()->setBold(true);
             $r++;
         }
@@ -139,7 +146,7 @@ class LpjExportService
         ];
         foreach ($rows as $row) {
             $r++;
-            $s->fromArray($row, null, "A{$r}");
+            $s->fromArray(Csv::baris($row), null, "A{$r}");
             $s->getStyle("B{$r}")->getNumberFormat()->setFormatCode(self::RP);
         }
         self::box($s, "A{$hdr}:B{$r}");
@@ -152,7 +159,7 @@ class LpjExportService
         self::headerRow($s, $hdr2, ['Jenis Pajak', 'Dipungut (Rp)', 'Disetor (Rp)', 'Belum Disetor (Rp)']);
         foreach ($rekapPajak as $p) {
             $r++;
-            $s->fromArray([$p['nama'], $p['dipungut'], $p['disetor'], $p['belum']], null, "A{$r}");
+            $s->fromArray(Csv::baris([$p['nama'], $p['dipungut'], $p['disetor'], $p['belum']]), null, "A{$r}");
             $s->getStyle("B{$r}:D{$r}")->getNumberFormat()->setFormatCode(self::RP);
         }
         if ($rekapPajak) {
@@ -186,8 +193,8 @@ class LpjExportService
             $r++;
             $trx = $row['trx'];
             $uraian = $trx->labelType().' — '.$trx->keterangan;
-            $s->fromArray([$no++, $trx->tanggal->format('d/m/Y'), $trx->no_bku, $trx->no_bukti ?? '-',
-                $uraian, $row['masuk'] ?: null, $row['keluar'] ?: null, $row['saldo']], null, "A{$r}");
+            $s->fromArray(Csv::baris([$no++, $trx->tanggal->format('d/m/Y'), $trx->no_bku, $trx->no_bukti ?? '-',
+                $uraian, $row['masuk'] ?: null, $row['keluar'] ?: null, $row['saldo']]), null, "A{$r}");
             $totM += $row['masuk'];
             $totK += $row['keluar'];
         }
@@ -212,8 +219,8 @@ class LpjExportService
         $total = 0;
         foreach ($rekapRekening as $rek) {
             $r++;
-            $s->fromArray([$no++, $rek['rekening']->kode ?? '-', $rek['rekening']->nama ?? '-',
-                $rek['rekening']->komponen->nama ?? '-', $rek['jumlah']], null, "A{$r}");
+            $s->fromArray(Csv::baris([$no++, $rek['rekening']->kode ?? '-', $rek['rekening']->nama ?? '-',
+                $rek['rekening']->komponen->nama ?? '-', $rek['jumlah']]), null, "A{$r}");
             $total += $rek['jumlah'];
         }
         $r++;
@@ -233,7 +240,7 @@ class LpjExportService
         $r = 4;
         foreach ($rekapPajak as $p) {
             $r++;
-            $s->fromArray([$p['nama'], $p['dipungut'], $p['disetor'], $p['belum']], null, "A{$r}");
+            $s->fromArray(Csv::baris([$p['nama'], $p['dipungut'], $p['disetor'], $p['belum']]), null, "A{$r}");
             $s->getStyle("B{$r}:D{$r}")->getNumberFormat()->setFormatCode(self::RP);
         }
         if (! $rekapPajak) {

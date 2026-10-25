@@ -14,7 +14,13 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
-    protected $casts = ['password' => 'hashed', 'is_active' => 'boolean'];
+    protected $casts = [
+        'password' => 'hashed',
+        'is_active' => 'boolean',
+        'must_change_password' => 'boolean',
+        'api_token_expires_at' => 'datetime',
+        'api_token_used_at' => 'datetime',
+    ];
 
     public const ROLES = ['superadmin', 'dinas', 'operator', 'kepsek'];
 

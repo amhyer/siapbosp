@@ -12,6 +12,7 @@ use App\Models\Rekening;
 use App\Models\RkasHeader;
 use App\Models\Stage;
 use App\Services\KasService;
+use App\Support\Csv;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -164,20 +165,20 @@ class PembukuanController extends Controller
 
         return response()->streamDownload(function () use ($rows, $saldoAwal, $kodeNama) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Tanggal', 'Kegiatan', 'Rekening', 'No. Bukti', 'Uraian', 'Penerimaan', 'Pengeluaran', 'Saldo'], ';');
+            fputcsv($out, Csv::baris(['Tanggal', 'Kegiatan', 'Rekening', 'No. Bukti', 'Uraian', 'Penerimaan', 'Pengeluaran', 'Saldo']), ';');
             $saldo = $saldoAwal;
-            fputcsv($out, ['', 'Saldo Awal Bulan', '', '', '', '', '', $saldoAwal], ';');
+            fputcsv($out, Csv::baris(['', 'Saldo Awal Bulan', '', '', '', '', '', $saldoAwal]), ';');
             foreach ($rows as $row) {
                 $saldo += $row['masuk'] - $row['keluar'];
                 $t = $row['trx'];
                 $keg = ($t->details->first(fn ($d) => $d->kode_kegiatan) ?? $t->details->first())?->kode_kegiatan ?? '';
                 $kegLabel = $keg !== '' ? trim($keg.' '.($kodeNama[$keg] ?? '')) : '';
                 $rek = $t->details->map(fn ($d) => $d->rekening->kode ?? '')->filter()->unique()->implode(', ');
-                fputcsv($out, [
+                fputcsv($out, Csv::baris([
                     $t->tanggal->format('d/m/Y'), $kegLabel, $rek,
                     $t->arkas_bku ?? ($t->no_bku ? 'BKU#'.$t->no_bku : ''),
                     $t->keterangan, $row['masuk'] ?: '', $row['keluar'] ?: '', $saldo,
-                ], ';');
+                ]), ';');
             }
             fclose($out);
         }, "bku_{$bulan}.csv", ['Content-Type' => 'text/csv']);

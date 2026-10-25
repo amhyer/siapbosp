@@ -12,6 +12,7 @@ use App\Models\Rekening;
 use App\Models\RkasHeader;
 use App\Models\Stage;
 use App\Services\KasService;
+use App\Support\Csv;
 use App\Support\SumberDana;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -315,14 +316,14 @@ class LaporanArkasController extends Controller
         [$sid, $tahun, $bulan] = $this->ctx($r);
 
         $out = fopen('php://temp', 'r+');
-        fputcsv($out, ['Kode Rekening', 'Uraian', 'Komponen', 'Jumlah Anggaran', 'Realisasi s.d. Bulan Lalu',
-            'Realisasi Bulan Ini', 'Jumlah Realisasi s.d. Bulan Ini', 'Selisih/ Kurang', 'Persen'], ';');
+        fputcsv($out, Csv::baris(['Kode Rekening', 'Uraian', 'Komponen', 'Jumlah Anggaran', 'Realisasi s.d. Bulan Lalu',
+            'Realisasi Bulan Ini', 'Jumlah Realisasi s.d. Bulan Ini', 'Selisih/ Kurang', 'Persen']), ';');
         foreach ($reks as $x) {
-            fputcsv($out, [$x['kode'], $x['nama'], $x['komponen'], $x['ang'], $x['lalu'], $x['ini'],
-                $x['sd'], $x['selisih'], $x['persen']], ';');
+            fputcsv($out, Csv::baris([$x['kode'], $x['nama'], $x['komponen'], $x['ang'], $x['lalu'], $x['ini'],
+                $x['sd'], $x['selisih'], $x['persen']]), ';');
         }
-        fputcsv($out, ['Total', '', '', $total['ang'], $total['lalu'], $total['ini'], $total['sd'],
-            $total['selisih'], $total['persen']], ';');
+        fputcsv($out, Csv::baris(['Total', '', '', $total['ang'], $total['lalu'], $total['ini'], $total['sd'],
+            $total['selisih'], $total['persen']]), ';');
         rewind($out);
         $csv = (string) stream_get_contents($out);
         fclose($out);

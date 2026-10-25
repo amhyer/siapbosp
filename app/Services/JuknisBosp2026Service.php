@@ -128,8 +128,16 @@ class JuknisBosp2026Service
         };
     }
 
-    /** Ambil pagu sumber dana sekolah pada satu tahun anggaran (alokasi Dinas atau estimasi siswa). */
-    public static function paguSumberDana(School $school, int $tahun, ?string $sumberDana = null): int
+    /**
+     * Ambil pagu sumber dana sekolah pada satu tahun anggaran.
+     *
+     * Sumber utama: tabel `allocations` (ditetapkan Dinas). Bila kosong,
+     * `$pakaiEstimasi` memungkinkan fallback ke jumlah siswa × biaya satuan —
+     * angka yang DIISI SEKOLAH, jadi hanya layak dipakai di halaman sekolah
+     * sendiri. Halaman tinjauan/pengesahan Dinas wajib memanggil dengan
+     * `$pakaiEstimasi = false` agar tidak tertipu angka self-report.
+     */
+    public static function paguSumberDana(School $school, int $tahun, ?string $sumberDana = null, bool $pakaiEstimasi = true): int
     {
         $q = Allocation::withoutGlobalScope('school')
             ->where('school_id', $school->id)
@@ -162,6 +170,10 @@ class JuknisBosp2026Service
             return $total;
         }
 
+        if (! $pakaiEstimasi) {
+            return 0;
+        }
+
         return ($sumberDana === null || self::isReguler($sumberDana)) ? $school->estimasiPaguReguler() : 0;
     }
 
@@ -172,14 +184,14 @@ class JuknisBosp2026Service
      * 3. Per Tahun (rekap per kode kegiatan SNP & rekening)
      * 4. Grafik Proporsi (Buku, Sarpras, Honor sesuai Permendikdasmen 8/2026 + Antar Jenis Belanja)
      */
-    public static function reviewKertasKerja(RkasHeader $header, School $school, ?int $paguOverride = null): array
+    public static function reviewKertasKerja(RkasHeader $header, School $school, ?int $paguOverride = null, bool $pakaiEstimasi = true): array
     {
         $header->loadMissing('details.rekening.komponen');
         $sumber = $header->sumber_dana ?: ($header->details->first()->sumber_dana ?? 'BOS Reguler');
         $aturan = self::batasProporsi($school, $sumber);
 
         $sudahDianggarkan = (int) $header->details->sum('jumlah');
-        $pagu = $paguOverride ?? self::paguSumberDana($school, (int) $header->tahun, $sumber);
+        $pagu = $paguOverride ?? self::paguSumberDana($school, (int) $header->tahun, $sumber, $pakaiEstimasi);
         $basisPagu = $pagu > 0 ? $pagu : $sudahDianggarkan;
         $belumDianggarkan = $pagu > 0 ? ($pagu - $sudahDianggarkan) : 0;
 

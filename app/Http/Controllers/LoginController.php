@@ -19,6 +19,15 @@ class LoginController extends Controller
         $cred = $r->validate(['email' => 'required|email', 'password' => 'required']);
 
         // ---- Throttle: maks. 5 percobaan per 5 menit per email+IP ----
+        // Pembatas kedua per-IP menahan password spraying lintas banyak email
+        // dari satu sumber (5/email saja tidak cukup).
+        $kunciIp = 'login-ip|'.$r->ip();
+        if (RateLimiter::tooManyAttempts($kunciIp, 25)) {
+            $detikIp = RateLimiter::availableIn($kunciIp);
+            $this->logAuth('auth-block', $cred['email'], "Terblokir per-IP {$detikIp} detik. IP {$r->ip()}");
+
+            return back()->withErrors(['email' => "Terlalu banyak percobaan masuk dari jaringan ini. Coba lagi dalam {$detikIp} detik."])->onlyInput('email');
+        }
         $kunci = strtolower($cred['email']).'|'.$r->ip();
         if (RateLimiter::tooManyAttempts($kunci, 5)) {
             $detik = RateLimiter::availableIn($kunci);
@@ -29,6 +38,7 @@ class LoginController extends Controller
 
         if (! Auth::attempt($cred, $r->boolean('remember'))) {
             RateLimiter::hit($kunci, 300);
+            RateLimiter::hit($kunciIp, 300);
             $this->logAuth('auth-gagal', $cred['email'], "Kata sandi salah. IP {$r->ip()}");
 
             return back()->withErrors(['email' => 'Email atau kata sandi salah.'])->onlyInput('email');
@@ -49,6 +59,9 @@ class LoginController extends Controller
             return back()->withErrors(['email' => 'Akun sekolah Anda nonaktif. Hubungi Admin Dinas.']);
         }
         RateLimiter::clear($kunci);
+        // Ikat sesi ke hash sandi saat ini: reset/ganti sandi mematikan sesi ini
+        // (diperiksa `PastikanAkunAktif` pada setiap permintaan).
+        $r->session()->put('password_hash_web', (string) $u->getAuthPassword());
         $this->logAuth('auth-ok', $u->email, "Masuk sebagai {$u->role}. IP {$r->ip()}", $u->id, $u->school_id, $u->name);
 
         return redirect()->route($u->isDinas() ? 'dinas.dashboard' : 'dashboard');

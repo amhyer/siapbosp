@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Hapus seluruh DATA transaksional satu sekolah (reset).
  * Yang dihapus: transaksi kas (+rincian/pajak/lampiran berkas), RKAS,
- * tutup buku, pengajuan LPJ, dan log aktivitas sekolah tersebut.
- * Yang DIPERTAHANKAN: profil sekolah, akun pengguna, penandatangan,
- * pagu/alokasi, notifikasi. Aksi sendiri dicatat sebagai 1 baris log baru.
+ * tutup buku, dan pengajuan LPJ.
+ * Yang DIPERTAHANKAN: jejak audit (append-only — R-12), profil sekolah, akun
+ * pengguna, penandatangan, pagu/alokasi, notifikasi. Aksi sendiri dicatat
+ * sebagai 1 baris log baru.
  */
 class HapusDataService
 {
@@ -39,7 +40,9 @@ class HapusDataService
                         ->where('school_id', $schoolId)->delete(),
                 'lpj' => LpjSubmission::withoutGlobalScope('school')
                     ->where('school_id', $schoolId)->delete(),
-                'log' => ActivityLog::where('school_id', $schoolId)->delete(),
+                // R-12: log TIDAK dihapus (append-only). Reset data sekolah tidak
+                // boleh menghapus bukti aktivitas yang sedang diperiksa.
+                'log' => ActivityLog::where('school_id', $schoolId)->count(),
                 'lampiran_berkas' => 0,
             ];
             foreach (array_chunk($berkas, 100) as $potong) {

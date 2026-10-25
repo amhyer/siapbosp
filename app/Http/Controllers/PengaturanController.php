@@ -36,14 +36,23 @@ class PengaturanController extends Controller
         return back()->with('ok', $hasil['pesan']);
     }
 
-    /** Log sistem (jejak audit) sekolah ini. */
+    /**
+     * Log sistem (jejak audit) SEKOLAH INI.
+     *
+     * ActivityLog tidak memakai global scope, jadi penyaringan school_id wajib
+     * eksplisit — tanpa itu operator sebuah sekolah dapat membaca keterangan
+     * transaksi sekolah lain.
+     */
     public function log(Request $r)
     {
         $aksi = (string) $r->query('aksi', '');
+        $sid = auth()->user()->school_id;
         $rows = ActivityLog::with('user')
+            ->where('school_id', $sid)
             ->when($aksi !== '', fn ($q) => $q->where('aksi', $aksi))
             ->orderByDesc('id')->limit(300)->get();
-        $daftarAksi = ActivityLog::query()->distinct()->orderBy('aksi')->pluck('aksi');
+        $daftarAksi = ActivityLog::query()->where('school_id', $sid)
+            ->distinct()->orderBy('aksi')->pluck('aksi');
 
         return view('pengaturan.log', compact('rows', 'aksi', 'daftarAksi'));
     }
@@ -56,14 +65,33 @@ class PengaturanController extends Controller
 
         return view('pengaturan.backup', [
             'ukuran' => $ukuran,
-            'terakhir' => DB::table('activity_logs')->where('aksi', 'backup')->orderByDesc('id')->value('keterangan'),
+            'bolehUnduh' => self::bolehUnduhBackup(),
+            'terakhir' => DB::table('activity_logs')
+                ->where('school_id', auth()->user()->school_id)
+                ->where('aksi', 'backup')->orderByDesc('id')->value('keterangan'),
         ]);
     }
 
-    /** Unduh backup data (SQLite + berkas konfigurasi). */
+    /**
+     * Unduh backup data (SQLite + berkas konfigurasi).
+     *
+     * Berkas SQLite memuat SELURUH sekolah (dan hash sandi/token semua akun).
+     * Di server pusat multi-sekolah, unduhan ini hanya untuk superadmin;
+     * di aplikasi portabel (satu sekolah per laptop) pemilik akun sekolah
+     * tetap boleh mencadangkan datanya sendiri.
+     */
     public function backupUnduh()
     {
+        abort_unless(self::bolehUnduhBackup(), 403,
+            'Backup basis data penuh hanya dapat diunduh superadmin di server pusat. Gunakan aplikasi portabel untuk mencadangkan data satu sekolah.');
+
         return BackupService::unduh();
+    }
+
+    /** Apakah pengguna berhak mengunduh dump basis data penuh. */
+    public static function bolehUnduhBackup(): bool
+    {
+        return auth()->user()?->role === 'superadmin' || UnduhAplikasiController::isPortable();
     }
 
     /** Deteksi versi ARKAS & kesiapan data master. */

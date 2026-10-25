@@ -161,12 +161,13 @@ class MenuDanArsipTest extends TestCase
         $this->withSession(['tahun' => 2025])->get('/pengaturan/log')->assertOk()->assertSee('Log Sistem');
     }
 
-    public function test_backup_dapat_diunduh(): void
+    public function test_backup_dapat_diunduh_di_mode_portabel(): void
     {
         $this->withSession(['tahun' => 2025])->get('/pengaturan/backup')->assertOk()->assertSee('Backup Data Sekolah');
 
-        $res = $this->withSession(['tahun' => 2025])->get('/pengaturan/backup/unduh')->assertOk();
-        $this->assertStringContainsString('zip', (string) $res->headers->get('Content-Type'));
+        // Di server pusat (bukan aplikasi portabel) dump basis data penuh milik
+        // seluruh sekolah hanya untuk superadmin — operator ditolak.
+        $this->withSession(['tahun' => 2025])->get('/pengaturan/backup/unduh')->assertForbidden();
     }
 
     public function test_laporan_realisasi_per_sumber_dana_terbuka(): void

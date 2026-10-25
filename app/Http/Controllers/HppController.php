@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\KasDetail;
+use App\Models\RkasDetail;
 use App\Models\RkasHeader;
 use Illuminate\Http\Request;
 
@@ -52,17 +53,38 @@ class HppController extends Controller
             'peta.*.rkas_detail_id' => 'nullable|integer|exists:rkas_details,id',
             'peta.*.sumber' => 'nullable|in:langsung,siplah',
         ]);
+        // KasDetail & RkasDetail TIDAK memakai global scope (dipakai juga tanpa
+        // sesi pada impor), jadi kepemilikan sekolah harus diverifikasi di sini.
+        // Tanpa ini, operator sekolah A bisa mengubah rincian belanja sekolah B
+        // hanya dengan menebak id-nya.
+        $sid = auth()->user()->school_id;
         $n = 0;
+        $ditolak = 0;
         foreach ($data['peta'] as $id => $row) {
-            $d = KasDetail::find($id);
+            $d = KasDetail::whereKey($id)
+                ->whereHas('transaksi', fn ($q) => $q->where('school_id', $sid))
+                ->first();
             if (! $d) {
+                $ditolak++;
+
+                continue;
+            }
+            $rkasDetailId = ($row['rkas_detail_id'] ?? null) ?: null;
+            if ($rkasDetailId !== null && ! RkasDetail::whereKey($rkasDetailId)
+                ->whereHas('header', fn ($q) => $q->where('school_id', $sid))->exists()) {
+                $ditolak++;
+
                 continue;
             }
             $d->update([
-                'rkas_detail_id' => $row['rkas_detail_id'] ?: null,
+                'rkas_detail_id' => $rkasDetailId,
                 'sumber' => $row['sumber'] ?? $d->sumber,
             ]);
             $n++;
+        }
+
+        if ($ditolak > 0) {
+            return back()->with('error', "Pemetaan tersimpan untuk {$n} rincian. {$ditolak} baris ditolak karena bukan milik sekolah Anda.");
         }
 
         return back()->with('ok', "Pemetaan HPP tersimpan untuk {$n} rincian.");
