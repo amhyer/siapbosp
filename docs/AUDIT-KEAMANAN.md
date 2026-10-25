@@ -7,7 +7,7 @@
 | **Commit dasar** | `d048d2e` (`main`) |
 | **Metode** | *Reverse engineering* statis: enumerasi rute → middleware → controller → model → view, analisis alur data (taint), pencarian sink berbahaya, pengujian isolasi multi-tenant, serta telaah mekanisme sesi/token/unggahan/ekspor |
 | **Lingkup** | Kode aplikasi (bukan server, jaringan, atau ARKAS Desktop), tanpa pengujian aktif terhadap instalasi produksi |
-| **Hasil** | 8 temuan material diperbaiki; R-04 sampai R-11 telah ditutup pada kode; R-03 masih memerlukan migrasi handler inline, dan uji R-12 di SIEM produksi memerlukan endpoint infrastruktur — lihat §5 |
+| **Status saat ini** | K-01…K-08 dan R-04…R-11 telah diperbaiki pada kode; R-03 masih mengizinkan handler atribut inline, sedangkan R-12 belum diuji terhadap SIEM produksi. CI untuk merge commit `7275f49` gagal pada langkah tes; lihat catatan verifikasi §2 dan tindak lanjut §5 |
 
 > Dokumen ini disusun untuk pemilik aplikasi. Jangan dijadikan panduan menyerang sistem milik pihak lain.
 
@@ -15,19 +15,11 @@
 
 ## 1. Ringkasan eksekutif
 
-SiapBOSP adalah aplikasi multi-tenant: satu basis data menampung **seluruh sekolah** dalam satu Dinas. Isolasi tenant di level *query* sudah dirancang baik (global scope `BelongsToSchool`, route model binding), dan tidak ditemukan SQL Injection, XSS tersimpan, maupun IDOR langsung. Namun ada **tiga celah struktural** yang, bila digabungkan, memungkinkan **pengambilalihan penuh sistem oleh akun sekolah biasa**:
+SiapBOSP adalah aplikasi multi-tenant: satu basis data menampung **seluruh sekolah** dalam satu Dinas. Bagian K-01…K-08 di bawah mendokumentasikan celah yang ditemukan sebelum perbaikan—bukan klaim bahwa celah tersebut masih aktif. Perubahan kode menambahkan kontrol unduhan backup, otorisasi target, filter tenant, hardening proxy, pencabutan sesi/token, perlindungan pagu, netralisasi formula, dan pemeriksaan kepemilikan HPP; uji regresi terkait tercantum pada tiap temuan.
 
-1. **Unduhan dump basis data penuh** tersedia untuk akun operator/kepsek (`/pengaturan/backup/unduh`). Satu akun bendahara → seluruh data semua sekolah + hash sandi + hash token API.
-2. **Akun `dinas` dapat mereset sandi / mengubah email akun `superadmin`** (panel pengguna tidak memeriksa peran target) → eskalasi `dinas` → `superadmin`.
-3. **Jejak audit lintas sekolah bocor** ke setiap sekolah (`/pengaturan/log`, `/arsip/impor`, `/arsip/ekspor`), memuat uraian transaksi dan nominal sekolah lain.
+**Status saat ini:** tidak ada bukti dari pembacaan kode ini bahwa klaim lama tentang IDOR HPP, spoofing `X-Forwarded-For`, akses sesi/token akun nonaktif, atau formula injection masih benar: `HppController::store`, `bootstrap/app.php`, middleware akun/token, dan helper ekspor telah memiliki kontrol terkait. Ini adalah verifikasi statis, bukan hasil uji penetrasi atau pengujian pada produksi. R-03 masih mengizinkan handler atribut inline; jalur remote R-12 tersedia, tetapi SIEM produksi belum dikonfigurasi/diverifikasi. Selain itu, workflow GitHub Actions untuk merge commit `7275f49` berakhir gagal pada langkah tes (exit code 2); log rinci tidak dapat diambil di lingkungan ini. Karena itu status keseluruhan belum boleh disebut lulus verifikasi rilis.
 
-Kedelapan temuan material (K-01…K-08) sudah diperbaiki. Pada pengerasan lanjutan, R-04 sampai R-11 kini selesai pada kode aplikasi; R-03 tetap parsial karena handler atribut inline belum dimigrasi, sedangkan penerimaan R-12 di SIEM produksi belum dapat diverifikasi sebelum operator menentukan endpoint dan trust/certifikatnya. Status, batasan, dan langkah operasional ada di §5.
-
-Satu lagi: **pemetaan HPP** (`POST /hpp`) memungkinkan operator sekolah lain menulis `rkas_detail_id`/`sumber` pada rincian belanja sekolah mana pun (IDOR tulis), karena `KasDetail`/`RkasDetail` tidak memakai global scope.
-
-Temuan lain yang layak segera ditutup: pembatasan percobaan login dapat dilewati dengan memalsukan `X-Forwarded-For` (karena `trustProxies('*')`), akun/sekolah yang dinonaktifkan tetap bisa memakai token API & sesi lama, sekolah bisa menulis tabel **pagu** sendiri lewat menu Profil, dan seluruh ekspor CSV/XLSX rentan **formula injection** (sekolah menanam formula, Dinas yang mengeksekusinya di Excel).
-
-Temuan historis di atas telah ditambal pada kode aplikasi dan dilindungi uji regresi `tests/Feature/KeamananAuditTest.php`; pekerjaan lanjutan yang masih parsial dicatat di §5.
+Matriks di bawah dan bagian §5 adalah ringkasan status terkini. Bukti eksploitasi dan akar masalah di §3 bersifat historis (sebelum patch); lihat subbagian **Perbaikan** serta uji regresi untuk kontrol yang diterapkan.
 
 ### Matriks temuan
 
@@ -41,8 +33,8 @@ Temuan historis di atas telah ditambal pada kode aplikasi dan dilindungi uji reg
 | K-06 | Sekolah dapat menetapkan pagu BOSP sendiri | **Sedang** | `ProfilController::update` | ✅ Diperbaiki |
 | K-07 | Formula/CSV Injection pada ekspor CSV & XLSX | **Sedang** | ekspor BKU, realisasi, konsolidasi, LPJ, RKAS | ✅ Diperbaiki |
 | K-08 | Penulisan lintas sekolah lewat pemetaan HPP | **Sedang** | `HppController::store` | ✅ Diperbaiki |
-| R-01 | Kebijakan sandi lemah (`min:6`, default `password`) | Rendah | `DinasController::pengguna*` | ⚠️ Rekomendasi |
-| R-02 | Token API tanpa kedaluwarsa & tanpa rotasi paksa | Rendah | `ApiTokenAuth`, Profil | ⚠️ Rekomendasi |
+| R-01 | Kebijakan sandi lemah (`min:6`, default `password`) | Rendah | `DinasController::pengguna*` | ✅ Kebijakan kuat + wajib ganti sandi diterapkan |
+| R-02 | Token API tanpa kedaluwarsa & tanpa rotasi paksa | Rendah | `ApiTokenAuth`, Profil | ✅ Kedaluwarsa, pencabutan, dan rotasi diterapkan |
 | R-03 | CSP tidak lengkap / inline script & handler | Rendah | respons web | ◐ CSP nonce + kebijakan sumber aktif; handler atribut masih inline |
 | R-04 | Beban/DoS lewat unggahan besar & arsip XLSX/CSV | Rendah | impor ARKAS, rekonsiliasi, cek integritas, impor RKAS CSV | ✅ Semua pemrosesan impor/analisis ARKAS berat kini masuk antrean privat; worker wajib dioperasikan |
 | R-05 | Pengumuman Dinas memicu email massal | Rendah | `DinasController::pengumumanStore` | ✅ Throttle, batas penerima aktif, email diantrekan pada queue async |
@@ -64,8 +56,9 @@ Temuan historis di atas telah ditambal pada kode aplikasi dan dilindungi uji reg
 4. **Pencarian pola berbahaya** — `DB::raw/selectRaw/whereRaw`, `{!! !!}`, `innerHTML`, `shell_exec/exec/proc_open`, `Storage::`/`file_get_contents`, `->create($request…)`, `trustProxies`, header sesi.
 5. **Analisis otorisasi per peran** — matriks `superadmin` / `dinas` / `operator` / `kepsek`, termasuk aksi yang menyentuh akun & data lintas sekolah.
 6. **Telaah ekspor & antarmuka** — CSV/XLSX/PDF, nama berkas, isi pesan email, serta rendering Blade.
+7. **Rujukan rute-controller** — tes regresi memeriksa setiap rute controller agar kelas dan method target tersedia.
 
-**Verifikasi audit sebelumnya:** 176 berkas PHP (`app/`, `bootstrap/`, `routes/`, `tests/`, `database/`, `config/`) lolos `php -l` pada PHP 8.5 (runtime WebAssembly, karena host audit tidak menyediakan PHP native saat itu). Regresi yang tercakup meliputi CSP nonce, antrean/isolasi status, Gate, serta backup terenkripsi/retensi. Jumlah uji regresi yang dicakup di berkas-berkas audit ini kini 54: **20** `KeamananAuditTest.php`, **17** `PerbaikanLanjutanTest.php`, **3** `CsvTest.php`, **1** `BackupTerjadwalTest.php`, **2** `ArsipXlsxAmanTest.php`, **7** `CekIntegritasTest.php`, dan **4** `RekonsiliasiTest.php`. Patch tindak lanjut ini belum dapat menjalankan `php artisan test` atau `php -l` di host sekarang karena PHP tidak tersedia; jumlah tersebut adalah hitungan test yang didefinisikan, bukan jumlah yang telah dijalankan/lulus. Tidak ada pengujian DoS aktif, pemindaian port, atau pengujian terhadap domain produksi.
+**Verifikasi dan batasannya:** pemeriksaan statis terhadap `routes/web.php` dan `routes/api.php` menemukan 190 rujukan aksi controller eksplisit; semuanya cocok dengan kelas dan method yang ada. Catatan lint awal (sebelum patch lanjutan) melaporkan 176 berkas PHP lolos parser PHP 8.5 WebAssembly; patch berikutnya tidak dapat dijalankan dengan `php -l` atau `php artisan test` pada host ini karena PHP tidak tersedia. Berkas-berkas audit tersebut sekarang berisi 57 metode `test_*` yang terkait langsung dengan kontrol keamanan/impor/error/rute (angka ini menghitung definisi, bukan eksekusi). Workflow GitHub Actions pada merge commit `7275f49` gagal di langkah `php artisan test --compact` dengan exit code 2 ([run 40168036167](https://github.com/amhyer/siapbosp/actions/runs/40168036167)); log rinci tidak berhasil diambil, jadi penyebabnya belum diketahui dan harus dituntaskan sebelum launch. CI workflow yang ada memakai SQLite, sedangkan deployment merekomendasikan PostgreSQL; verifikasi pada DB target juga masih diperlukan. Tidak ada pengujian DoS aktif, pemindaian port, atau pengujian terhadap domain produksi.
 
 ### Lingkungan serangan (hasil pemetaan)
 
@@ -80,6 +73,8 @@ Temuan historis di atas telah ditambal pada kode aplikasi dan dilindungi uji reg
 ---
 
 ## 3. Temuan detail
+
+> **Penting:** subbagian K-01…K-08 berikut menerangkan kondisi historis sebelum patch. Jangan menafsirkan “Akar masalah”/“Dampak” sebagai temuan yang masih terbuka; periksa status saat ini di matriks, bagian “Perbaikan”, dan tes regresinya.
 
 ### K-01 — Unduhan dump basis data penuh oleh akun sekolah (Kritis)
 
@@ -161,7 +156,7 @@ curl -b opA.txt https://target/arsip/ekspor            # riwayat ekspor semua se
 
 ### K-04 — Pembatasan login dapat dilewati dengan `X-Forwarded-For` (Sedang)
 
-**Lokasi.** `bootstrap/app.php` (`$middleware->trustProxies(at: '*')`), `LoginController::login` (kunci throttle = `email|ip`, IP dari `$request->ip()`).
+**Lokasi sebelum patch.** `bootstrap/app.php` (`$middleware->trustProxies(at: '*')`), `LoginController::login` (kunci throttle = `email|ip`, IP dari `$request->ip()`). **Kode saat ini** mempercayai hanya daftar eksplisit `TRUSTED_PROXIES` (kosong berarti tidak ada proxy tepercaya) dan memiliki limiter per-IP tambahan; lihat `bootstrap/app.php` serta `AppServiceProvider::pasangPembatasLaju()`. Konfigurasi IP proxy produksi tetap perlu diuji dari jaringan deployment.
 
 **Akar masalah.** Karena **semua** alamat dipercaya sebagai proxy, nilai `X-Forwarded-For` yang dikirim klien langsung dipakai sebagai IP. Kunci throttle berubah setiap permintaan → blokir 5×/5 menit tidak pernah tercapai. Efek samping: jejak audit `auth-*` juga menyimpan IP palsu, sehingga halaman **Pusat Keamanan** menyesatkan.
 
@@ -382,6 +377,9 @@ pekerjaan yang memang butuh perubahan arsitektur/infrastruktur, ditandai ◐.
 | `config/logging.php`, `.env.example` | Stack audit lokal + syslog host atau socket TLS JSON langsung (R-12; koneksi produksi belum diverifikasi) |
 | `app/Providers/AppServiceProvider.php`, `app/Http/Controllers/{Dinas,Pengaturan}Controller.php` | Gate `manage-user`, `assign-user-role`, `backup`, `allocation`, `master-data` (R-09) |
 | `app/Http/Middleware/KeamananHeader.php`, `resources/views/**` | CSP sumber-per-origin + nonce script inline (handler atribut masih perlu migrasi) (R-03) |
+| `resources/views/errors/{401,403,404,419,429,500,503}.blade.php`, `resources/views/layouts/error.blade.php` | Halaman error ramah pengguna tanpa detail exception/stack trace |
+| `tests/Feature/HalamanErrorTest.php` | Regresi tampilan 404 dan 500 generik |
+| `tests/Feature/RouteControllerResolutionTest.php` *(baru)* | Regresi untuk memastikan rute controller merujuk kelas dan method yang tersedia |
 | `tests/Feature/PerbaikanLanjutanTest.php`, `tests/Feature/BackupTerjadwalTest.php` | Regresi antrean impor, CSP, Gate, enkripsi dan retensi backup |
 
 ---
