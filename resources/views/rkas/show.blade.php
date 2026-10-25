@@ -41,7 +41,7 @@
     </div>
     <div class="text-lg font-bold">{{ $h->no_rkas ?? '(belum ada nomor dokumen)' }}</div>
     <div class="text-sm text-slate-500 mt-1">{{ $h->catatan }}</div>
-    <div class="mt-2">@include('rkas.partials.status-arkas', ['h' => $h])</div>
+    <div class="mt-2">@include('rkas.partials._status-arkas', ['h' => $h])</div>
     @if($h->status==='dikirim_dinas')<div class="text-[11px] text-indigo-500 mt-1">dikirim {{ $h->dikirim_dinas_at?->format('d/m/Y H:i') }} — menunggu tinjauan Dinas</div>@endif
     @if($h->status==='disahkan')<div class="text-[11px] text-emerald-600 mt-1">🎉 disahkan oleh {{ $h->ditinjau_oleh }} ({{ $h->ditinjau_at?->format('d/m/Y') }})</div>@endif
     @if($h->status==='revisi')<div class="mt-1 text-[11px] bg-rose-50 border border-rose-200 text-rose-700 rounded px-2 py-1">🟠 Catatan Dinas ({{ $h->ditinjau_oleh }}): <b>{{ $h->catatan_dinas }}</b> — susun RKAS revisi baru, lalu kirim ulang ke Dinas.</div>@endif
@@ -70,7 +70,7 @@
 </div>
 
 @if(in_array($h->status, ['draft', 'revisi'], true))
-  @include('rkas.partials.pra-ajukan', ['pra' => $praAjukan, 'h' => $h])
+  @include('rkas.partials._pra-ajukan', ['pra' => $praAjukan, 'h' => $h])
 @endif
 
 {{-- PANEL REVIEW KERTAS KERJA ALA ARKAS 4 v4.3.0 (3 MODE: GRAFIK PROPORSI · PER TAHAPAN · PER TAHUN) --}}

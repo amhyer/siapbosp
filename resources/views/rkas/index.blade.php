@@ -90,7 +90,7 @@
         <td>{{ $h->details->count() }}</td>
         <td class="num font-bold">{{ rp($h->details->sum('jumlah')) }}</td>
         <td>
-          @include('rkas.partials.status-arkas', ['h' => $h, 'ringkas' => true])
+          @include('rkas.partials._status-arkas', ['h' => $h, 'ringkas' => true])
         </td>
         <td class="text-right whitespace-nowrap">
           <a href="{{ route('rkas.salinArkas', $h) }}" class="btn2 btn" title="Mode Salin Cepat ke ARKAS 4 Desktop">📋 Salin ARKAS</a>
