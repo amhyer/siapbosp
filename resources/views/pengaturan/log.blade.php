@@ -6,7 +6,7 @@
     <h3 class="card-title mb-0">📋 Log Sistem</h3>
     <form method="get" class="flex gap-2 items-end">
       <div><label class="lbl">Jenis aksi</label>
-        <select name="aksi" class="inp !w-auto" onchange="this.form.submit()">
+        <select name="aksi" class="inp !w-auto" data-kirim-otomatis>
           <option value="">Semua aksi</option>
           @foreach($daftarAksi as $a)<option value="{{ $a }}" @selected($aksi === $a)>{{ $a }}</option>@endforeach
         </select>

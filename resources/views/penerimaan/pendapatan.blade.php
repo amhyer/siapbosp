@@ -14,7 +14,7 @@
     <div><label class="text-xs font-semibold text-slate-600">Keterangan</label><input name="keterangan" class="inp mt-1" placeholder="mis. Pencairan Tahap 1" required></div>
     <div class="border-t pt-3">
       <div class="flex justify-between items-center mb-2"><span class="text-xs font-semibold text-slate-600">Rincian</span>
-        <button type="button" class="badge bdan" onclick="tambah()">➕ Tambah Rincian</button></div>
+        <button type="button" class="badge bdan" data-tambah-rincian>➕ Tambah Rincian</button></div>
       <div id="rows" class="space-y-2"></div>
       <div class="flex justify-between text-sm font-bold mt-3"><span>Total</span><span id="grand">Rp 0</span></div>
     </div>
@@ -59,7 +59,7 @@
         <td>#{{ $t->no_bku }}</td><td>{{ $t->tanggal->format('d/m/Y') }}</td><td>{{ $t->keterangan }}</td>
         <td class="text-xs text-slate-500">@foreach($t->details as $d)<div>{{ $d->rekening->kode ?? '' }} — {{ rp($d->nilai) }}</div>@endforeach</td>
         <td class="num font-semibold text-emerald-700">{{ rp($t->total) }}</td>
-        <td><form method="post" action="{{ route('penerimaan.destroy', $t) }}" onsubmit="return confirm('Hapus pendapatan ini?')">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td>
+        <td><form method="post" action="{{ route('penerimaan.destroy', $t) }}" data-konfirmasi="Hapus pendapatan ini?">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td>
       </tr>
       @empty
       <tr><td colspan="6" class="text-center text-slate-400 py-6">Belum ada pendapatan.</td></tr>
@@ -72,13 +72,24 @@
 <template id="tpl">
   <div class="flex gap-2">
     <select name="rekening_id[]" class="inp" required>@foreach($rekenings as $r)<option value="{{ $r->id }}">{{ $r->kode }} · {{ $r->nama }}</option>@endforeach</select>
-    <input name="nilai[]" type="number" min="1" value="0" class="inp nilai" style="width:150px" oninput="hitung()">
-    <button type="button" class="badge bdel" onclick="this.parentElement.remove();hitung()">✖</button>
+    <input name="nilai[]" type="number" min="1" value="0" class="inp nilai" style="width:150px">
+    <button type="button" class="badge bdel" data-hapus-rincian>✖</button>
   </div>
 </template>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function tambah(){document.getElementById('rows').appendChild(document.getElementById('tpl').content.cloneNode(true));}
 function hitung(){let g=0;document.querySelectorAll('.nilai').forEach(i=>g+=+i.value||0);document.getElementById('grand').textContent='Rp '+g.toLocaleString('id-ID');}
+// Delegasi event menggantikan atribut on* inline (audit R-03). Baris rincian
+// dibuat dari <template>, jadi listener dipasang di document.
+document.addEventListener('click', function (ev) {
+  const tambahBaru = ev.target.closest('[data-tambah-rincian]');
+  if (tambahBaru) { tambah(); return; }
+  const hapus = ev.target.closest('[data-hapus-rincian]');
+  if (hapus) { hapus.parentElement.remove(); hitung(); }
+});
+document.addEventListener('input', function (ev) {
+  if (ev.target.classList.contains('nilai')) hitung();
+});
 tambah();
 </script>
 @endsection

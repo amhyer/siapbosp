@@ -21,6 +21,8 @@ npm run build
 cp .env.example .env
 ```
 
+> `npm run build` **wajib**: `public/build/` tidak ikut repository (gitignored), sedangkan `layouts/app` dan `layouts/guest` memuat CSS lewat `@vite`. Tanpa hasil build, aplikasi memakai jalur darurat (`/tailwind.js` + gaya komponen di `layouts/_gaya-darurat.blade.php`) yang tampil mirip tetapi lebih lambat dan bergantung pada pemuatan skrip CDN lokal. Periksa setelah build: `ls public/build/manifest.json`. Rincian audit CSS per halaman ada di `docs/AUDIT-CSS-HALAMAN.md`.
+
 Edit `.env` sebelum melanjutkan. Minimal:
 
 ```dotenv
@@ -95,9 +97,10 @@ Scheduler menjalankan backup harian serta pembersihan run/file impor ARKAS lama.
 7. Jalankan `php artisan backup:automatic`, periksa file backup tersimpan privat, lalu **uji restore** ke database terpisah menggunakan password backup. Simpan backup terenkripsi di media/offsite terpisah dan uji prosedur pemulihan.
 8. Jika memakai SIEM, kirim event uji melalui kanal yang dipilih dan konfirmasi event diterima dengan identitas/format yang benar. Belum ada klaim integrasi produksi sebelum langkah ini lolos.
 9. Jalankan pilot satu sekolah: impor data ARKAS aktual, cocokkan hasil rekonsiliasi dengan sumber, uji cetak/LPJ, minta operator dan Dinas menyetujui hasilnya.
+10. Periksa header CSP pada respons aplikasi (mis. `curl -sI https://domain/login | grep -i content-security-policy`): harus memuat `script-src 'self' 'nonce-…'` dan `script-src-attr 'none'`, tanpa `'unsafe-inline'` pada `script-src`. Lalu uji di browser sungguhan alur yang dulu memakai handler inline: dialog konfirmasi hapus/tutup BKU, filter tahun/bulan yang langsung memuat ulang, tombol cetak (BKU, register, SPTJM, LPJ), buka/tutup sidebar dan grup menu di layar kecil, hitung total di Pendapatan/Belanja/RKAS, serta tombol salin di "Salin Cepat ke ARKAS". Bila ada halaman yang memakai handler `on*` baru, `script-src-attr 'none'` akan memblokirnya—jangan melemahkan CSP; migrasikan handler tersebut. Catatan: `public/pendamping-arkas.html` adalah berkas statis yang disajikan langsung oleh web server, tidak melewati middleware Laravel dan tidak menerima header CSP.
 
 ## 6. Operasi dan pemantauan
 
 Pantau `storage/logs/laravel.log`, `storage/logs/audit-*.log`, status worker, queue backlog/failed jobs, scheduler, ruang disk, kapasitas database, sertifikat HTTPS, serta hasil backup. Batasi akses log dan tentukan retensi. Sediakan kontak insiden, prosedur reset token, restore, dan pemberitahuan kepada sekolah sebelum data nyata dimasukkan.
 
-**Kondisi rilis:** jangan buka untuk semua sekolah sebelum workflow tes pada commit kandidat berhasil, antrean/scheduler/backup diuji di staging, akun demo dipastikan tidak aktif, dan pemilik layanan menyetujui risiko R-03 (handler inline CSP) serta status R-12 (SIEM) bila keduanya belum ditutup secara operasional.
+**Kondisi rilis:** jangan buka untuk semua sekolah sebelum workflow tes pada commit kandidat berhasil, antrean/scheduler/backup diuji di staging, akun demo dipastikan tidak aktif, dan pemilik layanan menyetujui sisa risiko yang belum tertutup secara operasional. R-03 sudah ditutup pada kode (tanpa handler atribut inline, `script-src-attr 'none'`); yang masih diperlukan adalah uji browser pada langkah 10 di staging/produksi. R-12 (SIEM) tetap belum terverifikasi di produksi.

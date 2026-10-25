@@ -16,7 +16,7 @@
     </div>
     <div>
       <label class="text-xs font-semibold text-slate-600">Sumber Pengadaan</label>
-      <select name="sumber" id="sumberPengadaan" class="inp mt-1" onchange="toggleSiplah()">
+      <select name="sumber" id="sumberPengadaan" class="inp mt-1">
         <option value="langsung">Non-SIPLah (Toko / Penyedia Langsung / Honor)</option>
         <option value="siplah">SIPLah Kemendikdasmen (Otomatis Marketplace)</option>
       </select>
@@ -31,7 +31,7 @@
     </div>
     <div>
       <label class="text-xs font-semibold text-slate-600">Metode Pembayaran</label>
-      <select name="metode_bayar" class="inp mt-1" id="metode" onchange="infoSaldo()">
+      <select name="metode_bayar" class="inp mt-1" id="metode">
         <option value="tunai">Tunai</option>
         <option value="transfer">Non-Tunai / Transfer Bank</option>
       </select>
@@ -84,7 +84,7 @@
 <div class="card">
   <div class="flex justify-between items-center mb-3">
     <h3 class="font-semibold text-slate-700">2️⃣ Rincian Rekening Belanja</h3>
-    <button type="button" class="btn2 btn" onclick="tambahRincian()">➕ Tambah Rincian</button>
+    <button type="button" class="btn2 btn" data-tambah-rincian>➕ Tambah Rincian</button>
   </div>
   <div class="overflow-x-auto"><table class="tbl" id="tblR">
     <thead><tr><th style="min-width:260px">Kode Rekening BOS</th><th style="min-width:200px">Uraian</th><th style="width:150px">Nilai (Rp)</th><th></th></tr></thead>
@@ -100,8 +100,8 @@
       <p id="catatanPajakArkas" class="text-[11px] text-slate-500">Klik <b>⚡ Hitung Rekomendasi Pajak ARKAS 4</b> setelah mengisi rincian belanja untuk mengisi PPN (11%/12% &gt; Rp2 juta), PPh 21/22/23, atau SSPD 10% otomatis. Tarif PPN mengikuti tahun transaksi: <b>12%</b> untuk 2026 ke atas (penyesuaian PPN 12% pada ARKAS &amp; SiPLah), <b>11%</b> untuk tahun sebelumnya — nilai pajak yang sudah tersimpan tak dihitung ulang.</p>
     </div>
     <div class="flex gap-2">
-      <button type="button" class="btn btn-sm bg-emerald-600" onclick="rekomendasiPajakOtomatis()">⚡ Hitung Rekomendasi Pajak ARKAS 4</button>
-      <button type="button" class="btn2 btn-sm" onclick="tambahPajak()">➕ Tambah Manual</button>
+      <button type="button" class="btn btn-sm bg-emerald-600" data-rekomendasi-pajak>⚡ Hitung Rekomendasi Pajak ARKAS 4</button>
+      <button type="button" class="btn2 btn-sm" data-tambah-pajak>➕ Tambah Manual</button>
     </div>
   </div>
   <div class="overflow-x-auto"><table class="tbl" id="tblP">
@@ -126,17 +126,17 @@
     @foreach($rekenings as $r)<option value="{{ $r->id }}">{{ $r->kode }} · {{ Str::limit($r->nama, 45) }}</option>@endforeach
   </select></td>
   <td><input name="uraian[]" class="inp" placeholder="uraian (opsional)"></td>
-  <td><input name="nilai[]" type="number" min="1" value="0" class="inp nR" oninput="hitung()"></td>
-  <td><button type="button" class="badge bg-rose-50 text-rose-600" onclick="this.closest('tr').remove();hitung()">✖</button></td>
+  <td><input name="nilai[]" type="number" min="1" value="0" class="inp nR"></td>
+  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-rincian>✖</button></td>
 </tr></template>
 
 <template id="tplP"><tr>
-  <td><select name="pajak_id[]" class="inp pjk" onchange="tarifOtomatis(this)"><option value="">— pilih —</option>
+  <td><select name="pajak_id[]" class="inp pjk"><option value="">— pilih —</option>
     @foreach($pajaks as $p)<option value="{{ $p->id }}" data-kode="{{ $p->kode }}" data-tarif="{{ ['ppn'=>11,'pph22'=>1.5,'pph23'=>2,'pph42'=>10,'pph21'=>5,'sspd'=>10][$p->kode] ?? 0 }}">{{ $p->nama }}</option>@endforeach  </select></td>
-  <td><input name="tarif_pajak[]" type="number" step="0.01" min="0" value="0" class="inp trf" oninput="hitungPajakRow(this)"></td>
+  <td><input name="tarif_pajak[]" type="number" step="0.01" min="0" value="0" class="inp trf"></td>
   <td><input name="billing[]" class="inp" placeholder="kode billing"></td>
   <td><input name="nilai_pajak[]" type="number" min="0" value="0" class="inp nP"></td>
-  <td><button type="button" class="badge bg-rose-50 text-rose-600" onclick="this.closest('tr').remove()">✖</button></td>
+  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-baris>✖</button></td>
 </tr></template>
 
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
@@ -185,6 +185,26 @@ async function rekomendasiPajakOtomatis(){
     });
   });
 }
+
+// Delegasi event menggantikan atribut on* inline (audit R-03). Baris rincian
+// dan pajak dibuat dari <template>, jadi listener dipasang di document.
+document.addEventListener('click', function (ev) {
+  let el;
+  if ((el = ev.target.closest('[data-tambah-rincian]'))) { tambahRincian(); return; }
+  if ((el = ev.target.closest('[data-tambah-pajak]'))) { tambahPajak(); return; }
+  if ((el = ev.target.closest('[data-rekomendasi-pajak]'))) { rekomendasiPajakOtomatis(); return; }
+  if ((el = ev.target.closest('[data-hapus-baris]'))) { el.closest('tr').remove(); return; }
+  if ((el = ev.target.closest('[data-hapus-rincian]'))) { el.closest('tr').remove(); hitung(); }
+});
+document.addEventListener('input', function (ev) {
+  if (ev.target.classList.contains('nR')) { hitung(); return; }
+  if (ev.target.classList.contains('trf')) hitungPajakRow(ev.target);
+});
+document.addEventListener('change', function (ev) {
+  if (ev.target.classList.contains('pjk')) tarifOtomatis(ev.target);
+});
+document.getElementById('sumberPengadaan').addEventListener('change', toggleSiplah);
+document.getElementById('metode').addEventListener('change', infoSaldo);
 
 tambahRincian(); infoSaldo(); toggleSiplah();
 </script>

@@ -15,7 +15,7 @@
     <div class="border border-slate-200 rounded-lg p-4">
       <div class="flex justify-between">
         <div class="font-semibold">{{ $p->judul }}</div>
-        <form method="post" action="{{ route('dinas.pengumuman.destroy', $p) }}" onsubmit="return confirm('Hapus?')">@csrf @method('DELETE')<button class="badge bdel">hapus</button></form>
+        <form method="post" action="{{ route('dinas.pengumuman.destroy', $p) }}" data-konfirmasi="Hapus?">@csrf @method('DELETE')<button class="badge bdel">hapus</button></form>
       </div>
       <div class="text-sm text-slate-600 mt-1">{{ $p->isi }}</div>
       <div class="text-[11px] text-slate-400 mt-2">{{ $p->created_at->format('d/m/Y H:i') }} · {{ $p->creator->name ?? '' }}</div>

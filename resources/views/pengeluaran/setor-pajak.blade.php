@@ -17,7 +17,7 @@
         <div class="text-xs text-slate-500 mb-2">No BKU Belanja <b>#{{ $trx->no_bku }}</b> · {{ $trx->tanggal->format('d/m/Y') }} · {{ Str::limit($trx->keterangan, 40) }}</div>
         @foreach($taxes as $p)
         <div class="flex items-center gap-2 text-sm py-1 border-b border-dashed border-slate-100">
-          <input type="checkbox" name="tax_id[]" value="{{ $p->id }}" class="w-4 h-4" checked onchange="total()">
+          <input type="checkbox" name="tax_id[]" value="{{ $p->id }}" class="w-4 h-4" checked>
           <span class="flex-1">{{ $p->rekeningPajak->nama }} <span class="text-xs font-mono text-slate-400">({{ $p->kode_billing ?? '-' }})</span></span>
           <span class="num nilp" data-v="{{ $p->nilai }}">{{ rp($p->nilai) }}</span>
           <input name="ntpn[]" class="inp !w-36" placeholder="NTPN">
@@ -45,7 +45,7 @@
           <div><label class="text-xs font-semibold text-slate-600">Keterangan</label><input name="keterangan" class="inp mt-1" required></div>
         </div>
         <div id="rowsU" class="space-y-2"></div>
-        <button type="button" class="badge bdan" onclick="tambahU()">➕ Tambah Rincian Pajak</button>
+        <button type="button" class="badge bdan" data-tambah-rincian>➕ Tambah Rincian Pajak</button>
         <button class="btn w-full justify-center">💾 Setor</button>
       </form>
     </div>
@@ -69,11 +69,20 @@
   <select name="pajak_id[]" class="inp" required>@foreach($rekeningPajaks as $p)<option value="{{ $p->id }}">{{ $p->nama }}</option>@endforeach</select>
   <input name="ntpn[]" class="inp" placeholder="NTPN" style="width:160px">
   <input name="nilai_pajak[]" type="number" min="1" class="inp" placeholder="nilai" style="width:130px" required>
-  <button type="button" class="badge bdel" onclick="this.parentElement.remove()">✖</button>
+  <button type="button" class="badge bdel" data-hapus-baris>✖</button>
 </div></template>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 function total(){let g=0;document.querySelectorAll('input[name="tax_id[]"]:checked').forEach(c=>{g+=+c.parentElement.querySelector('.nilp').dataset.v;});const e=document.getElementById('grandT');if(e)e.textContent='Rp '+g.toLocaleString('id-ID');}
 function tambahU(){document.getElementById('rowsU').appendChild(document.getElementById('tplU').content.cloneNode(true));}
+// Delegasi event menggantikan atribut on* inline (audit R-03).
+document.addEventListener('click', function (ev) {
+  if (ev.target.closest('[data-tambah-rincian]')) { tambahU(); return; }
+  const hapus = ev.target.closest('[data-hapus-baris]');
+  if (hapus) hapus.parentElement.remove();
+});
+document.addEventListener('change', function (ev) {
+  if (ev.target.matches('input[name="tax_id[]"]')) total();
+});
 total(); tambahU();
 </script>
 @endsection

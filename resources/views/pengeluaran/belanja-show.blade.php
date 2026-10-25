@@ -37,7 +37,7 @@
       @forelse($t->attachments as $a)
       <tr><td>📄 {{ $a->nama }}</td><td class="text-xs text-slate-400">{{ $a->ukuranLabel() }} · {{ $a->created_at->format('d/m/Y') }}</td>
         <td class="text-right"><a href="{{ route('lampiran.unduh', $a) }}" class="badge bdan">⬇ unduh</a>
-        <form method="post" action="{{ route('lampiran.destroy', $a) }}" class="inline" onsubmit="return confirm('Hapus lampiran?')">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td></tr>
+        <form method="post" action="{{ route('lampiran.destroy', $a) }}" class="inline" data-konfirmasi="Hapus lampiran?">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td></tr>
       @empty
       <tr><td class="text-slate-400 text-sm py-2">Belum ada lampiran.</td></tr>
       @endforelse

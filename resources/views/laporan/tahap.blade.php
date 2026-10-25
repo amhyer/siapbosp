@@ -4,11 +4,11 @@
 <div class="toolbar nonprint">
   <form style="display:flex;gap:.5rem;align-items:center;font-size:.82rem" method="get">
     <span>Tahap:</span>
-    <select name="stage" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .6rem" onchange="this.form.submit()">
+    <select name="stage" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .6rem" data-kirim-otomatis>
       @foreach($stages as $s)<option value="{{ $s->id }}" @selected($stageId===$s->id)>{{ $s->nama }}{{ in_array($s->id, $terkunciMap) ? ' 🔒' : '' }}</option>@endforeach
     </select>
   </form>
-  <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button>
   <a href="{{ route('laporan.lpj', ['stage' => $stageId]) }}" data-cetak="LPJ Lengkap" style="background:#eef2ff;border-color:#c7d2fe">📦 LPJ Lengkap</a>
   <a href="{{ route('laporan.lpj.zip', ['stage' => $stageId]) }}" style="background:#ecfdf5;border-color:#6ee7b7">⬇️ Paket ZIP</a>
   <a href="{{ route('laporan.lpj.pdf', ['stage' => $stageId]) }}" style="background:#fef2f2;border-color:#fca5a5;font-weight:700">📕 PDF Asli</a>
@@ -17,12 +17,12 @@
   @if($terkunci)
     <span style="background:#fee2e2;color:#b91c1c;font-size:11px;padding:.25rem .6rem;border-radius:.5rem">🔒 Tahap ini DITUTUP bukunya</span>
     @if(auth()->user()->role === 'kepsek')
-    <form method="post" action="{{ route('laporan.tahap.buka', $stageId) }}" onsubmit="return confirm('Buka kembali buku tahap ini?')">@csrf
+    <form method="post" action="{{ route('laporan.tahap.buka', $stageId) }}" data-konfirmasi="Buka kembali buku tahap ini?">@csrf
       <button style="border-color:#fca5a5;background:#fef2f2;color:#b91c1c">🔓 Buka Kembali (Kepsek)</button>
     </form>
     @endif
   @else
-    <form method="post" action="{{ route('laporan.tahap.tutup', $stageId) }}" onsubmit="return confirm('Tutup buku tahap ini? Transaksi di tahap ini akan terkunci.')">@csrf
+    <form method="post" action="{{ route('laporan.tahap.tutup', $stageId) }}" data-konfirmasi="Tutup buku tahap ini? Transaksi di tahap ini akan terkunci.">@csrf
       <button>🔒 Tutup Buku Tahap Ini</button>
     </form>
   @endif
@@ -37,7 +37,7 @@
     @endif
   @endif
   @if($terkunci && (!$lpj || $lpj->status === 'ditolak'))
-    <form method="post" action="{{ route('laporan.lpj.kumpulkan', $stageId) }}" onsubmit="return confirm('Kirim LPJ tahap ini ke Dinas untuk ditinjau?')">@csrf
+    <form method="post" action="{{ route('laporan.lpj.kumpulkan', $stageId) }}" data-konfirmasi="Kirim LPJ tahap ini ke Dinas untuk ditinjau?">@csrf
       <button style="background:#4f46e5;color:#fff;font-weight:700;border-color:#4f46e5">{{ $lpj ? '🔄 Kirim Ulang LPJ ke Dinas' : '📨 Kirim LPJ ke Dinas' }}</button>
     </form>
   @endif

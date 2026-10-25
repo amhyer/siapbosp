@@ -13,9 +13,9 @@
 @if(!empty($review))
 <div class="toolbar nonprint" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:.75rem;padding:.75rem">
   <span style="font-size:13px;font-weight:700;color:#92400e">🔍 MODE TINJAUAN DINAS — LPJ {{ $review->school->nama }} · {{ $stage->nama }} {{ $tahun }} (status: {{ strtoupper($review->status) }})</span>
-  <button onclick="window.print()">🖨️ Cetak</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak</button>
   @if($review->status !== 'diterima')
-  <form method="post" action="{{ route('dinas.lpj.terima', $review) }}" onsubmit="return confirm('Terima LPJ ini?')" style="display:inline">@csrf
+  <form method="post" action="{{ route('dinas.lpj.terima', $review) }}" data-konfirmasi="Terima LPJ ini?" style="display:inline">@csrf
     <button style="background:#059669;color:#fff;font-weight:700;border-color:#059669">✅ Terima</button>
   </form>
   @endif
@@ -41,7 +41,7 @@
   <form style="display:flex;gap:.5rem;align-items:center;font-size:.82rem" method="get">
     <span>Tahap:</span>
     @if(!empty($cakupan))<input type="hidden" name="kumulatif" value="1">@endif
-    <select name="stage" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .6rem" onchange="this.form.submit()">
+    <select name="stage" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .6rem" data-kirim-otomatis>
       @foreach($stages as $s)<option value="{{ $s->id }}" @selected($stage->id===$s->id)>{{ $s->nama }}</option>@endforeach
     </select>
   </form>
@@ -51,7 +51,7 @@
   <span style="font-size:12px;font-weight:700;color:#6d28d9;background:#ede9fe;border-radius:999px;padding:.2rem .7rem">🔁 KUMULATIF · Tahap 1 – {{ $stage->nama }}</span>
   <a href="{{ route('laporan.lpj', ['stage' => $stage->id]) }}" style="border:1px solid #cbd5e1;border-radius:.5rem;padding:.4rem .8rem;font-size:.82rem">↩️ Tahap Ini Saja</a>
   @endif
-  <button onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan sebagai PDF</button>
   <a href="{{ route('laporan.lpj.zip', ['stage' => $stage->id]) }}" style="background:#ecfdf5;border-color:#6ee7b7">⬇️ Unduh Paket LPJ (ZIP·CSV)</a>
   <a href="{{ route('laporan.tahap', ['stage' => $stage->id]) }}">← Laporan per Tahap</a>
 </div>

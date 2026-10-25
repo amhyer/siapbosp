@@ -20,7 +20,7 @@
       @forelse($items as $t)
       <tr><td>#{{ $t->no_bku }}</td><td>{{ $t->tanggal->format('d/m/Y') }}</td><td>{{ $t->keterangan }}</td>
         <td class="num">{{ rp($t->total) }}</td>
-        <td><form method="post" action="{{ route('penerimaan.destroy',$t) }}" onsubmit="return confirm('Hapus?')">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td></tr>
+        <td><form method="post" action="{{ route('penerimaan.destroy',$t) }}" data-konfirmasi="Hapus?">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td></tr>
       @empty
       <tr><td colspan="5" class="text-center text-slate-400 py-6">Belum ada.</td></tr>
       @endforelse

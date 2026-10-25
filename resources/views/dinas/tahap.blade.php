@@ -2,7 +2,7 @@
 @section('content')
 <div class="flex items-center justify-between flex-wrap gap-2">
   <p class="text-sm text-slate-500">Buka/tutup tahap penyaluran tahun <b>{{ $tahun }}</b>; tahap yang ditutup <b>tidak bisa dipilih</b> sekolah saat mencatat pendapatan/belanja.</p>
-  <form method="post" action="{{ route('dinas.tahap.buat') }}" class="flex items-end gap-2" onsubmit="return confirm('Buat paket tahap untuk tahun yang dipilih? Tahap yang sudah ada tidak akan digandakan.')">
+  <form method="post" action="{{ route('dinas.tahap.buat') }}" class="flex items-end gap-2" data-konfirmasi="Buat paket tahap untuk tahun yang dipilih? Tahap yang sudah ada tidak akan digandakan.">
     @csrf
     <div>
       <label class="text-xs font-semibold text-slate-500">Buat paket tahap tahun</label>

@@ -38,7 +38,7 @@
 </style>
 
 <div class="toolbar nonprint">
-  <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button>
   <a href="{{ route('belanja.show', $belanja) }}">← Kembali ke belanja</a>
   <span style="color:#64748b">Isi bagian bertitik-titik (klik langsung pada garis) sebelum mencetak — nomor, tanggal, nama, kuantitas, spesifikasi.</span>
 </div>

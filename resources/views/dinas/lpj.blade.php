@@ -34,7 +34,7 @@
           <a href="{{ route('dinas.lpj.xlsx', $sub) }}" class="btn2 btn text-xs" title="Unduh Excel">📗</a>
 
           @if($sub->status !== 'diterima')
-          <form method="post" action="{{ route('dinas.lpj.terima', $sub) }}" class="inline" onsubmit="return confirm('Terima LPJ ini? Sekolah akan dinotifikasi.')">@csrf
+          <form method="post" action="{{ route('dinas.lpj.terima', $sub) }}" class="inline" data-konfirmasi="Terima LPJ ini? Sekolah akan dinotifikasi.">@csrf
             <button class="btn text-xs !bg-emerald-600 hover:!bg-emerald-700">✅ Terima</button>
           </form>
           @endif

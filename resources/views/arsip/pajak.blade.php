@@ -6,7 +6,7 @@
     <h3 class="card-title mb-0">🧾 Dokumen Pajak</h3>
     <form method="get" class="flex gap-2 items-end">
       <div><label class="lbl">Tahun</label>
-        <select name="tahun" class="inp !w-auto" onchange="this.form.submit()">
+        <select name="tahun" class="inp !w-auto" data-kirim-otomatis>
           @for($y = 2023; $y <= 2028; $y++)<option value="{{ $y }}" @selected($tahun === $y)>{{ $y }}</option>@endfor
         </select>
       </div>

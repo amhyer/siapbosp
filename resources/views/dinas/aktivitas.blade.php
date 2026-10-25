@@ -15,7 +15,7 @@
 <div class="card">
   <form class="flex gap-2 items-center text-sm mb-4">
     <span>Sekolah:</span>
-    <select name="school" class="inp !w-auto" onchange="this.form.submit()">
+    <select name="school" class="inp !w-auto" data-kirim-otomatis>
       <option value="">— Semua —</option>
       @foreach($schools as $s)<option value="{{ $s->id }}" @selected((string)$s->id === request('school'))>{{ $s->nama }}</option>@endforeach
     </select>

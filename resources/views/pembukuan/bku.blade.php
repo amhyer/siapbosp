@@ -24,7 +24,7 @@
 <div class="flex flex-wrap justify-between items-center gap-2">
   <form class="flex gap-2 items-center text-sm">
     <span class="text-slate-500">Bulan:</span>
-    <input type="month" name="bulan" value="{{ $bulan }}" class="inp !w-auto" onchange="this.form.submit()">
+    <input type="month" name="bulan" value="{{ $bulan }}" class="inp !w-auto" data-kirim-otomatis>
   </form>
   <div class="flex flex-wrap gap-2 items-center">
     @unless ($terkunciBulanIni)
@@ -32,7 +32,7 @@
       <summary class="btn bg-slate-800 cursor-pointer list-none">🔒 Tutup BKU Bulan Ini</summary>
       <form method="post" action="{{ route('bku.tutup') }}"
             class="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl p-3.5 z-40 space-y-2.5 text-xs"
-            onsubmit="return confirm('Tutup BKU {{ $tglBulan->translatedFormat('F Y') }} secara berurutan sesuai ARKAS 4?')">
+            data-konfirmasi="Tutup BKU {{ $tglBulan->translatedFormat('F Y') }} secara berurutan sesuai ARKAS 4?">
         @csrf
         <input type="hidden" name="bulan" value="{{ $bulan }}">
         <div class="font-bold text-slate-800 text-sm">🔒 Tutup BKU {{ $tglBulan->translatedFormat('F Y') }}</div>

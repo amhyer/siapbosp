@@ -11,7 +11,7 @@
 </style>
 
 <div class="toolbar nonprint">
-  <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button>
   <a href="{{ route('bku') }}">← Kembali BKU</a>
   @if ($semester === 1)
     <a href="{{ route('pembukuan.bukuPembantu', ['semester' => 2]) }}">Semester 2 →</a>

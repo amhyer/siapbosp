@@ -34,10 +34,16 @@
         btn.setAttribute('aria-expanded', grp.classList.contains('open') ? 'true' : 'false');
     };
 
+    // Handler atribut inline sudah dipindah ke data-* (audit R-03): tombol
+    // buka/tutup sidebar dan tombol grup menu dideteksi lewat delegasi event.
     document.addEventListener('click', (e) => {
         if (!e.target.closest('details[data-dropdown]')) closeNotif();
         const t = e.target.closest('[data-close-sidebar]');
         if (t) sidebar(false);
+        if (e.target.closest('[data-sidebar-tutup]')) sidebar(false);
+        if (e.target.closest('[data-sidebar-buka]')) sidebar();
+        const grp = e.target.closest('[data-grup]');
+        if (grp) window.toggleGrp(grp);
     });
 
     document.addEventListener('keydown', (e) => {

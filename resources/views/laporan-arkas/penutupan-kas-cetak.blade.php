@@ -4,7 +4,7 @@
   $nm = [1=>'Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   $kota = $sekolah->kab_kota ?? 'Makassar';
 @endphp
-<div class="toolbar nonprint"><button onclick="window.print()">🖨️ Cetak / Simpan PDF</button><a href="{{ route('laporan-arkas.penutupan-kas') }}?bulan={{ $tahun.'-'.str_pad($bulan,2,'0',STR_PAD_LEFT) }}">← Kembali</a></div>
+<div class="toolbar nonprint"><button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button><a href="{{ route('laporan-arkas.penutupan-kas') }}?bulan={{ $tahun.'-'.str_pad($bulan,2,'0',STR_PAD_LEFT) }}">← Kembali</a></div>
 
 <div style="text-align:center">
   <div style="font-size:13px;font-weight:800">{{strtoupper($sekolah->nama)}}</div>

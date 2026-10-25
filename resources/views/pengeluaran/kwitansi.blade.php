@@ -7,7 +7,7 @@
 @endphp
 
 <div class="toolbar nonprint">
-  <button onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF</button>
+  <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan sebagai PDF</button>
   <a href="{{ route('belanja.show', $t) }}">← Detail Belanja</a>
 </div>
 
