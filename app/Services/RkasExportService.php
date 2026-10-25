@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Allocation;
 use App\Models\RkasHeader;
+use App\Support\Csv;
 use App\Support\Terbilang;
 use Dompdf\Dompdf;
 use Illuminate\Support\Str;
@@ -51,8 +52,8 @@ class RkasExportService
         $s = $book->getSheet(0)->setTitle('RKAS');
         $s->mergeCells('A1:I1')->mergeCells('A2:I2');
         $s->setCellValue('A1', 'RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS) — DANA BOSP');
-        $s->setCellValue('A2', "TA {$h->tahun} · Revisi ke-{$h->revisi_ke} · No: ".($h->no_rkas ?? '-').
-            ' · Status: '.(RkasHeader::LABEL_STATUS[$h->status] ?? $h->status));
+        $s->setCellValue('A2', Csv::sel("TA {$h->tahun} · Revisi ke-{$h->revisi_ke} · No: ".($h->no_rkas ?? '-').
+            ' · Status: '.(RkasHeader::LABEL_STATUS[$h->status] ?? $h->status)));
         $s->getStyle('A1')->getFont()->setBold(true)->setSize(13);
         $s->getStyle('A2')->getFont()->setItalic(true)->setSize(9);
         $s->getStyle('A1:A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -61,7 +62,7 @@ class RkasExportService
             ['Kecamatan', $sekolah->kecamatan ?? '-'], ['Kota/Kab', $sekolah->kab_kota]];
         $r = 4;
         foreach ($ident as [$k, $v]) {
-            $s->setCellValue("A{$r}", $k)->setCellValue("B{$r}", $v);
+            $s->setCellValue("A{$r}", $k)->setCellValue("B{$r}", Csv::sel($v));
             $s->getStyle("A{$r}")->getFont()->setBold(true);
             $r++;
         }
@@ -81,19 +82,19 @@ class RkasExportService
         foreach ($grup as $komponen => $details) {
             $r++;
             $s->mergeCells("A{$r}:I{$r}");
-            $s->setCellValue("A{$r}", strtoupper($komponen));
+            $s->setCellValue("A{$r}", Csv::sel(strtoupper($komponen)));
             $s->getStyle("A{$r}:I{$r}")->getFont()->setBold(true);
             $s->getStyle("A{$r}:I{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('DBEAFE');
             $sub = 0;
             foreach ($details->sortBy(fn ($d) => $d->rekening->kode ?? '') as $d) {
                 $r++;
-                $s->fromArray([$no++, $d->rekening->kode ?? '-', $d->rekening->nama ?? '-', $d->uraian,
-                    $d->satuan, $d->banyak, (int) $d->harga_satuan, (int) $d->jumlah, $d->sumber_dana], null, "A{$r}");
+                $s->fromArray(Csv::baris([$no++, $d->rekening->kode ?? '-', $d->rekening->nama ?? '-', $d->uraian,
+                    $d->satuan, $d->banyak, (int) $d->harga_satuan, (int) $d->jumlah, $d->sumber_dana]), null, "A{$r}");
                 $s->getStyle("G{$r}:H{$r}")->getNumberFormat()->setFormatCode(self::RP);
                 $sub += (int) $d->jumlah;
             }
             $r++;
-            $s->setCellValue("G{$r}", "Subtotal {$komponen}");
+            $s->setCellValue("G{$r}", Csv::sel("Subtotal {$komponen}"));
             $s->setCellValue("H{$r}", $sub);
             $s->getStyle("A{$r}:I{$r}")->getFont()->setItalic(true)->setBold(true);
             $s->getStyle("H{$r}")->getNumberFormat()->setFormatCode(self::RP);
@@ -117,7 +118,7 @@ class RkasExportService
         // ===== Sheet 2: Ringkasan per Komponen =====
         $s2 = $book->createSheet()->setTitle('Ringkasan Komponen');
         $s2->mergeCells('A1:C1');
-        $s2->setCellValue('A1', "RINGKASAN RKAS PER KOMPONEN — {$sekolah->nama} TA {$h->tahun}");
+        $s2->setCellValue('A1', Csv::sel("RINGKASAN RKAS PER KOMPONEN — {$sekolah->nama} TA {$h->tahun}"));
         $s2->getStyle('A1')->getFont()->setBold(true)->setSize(12);
         $s2->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $s2->fromArray(['Komponen', 'Jumlah (Rp)', 'Porsi'], null, 'A3');
@@ -130,7 +131,7 @@ class RkasExportService
         foreach ($grup as $komponen => $details) {
             $j = (int) $details->sum('jumlah');
             $r2++;
-            $s2->fromArray([$komponen, $j, $total > 0 ? $j / $total : 0], null, "A{$r2}");
+            $s2->fromArray(Csv::baris([$komponen, $j, $total > 0 ? $j / $total : 0]), null, "A{$r2}");
             $s2->getStyle("B{$r2}")->getNumberFormat()->setFormatCode(self::RP);
             $s2->getStyle("C{$r2}")->getNumberFormat()->setFormatCode('0.0%');
         }

@@ -25,7 +25,6 @@ use App\Http\Controllers\RkasController;
 use App\Http\Controllers\TarikArkasController;
 use App\Http\Controllers\UnduhAplikasiController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
 
 Route::get('/', function () {
     $u = auth()->user();
@@ -48,14 +47,19 @@ Route::middleware('auth')->group(function () {
     })->name('sesi.tahun');
     Route::get('/referensi', [ReferensiController::class, 'index'])->name('referensi');
     Route::post('/api-token', function () {
-        $token = Str::random(64);
-        auth()->user()->forceFill(['api_token' => hash('sha256', $token)])->save();
+        $hasil = \App\Support\TokenApi::terbitkan(auth()->user());
 
         return back()->with([
-            'token_baru' => $token,
-            'ok' => 'Token API baru dibuat. Salin sekarang — token hanya ditampilkan sekali ini dan tidak akan bisa dilihat lagi.',
+            'token_baru' => $hasil['token'],
+            'ok' => 'Token API baru dibuat (berlaku s.d. '.$hasil['kedaluwarsa']->format('d/m/Y')
+                .'). Salin sekarang — token hanya ditampilkan sekali ini dan tidak akan bisa dilihat lagi.',
         ]);
     })->name('api-token.store');
+    Route::post('/api-token/cabut', function () {
+        \App\Support\TokenApi::cabut(auth()->user(), 'dicabut dari menu Profil');
+
+        return back()->with('ok', 'Token API dicabut. Agen/perangkat yang memakainya tidak bisa mengakses lagi.');
+    })->middleware('throttle:10,1')->name('api-token.cabut');
     Route::get('/notifikasi/{id}/buka', function ($id) {
         $n = auth()->user()->notifications()->findOrFail($id);
         $n->markAsRead();
@@ -101,11 +105,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/rkas/{rkasHeader}/pdf', [RkasController::class, 'pdf'])->name('rkas.pdf')->whereNumber('rkasHeader');
         Route::get('/rkas/{rkasHeader}/xlsx', [RkasController::class, 'xlsx'])->name('rkas.xlsx')->whereNumber('rkasHeader');
         Route::post('/rkas/{rkasHeader}/aksi', [RkasController::class, 'aksi'])->name('rkas.aksi')->whereNumber('rkasHeader');
-        Route::post('/rkas-impor', [RkasController::class, 'impor'])->name('rkas.impor');
+        Route::post('/rkas-impor', [RkasController::class, 'impor'])->middleware('throttle:unggah')->name('rkas.impor');
         Route::get('/hpp', [HppController::class, 'index'])->name('hpp.index');
         Route::post('/hpp', [HppController::class, 'store'])->name('hpp.store');
         Route::get('/rekonsiliasi', [RekonsiliasiController::class, 'form'])->name('rekonsiliasi.form');
-        Route::post('/rekonsiliasi', [RekonsiliasiController::class, 'proses'])->name('rekonsiliasi.proses');
+        Route::post('/rekonsiliasi', [RekonsiliasiController::class, 'proses'])->middleware('throttle:unggah')->name('rekonsiliasi.proses');
 
         // ---- Laporan resmi format ARKAS (9 laporan, baca-saja) ----
         Route::get('/laporan-arkas/rkas-bulanan', [LaporanArkasController::class, 'rkasBulanan'])->name('laporan-arkas.rkas-bulanan');
@@ -123,9 +127,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/impor-arkas', [ImportArkasController::class, 'form'])->name('impor-arkas.form');
         Route::get('/impor-arkas/unduh-agen', [ImportArkasController::class, 'unduhAgen'])->name('impor-arkas.unduh');
         Route::get('/impor-arkas/unduh-gui', [ImportArkasController::class, 'unduhGui'])->name('impor-arkas.unduhGui');
-        Route::post('/impor-arkas', [ImportArkasController::class, 'proses'])->name('impor-arkas.proses');
+        Route::post('/impor-arkas', [ImportArkasController::class, 'proses'])->middleware('throttle:unggah')->name('impor-arkas.proses');
         Route::get('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'form'])->name('impor-arkas.cek-integritas');
-        Route::post('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'jalankan'])->name('impor-arkas.cek-integritas.jalankan');
+        Route::post('/impor-arkas/cek-integritas', [CekIntegritasController::class, 'jalankan'])->middleware('throttle:unggah')->name('impor-arkas.cek-integritas.jalankan');
         Route::get('/unduh-aplikasi', [UnduhAplikasiController::class, 'unduh'])->name('unduh-aplikasi');
         Route::get('/unduh-pemasang', [UnduhAplikasiController::class, 'unduhPemasang'])->name('unduh-pemasang');
         Route::get('/unduh-identitas', [UnduhAplikasiController::class, 'unduhIdentitas'])->name('unduh-identitas');
@@ -271,7 +275,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/aktivitas', [DinasController::class, 'aktivitas'])->name('aktivitas');
         Route::get('/backup', [DinasController::class, 'backup'])->name('backup');
         Route::get('/pengumuman', [DinasController::class, 'pengumuman'])->name('pengumuman');
-        Route::post('/pengumuman', [DinasController::class, 'pengumumanStore'])->name('pengumuman.store');
+        Route::post('/pengumuman', [DinasController::class, 'pengumumanStore'])->middleware('throttle:pengumuman')->name('pengumuman.store');
         Route::delete('/pengumuman/{announcement}', [DinasController::class, 'pengumumanDestroy'])->name('pengumuman.destroy');
     });
 });

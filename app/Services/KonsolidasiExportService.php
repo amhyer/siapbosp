@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LpjSubmission;
+use App\Support\Csv;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,7 @@ class KonsolidasiExportService
     private static function kop($sheet, string $judul, string $lastCol): void
     {
         $sheet->mergeCells("A1:{$lastCol}1")->mergeCells("A2:{$lastCol}2");
-        $sheet->setCellValue('A1', $judul);
+        $sheet->setCellValue('A1', Csv::sel($judul));
         $sheet->setCellValue('A2', 'Sumber: SiapBOSP · Dinas Pendidikan Kota Makassar');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(9);
@@ -48,7 +49,7 @@ class KonsolidasiExportService
 
     private static function header($sheet, int $row, array $cols): void
     {
-        $sheet->fromArray($cols, null, "A{$row}");
+        $sheet->fromArray(Csv::baris($cols), null, "A{$row}");
         $last = chr(ord('A') + count($cols) - 1);
         $sheet->getStyle("A{$row}:{$last}{$row}")->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
@@ -76,10 +77,10 @@ class KonsolidasiExportService
             $lpj = $lpjTerakhir[$sc->id] ?? null;
             $lpjTxt = $lpj ? (($lpj->stage->nama ?? '?').' · '.strtoupper($lpj->status)
                 .($lpj->ditinjau_at ? ' ('.$lpj->ditinjau_at->format('d/m').')' : '')) : '(belum pernah kirim)';
-            $s->fromArray([$sc->nama, (string) $sc->npsn, $sc->jenjang, $sc->kecamatan ?? '-',
+            $s->fromArray(Csv::baris([$sc->nama, (string) $sc->npsn, $sc->jenjang, $sc->kecamatan ?? '-',
                 (int) $sc->pagu, (int) $sc->pendapatan, (int) $sc->belanja, (float) $sc->serapan,
                 (int) $sc->pajakBelum, $lpjTxt,
-                $sc->last ? Carbon::parse($sc->last)->format('d/m/Y H:i') : '—'], null, "A{$r}");
+                $sc->last ? Carbon::parse($sc->last)->format('d/m/Y H:i') : '—']), null, "A{$r}");
             $s->getStyle("E{$r}:G{$r}")->getNumberFormat()->setFormatCode(self::RP);
             $s->getStyle("H{$r}")->getNumberFormat()->setFormatCode('0.0"%"');
             $s->getStyle("I{$r}")->getNumberFormat()->setFormatCode(self::RP);
@@ -139,7 +140,7 @@ class KonsolidasiExportService
         $colTot = array_fill(0, $schools->count() + 1, 0);
         foreach ($komponens as $kom) {
             $r++;
-            $s->setCellValue("A{$r}", $kom);
+            $s->setCellValue("A{$r}", Csv::sel($kom));
             $baris = 0;
             foreach ($schools as $i => $sc) {
                 $nilai = $grid[$kom][$sc->id] ?? 0;

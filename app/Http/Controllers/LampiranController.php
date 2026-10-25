@@ -11,7 +11,10 @@ class LampiranController extends Controller
 {
     public function store(Request $r, KasTransaction $trx)
     {
-        $data = $r->validate(['lampiran' => 'required', 'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:4096']);
+        $data = $r->validate([
+            'lampiran' => 'required|array|max:10',
+            'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:4096',
+        ]);
         $sid = auth()->user()->school_id;
         $jml = 0;
         foreach ($data['lampiran'] as $file) {

@@ -7,9 +7,13 @@
       @csrf
       <div><label class="text-xs font-semibold text-slate-600">Nama</label><input name="name" class="inp mt-1" required></div>
       <div><label class="text-xs font-semibold text-slate-600">Email</label><input type="email" name="email" class="inp mt-1" required></div>
-      <div><label class="text-xs font-semibold text-slate-600">Kata Sandi</label><input name="password" class="inp mt-1" type="text" value="password" required></div>
+      <div><label class="text-xs font-semibold text-slate-600">Kata Sandi</label>
+        <input name="password" class="inp mt-1" type="text" minlength="10" required autocomplete="off"
+               placeholder="min. 10 karakter, ada huruf &amp; angka">
+        <div class="text-[11px] text-slate-400 mt-1">Jangan pakai kata umum. Pemilik akun wajib menggantinya saat login pertama.</div>
+      </div>
       <div><label class="text-xs font-semibold text-slate-600">Peran</label>
-        <select name="role" class="inp mt-1"><option value="operator">Operator Sekolah</option><option value="kepsek">Kepala Sekolah</option><option value="dinas">Admin Dinas</option></select></div>
+        <select name="role" class="inp mt-1"><option value="operator">Operator Sekolah</option><option value="kepsek">Kepala Sekolah</option>@if(auth()->user()->role === 'superadmin')<option value="dinas">Admin Dinas</option>@endif</select></div>
       <div><label class="text-xs font-semibold text-slate-600">Sekolah (untuk Operator/Kepsek)</label>
         <select name="school_id" class="inp mt-1"><option value="">— dinas —</option>
           @foreach($schools as $s)<option value="{{ $s->id }}">{{ $s->nama }}</option>@endforeach</select></div>
@@ -18,7 +22,9 @@
   </div>
   <div class="card">
     <h3 class="font-semibold text-slate-700 mb-1">📥 Impor Massal (CSV)</h3>
-    <p class="text-xs text-slate-500 mb-2">Format baris: <code class="bg-slate-100 px-1 rounded">nama;email;npsn;role;password</code> — role &amp; password opsional (password bawaan <b>password</b>). NPSN wajib untuk operator/kepsek.</p>
+    <p class="text-xs text-slate-500 mb-2">Format baris: <code class="bg-slate-100 px-1 rounded">nama;email;npsn;role;password</code> — role &amp; password opsional.
+      Password kosong/lemah akan diganti <b>sandi acak kuat</b> yang ditampilkan sekali setelah impor, dan semua akun hasil impor wajib ganti sandi saat login. NPSN wajib untuk operator/kepsek.
+      @if(auth()->user()->role !== 'superadmin')Akun <b>Admin Dinas</b> hanya dapat dibuat superadmin.@endif</p>
     <form method="post" action="{{ route('dinas.pengguna.impor') }}" enctype="multipart/form-data" class="space-y-3">
       @csrf
       <input type="file" name="file" accept=".csv,.txt" class="inp mt-1 text-xs" required>
@@ -57,16 +63,23 @@
             @endif
           </td>
           <td class="normal-case">
+            @php($bolehKelola = \App\Support\Peran::bolehKelola(auth()->user(), $usr))
             <details class="text-xs">
               <summary class="cursor-pointer text-indigo-600 font-semibold select-none">✏️ Kelola</summary>
               <div class="mt-2 space-y-3 min-w-72 bg-slate-50 rounded p-3">
+              @unless($bolehKelola)
+                <div class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  🔒 Akun <b>{{ $usr->role }}</b> hanya dapat dikelola <b>superadmin</b>.
+                </div>
+              @endunless
+              @if($bolehKelola)
                 <form method="post" action="{{ route('dinas.pengguna.update', $usr) }}" class="grid gap-1">
                   @csrf @method('PUT')
                   <div class="text-[10px] font-bold text-slate-500 uppercase">Ubah identitas</div>
                   <input name="name" class="inp" value="{{ $usr->name }}" placeholder="Nama" required>
                   <input type="email" name="email" class="inp" value="{{ $usr->email }}" placeholder="Email" required>
                   <select name="role" class="inp" @disabled($usr->id === auth()->id())>
-                    @foreach(['operator' => 'Operator Sekolah', 'kepsek' => 'Kepala Sekolah', 'dinas' => 'Admin Dinas'] as $rv => $rl)
+                    @foreach(['operator' => 'Operator Sekolah', 'kepsek' => 'Kepala Sekolah'] + (auth()->user()->role === 'superadmin' ? ['dinas' => 'Admin Dinas'] : []) as $rv => $rl)
                       <option value="{{ $rv }}" @selected($usr->role === $rv)>{{ $rl }}</option>
                     @endforeach
                   </select>
@@ -80,7 +93,7 @@
                   @csrf
                   <div class="text-[10px] font-bold text-slate-500 uppercase">Reset sandi (kosongkan = acak)</div>
                   <div class="flex gap-1">
-                    <input name="password" class="inp flex-1" placeholder="Sandi baru (min. 6)">
+                    <input name="password" class="inp flex-1" placeholder="Sandi baru (min. 10)">
                     <button class="btn text-xs">🔁 Reset</button>
                   </div>
                 </form>
@@ -96,6 +109,7 @@
                   </form>
                   @endif
                 </div>
+              @endif
               </div>
             </details>
           </td>

@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Allocation;
 use App\Models\BosType;
 use App\Models\School;
+use App\Services\Aktivitas;
 use App\Services\JuknisBosp2026Service;
 use App\Services\TarikArkasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ProfilController extends Controller
 {
@@ -23,6 +25,7 @@ class ProfilController extends Controller
             'aturanJuknis' => JuknisBosp2026Service::batasProporsi($sekolah, 'BOS Reguler'),
             'paguAktif' => JuknisBosp2026Service::paguSumberDana($sekolah, $tahun, 'BOS Reguler'),
             'tahun' => $tahun,
+            'bolehSinkronPagu' => self::bolehSinkronPagu(),
             'tarik' => TarikArkasService::status(),
         ]);
     }
@@ -45,7 +48,15 @@ class ProfilController extends Controller
             'akhir_jabatan_bulan' => 'nullable|integer|min:1|max:12',
         ]);
 
-        $sekolah = auth()->user()->school;
+        // Jumlah siswa & biaya satuan adalah data Dapodik yang diisi sekolah
+        // (self-report) — boleh diperbarui. Yang TIDAK boleh adalah menulis
+        // tabel `allocations` (pagu resmi): sinkron pagu hanya untuk Dinas,
+        // atau aplikasi portabel satu sekolah. Halaman tinjauan Dinas sendiri
+        // mengabaikan angka estimasi ini (lihat JuknisBosp2026Service).
+        $pengguna = auth()->user();
+        $bolehSinkronPagu = self::bolehSinkronPagu();
+
+        $sekolah = $pengguna->school;
         $payload = [
             'nama' => $data['nama'],
             'jenjang' => $data['jenjang'],
@@ -74,19 +85,45 @@ class ProfilController extends Controller
             $payload['akhir_jabatan_bulan'] = (int) $data['akhir_jabatan_bulan'];
         }
 
+        $sebelum = $sekolah->only(['jumlah_siswa', 'satuan_biaya_bosp', 'jenjang']);
         $sekolah->update($payload);
 
-        // Opsional: sinkronkan estimasi pagu siswa ke tabel alokasi BOSP Reguler tahun aktif bila diminta
-        if ($r->boolean('sinkron_pagu') && $sekolah->estimasiPaguReguler() > 0) {
+        // Opsional: sinkronkan estimasi pagu siswa ke tabel alokasi BOSP Reguler
+        // tahun aktif — HANYA Dinas/superadmin yang boleh menetapkan pagu.
+        if ($bolehSinkronPagu && $r->boolean('sinkron_pagu') && $sekolah->estimasiPaguReguler() > 0) {
             $tahun = (int) session('tahun', now()->year);
             $bosReg = BosType::firstOrCreate(['kode' => 'reguler'], ['nama' => 'BOS Reguler']);
             Allocation::withoutGlobalScope('school')->updateOrCreate(
                 ['school_id' => $sekolah->id, 'tahun' => $tahun, 'bos_type_id' => $bosReg->id, 'stage_id' => null],
                 ['nilai' => $sekolah->estimasiPaguReguler()]
             );
+            Aktivitas::catat('pagu', 'Pagu BOSP Reguler '.$tahun.' disinkronkan dari profil sekolah: '
+                .rp($sekolah->estimasiPaguReguler()));
         }
 
-        return back()->with('ok', 'Profil sekolah & parameter Aktivasi ARKAS 4 tersimpan.');
+        if ($sebelum != $sekolah->only(['jumlah_siswa', 'satuan_biaya_bosp', 'jenjang'])) {
+            Aktivitas::catat('profil', 'Parameter dasar pagu diperbarui: jumlah siswa '
+                .(int) ($sebelum['jumlah_siswa'] ?? 0).' → '.(int) $sekolah->jumlah_siswa
+                .', biaya satuan '.(int) ($sebelum['satuan_biaya_bosp'] ?? 0).' → '.(int) $sekolah->satuan_biaya_bosp);
+        }
+
+        $catatan = (! $bolehSinkronPagu && $r->boolean('sinkron_pagu'))
+            ? ' Sinkronisasi pagu diabaikan: pagu resmi ditetapkan Dinas melalui menu Alokasi.'
+            : '';
+
+        return back()->with('ok', 'Profil sekolah & parameter Aktivasi ARKAS 4 tersimpan.'.$catatan);
+    }
+
+    /**
+     * Apakah pengguna berhak menulis pagu resmi (tabel `allocations`).
+     *
+     * Di server pusat hanya Dinas/superadmin; di aplikasi portabel (satu sekolah
+     * per laptop) pemilik akun sekolah boleh menyinkronkan pagunya sendiri.
+     */
+    public static function bolehSinkronPagu(): bool
+    {
+        return in_array(auth()->user()?->role, ['superadmin', 'dinas'], true)
+            || UnduhAplikasiController::isPortable();
     }
 
     /** Form ganti kata sandi (semua peran). */
@@ -97,16 +134,31 @@ class ProfilController extends Controller
 
     public function updatePassword(Request $r)
     {
+        $u = auth()->user();
         $data = $r->validate([
             'password_lama' => 'required',
-            'password' => 'required|min:6|confirmed',
+            'password' => ['required', 'string', 'confirmed', new \App\Rules\SandiKuat($u->email, $u->name)],
         ], ['password.confirmed' => 'Konfirmasi kata sandi baru tidak sama.']);
-        $u = auth()->user();
         if (! Hash::check($data['password_lama'], $u->password)) {
             return back()->with('error', 'Kata sandi lama salah.');
         }
-        $u->update(['password' => $data['password']]);
+        if (Hash::check($data['password'], $u->password)) {
+            return back()->with('error', 'Kata sandi baru tidak boleh sama dengan kata sandi lama.');
+        }
+        // Sandi baru juga mencabut sesi/perangkat lain: token API dihanguskan
+        // dan hash sandi di sesi ini diperbarui agar pengguna tidak ikut
+        // ter-logout oleh `PastikanAkunAktif`.
+        $u->forceFill([
+            'password' => $data['password'],
+            'api_token' => null,
+            'api_token_expires_at' => null,
+            'api_token_used_at' => null,
+            'remember_token' => Str::random(60),
+            // Kewajiban ganti sandi (hasil impor/reset Dinas) selesai di sini.
+            'must_change_password' => false,
+        ])->save();
+        $r->session()->put('password_hash_web', (string) $u->getAuthPassword());
 
-        return back()->with('ok', 'Kata sandi berhasil diganti. Gunakan yang baru pada login berikutnya.');
+        return back()->with('ok', 'Kata sandi berhasil diganti. Sesi di perangkat lain dan token API lama sudah dicabut.');
     }
 }

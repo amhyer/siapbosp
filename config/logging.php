@@ -73,6 +73,17 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Salinan jejak audit di luar basis data (R-12). Tetap ada walau log
+        // basis data direset/dipulihkan, dan mudah dikirim ke syslog/SIEM.
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'max_files' => env('AUDIT_LOG_DAYS', 365),
+            'replace_placeholders' => true,
+            'permission' => 0600,
+        ],
+
         'monthly' => [
             'driver' => 'monthly',
             'path' => storage_path('logs/laravel.log'),

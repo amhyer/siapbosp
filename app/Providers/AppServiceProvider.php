@@ -8,7 +8,11 @@ use App\Models\KasTransaction;
 use App\Models\RkasHeader;
 use App\Models\TutupBuku;
 use App\Services\Aktivitas;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
@@ -57,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->pasangBundelCa();
+        $this->pasangPembatasLaju();
+        $this->periksaKonfigurasiProduksi();
         KasTransaction::created(function ($t) {
             Aktivitas::catat('transaksi',
                 $t->labelType().' '.rp($t->total).' — '.Str::limit($t->keterangan, 80), $t->school_id);
@@ -76,6 +82,45 @@ class AppServiceProvider extends ServiceProvider
             'buka_buku', 'BKU bulan '.$t->bulan.' dibuka kembali', $t->school_id));
         Announcement::created(fn ($a) => Aktivitas::catat(
             'pengumuman', 'Pengumuman terbit: '.$a->judul, null));
+    }
+
+    /**
+     * Peringatan konfigurasi berbahaya di produksi (R-06).
+     *
+     * Tidak menghentikan aplikasi (agar pemasangan tidak mendadak mati), tetapi
+     * meninggalkan jejak yang mudah dilihat pada log server.
+     */
+    protected function periksaKonfigurasiProduksi(): void
+    {
+        if (! app()->environment('production')) {
+            return;
+        }
+
+        if (config('app.debug')) {
+            Log::warning('KEAMANAN: APP_DEBUG=true di produksi — pesan galat dapat membocorkan kueri SQL, '
+                .'path berkas, dan nilai .env. Set APP_DEBUG=false.');
+        }
+
+        if (str_starts_with((string) config('app.url'), 'https://') && ! config('session.secure')) {
+            Log::warning('KEAMANAN: APP_URL sudah https tetapi SESSION_SECURE_COOKIE belum true — cookie sesi '
+                .'dapat terkirim lewat koneksi tidak terenkripsi.');
+        }
+    }
+
+    /**
+     * Pembatas laju untuk endpoint berat (R-04) dan email massal (R-05).
+     *
+     * Parsing XLSX ARKAS sampai 20–40 MB memakan CPU & memori; tanpa batas,
+     * satu akun (atau token yang bocor) dapat menahan server. Kuncinya memakai
+     * id pengguna bila ada, jika tidak IP.
+     */
+    protected function pasangPembatasLaju(): void
+    {
+        $kunci = fn (Request $r) => (string) ($r->user()?->id ?: $r->ip());
+
+        RateLimiter::for('unggah', fn (Request $r) => Limit::perMinutes(10, 10)->by('unggah|'.$kunci($r)));
+        RateLimiter::for('unggah-api', fn (Request $r) => Limit::perMinutes(10, 6)->by('unggah-api|'.$kunci($r)));
+        RateLimiter::for('pengumuman', fn (Request $r) => Limit::perHour(5)->by('pengumuman|'.$kunci($r)));
     }
 
     /**

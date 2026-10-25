@@ -56,10 +56,12 @@ class ArsipController extends Controller
         return view('arsip.pajak', compact('pajak', 'tahun'));
     }
 
-    /** Riwayat impor data ARKAS. */
+    /** Riwayat impor data ARKAS (hanya sekolah ini). */
     public function impor(Request $r)
     {
-        $rows = ActivityLog::with('user')->where('aksi', 'impor_arkas')
+        $rows = ActivityLog::with('user')
+            ->where('school_id', auth()->user()->school_id)
+            ->where('aksi', 'impor_arkas')
             ->orderByDesc('id')->limit(200)->get();
 
         return view('arsip.impor', compact('rows'));
@@ -68,9 +70,16 @@ class ArsipController extends Controller
     /** Riwayat ekspor/sinkronisasi ke pusat. */
     public function ekspor(Request $r)
     {
-        $rows = ActivityLog::with('user')->whereIn('aksi', ['ekspor', 'sinkron', 'sinkronisasi', 'backup'])
+        $rows = ActivityLog::with('user')
+            ->where('school_id', auth()->user()->school_id)
+            ->whereIn('aksi', ['ekspor', 'sinkron', 'sinkronisasi', 'backup'])
             ->orderByDesc('id')->limit(200)->get();
-        $sync = DB::table('sync_states')->get();
+        // `sync_states` tidak punya kolom school_id (status sinkronisasi satu
+        // perangkat), jadi di server pusat multi-sekolah isinya disembunyikan:
+        // tidak ada gunanya dan berpotensi membocorkan jejak perangkat lain.
+        $sync = \App\Http\Controllers\UnduhAplikasiController::isPortable()
+            ? DB::table('sync_states')->get()
+            : collect();
 
         return view('arsip.ekspor', compact('rows', 'sync'));
     }

@@ -14,7 +14,15 @@
     </ol>
   </div>
 
-  <a href="{{ route('pengaturan.backup.unduh') }}" class="btn">💾 Unduh Backup (.zip)</a>
+  @if($bolehUnduh)
+    <a href="{{ route('pengaturan.backup.unduh') }}" class="btn">💾 Unduh Backup (.zip)</a>
+  @else
+    <div class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-[13px] text-amber-800">
+      🔒 Unduhan dump basis data penuh dinonaktifkan di server pusat karena isinya mencakup seluruh sekolah.
+      Pencadangan server dilakukan oleh <b>Dinas (superadmin)</b>; pencadangan per sekolah dilakukan lewat
+      aplikasi portabel di laptop masing-masing.
+    </div>
+  @endif
 
   <div class="mt-4 text-[12px] text-slate-500">
     @if($ukuran)<div>Ukuran basis data saat ini: <b>{{ $ukuran }} MB</b></div>@endif

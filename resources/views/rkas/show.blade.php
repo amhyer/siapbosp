@@ -2,7 +2,9 @@
 @section('content')
 @php
   $sekAcuan = $h->school ?? auth()->user()->school;
-  $reviewJuknis ??= \App\Services\JuknisBosp2026Service::reviewKertasKerja($h, $sekAcuan);
+  // Mode tinjauan Dinas (variabel $review terisi) tidak boleh memakai estimasi
+  // pagu yang diisi sekolah — hanya alokasi resmi dari Dinas.
+  $reviewJuknis ??= \App\Services\JuknisBosp2026Service::reviewKertasKerja($h, $sekAcuan, null, empty($review));
   $kodeNama ??= \App\Services\JuknisBosp2026Service::KODE_SNP_DEFAULT;
   $namaBulan ??= \App\Services\JuknisBosp2026Service::NAMA_BULAN;
   $bisaSisip = empty($review) && in_array($h->status, ['draft', 'revisi'], true);

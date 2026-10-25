@@ -68,7 +68,9 @@ class UnduhAplikasiController extends Controller
         $zip->addFromString('SiapBOSP/launcher-windows/akun-sekolah.conf', $conf);
         $zip->close();
 
-        return response()->download($tmp, 'SiapBOSP-Portable-v12-'.$sekolah->npsn.'.zip')
+        $npsn = preg_replace('/[^A-Za-z0-9]+/', '', (string) $sekolah->npsn) ?: 'sekolah';
+
+        return response()->download($tmp, 'SiapBOSP-Portable-v12-'.$npsn.'.zip')
             ->deleteFileAfterSend(true);
     }
 

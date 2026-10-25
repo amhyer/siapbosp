@@ -36,6 +36,7 @@
       <div>
         <label class="text-xs font-semibold text-slate-600">Jumlah Peserta Didik Cut-Off Dapodik</label>
         <input type="number" min="0" name="jumlah_siswa" class="inp mt-1" value="{{ old('jumlah_siswa', $sekolah->jumlah_siswa ?? 0) }}">
+        @unless($bolehSinkronPagu)<div class="text-[11px] text-slate-400 mt-1">Hanya sebagai rujukan; pagu resmi dari Dinas.</div>@endunless
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600">Biaya Satuan BOSP Reguler / Siswa (Rp)</label>
@@ -73,10 +74,16 @@
       <div class="sm:col-span-2"><label class="text-xs font-semibold text-slate-600">Alamat</label>
         <input name="alamat" class="inp mt-1" value="{{ old('alamat', $sekolah->alamat) }}"></div>
 
-      <div class="sm:col-span-2 flex items-center gap-2 text-xs text-slate-600">
-        <input type="checkbox" id="sinkron_pagu" name="sinkron_pagu" value="1">
-        <label for="sinkron_pagu">Sekaligus perbarui Pagu BOSP Reguler TA {{ $tahun }} dari hasil perkalian Siswa × Biaya Satuan</label>
-      </div>
+      @if($bolehSinkronPagu)
+        <div class="sm:col-span-2 flex items-center gap-2 text-xs text-slate-600">
+          <input type="checkbox" id="sinkron_pagu" name="sinkron_pagu" value="1">
+          <label for="sinkron_pagu">Sekaligus perbarui Pagu BOSP Reguler TA {{ $tahun }} dari hasil perkalian Siswa × Biaya Satuan</label>
+        </div>
+      @else
+        <div class="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-500">
+          🔒 Pagu anggaran ditetapkan Dinas melalui <b>Alokasi</b>; formulir ini hanya memperbarui identitas sekolah.
+        </div>
+      @endif
       <div class="sm:col-span-2"><button class="btn">💾 Simpan Profil &amp; Parameter ARKAS 4</button></div>
     </form>
   </div>
@@ -164,14 +171,35 @@
         <div class="bg-slate-900 text-emerald-300 font-mono text-xs rounded p-3 break-all select-all">{{ session('token_baru') }}</div>
         <div class="mt-2 text-[11px] font-semibold text-amber-600">⚠️ Salin sekarang — token hanya ditampilkan sekali ini.</div>
       @elseif(auth()->user()->api_token)
-        <div class="text-xs text-slate-600 mb-2">✅ Token aktif (tersimpan ter-hash).</div>
+        <div class="text-xs text-slate-600 mb-1">✅ Token aktif (tersimpan ter-hash).
+          @if(auth()->user()->api_token_expires_at)
+            Berlaku s.d. <b>{{ auth()->user()->api_token_expires_at->format('d/m/Y') }}</b>.
+          @endif
+          @if(auth()->user()->api_token_used_at)
+            Terakhir dipakai {{ auth()->user()->api_token_used_at->diffForHumans() }}.
+          @endif
+        </div>
+        @php($sisaHari = auth()->user()->api_token_expires_at?->diffInDays(now(), true))
+        @if(auth()->user()->api_token_expires_at && auth()->user()->api_token_expires_at->isPast())
+          <div class="text-xs font-semibold text-rose-600 mb-2">Token sudah kedaluwarsa — buat token baru.</div>
+        @elseif($sisaHari !== null && $sisaHari <= 14)
+          <div class="text-xs font-semibold text-amber-600 mb-2">Token akan kedaluwarsa dalam {{ (int) $sisaHari }} hari.</div>
+        @endif
       @else
         <div class="text-xs text-slate-400 italic mb-3">Belum ada token.</div>
       @endif
-      <form method="post" action="{{ route('api-token.store') }}" class="mt-3" onsubmit="return confirm('Buat token baru? Token lama akan langsung tidak berlaku.')">
-        @csrf
-        <button class="btn text-xs">♻️ {{ auth()->user()->api_token ? 'Buat Ulang Token' : 'Buat Token' }}</button>
-      </form>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <form method="post" action="{{ route('api-token.store') }}" onsubmit="return confirm('Buat token baru? Token lama akan langsung tidak berlaku.')">
+          @csrf
+          <button class="btn text-xs">♻️ {{ auth()->user()->api_token ? 'Buat Ulang Token' : 'Buat Token' }}</button>
+        </form>
+        @if(auth()->user()->api_token)
+          <form method="post" action="{{ route('api-token.cabut') }}" onsubmit="return confirm('Cabut token API sekarang? Perangkat yang memakainya akan langsung kehilangan akses.')">
+            @csrf
+            <button class="btn2 text-xs">🚫 Cabut Token</button>
+          </form>
+        @endif
+      </div>
     </div>
   </div>
 </div>
