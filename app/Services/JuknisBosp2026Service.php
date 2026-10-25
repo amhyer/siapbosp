@@ -682,7 +682,7 @@ class JuknisBosp2026Service
             ->where('t.school_id', $schoolId)
             ->where('t.tahun', $tahun)
             ->where('t.type', 'belanja')
-            ->whereRaw('substr(t.tanggal, 1, 7) <= ?', [$ym])
+            ->whereRaw('substr(CAST(t.tanggal AS VARCHAR), 1, 7) <= ?', [$ym])
             ->selectRaw('d.rekening_id, sum(d.nilai) as j')
             ->groupBy('d.rekening_id')
             ->pluck('j', 'rekening_id');

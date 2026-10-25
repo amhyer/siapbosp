@@ -89,7 +89,7 @@ class LaporanArkasController extends Controller
             ->join('kas_transactions as t', 't.id', '=', 'd.kas_transaction_id')
             ->join('rekenings as r', 'r.id', '=', 'd.rekening_id')
             ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
-            ->selectRaw('substr(t.tanggal,1,7) as ym, d.rekening_id as rid, r.kode, r.nama, sum(d.nilai) as j')
+            ->selectRaw('substr(CAST(t.tanggal AS VARCHAR),1,7) as ym, d.rekening_id as rid, r.kode, r.nama, sum(d.nilai) as j')
             ->groupBy('ym', 'd.rekening_id', 'r.kode', 'r.nama')->get();
     }
 
@@ -182,7 +182,7 @@ class LaporanArkasController extends Controller
         $it = DB::table('kas_details as d')
             ->join('kas_transactions as t', 't.id', '=', 'd.kas_transaction_id')
             ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
-            ->whereRaw('substr(t.tanggal,1,7) = ?', [$bulanStr])
+            ->whereRaw('substr(CAST(t.tanggal AS VARCHAR),1,7) = ?', [$bulanStr])
             ->selectRaw("concat(d.rekening_id,'|',coalesce(d.kode_kegiatan,'')) as k, sum(d.nilai) as j")
             ->groupBy('d.rekening_id', 'd.kode_kegiatan')->pluck('j', 'k');
 
@@ -403,7 +403,7 @@ class LaporanArkasController extends Controller
             ->join('kas_transactions as t', 't.id', '=', 'd.kas_transaction_id')
             ->join('rekenings as r', 'r.id', '=', 'd.rekening_id')
             ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
-            ->whereRaw('substr(t.tanggal,1,7) = ?', [$bulanStr])
+            ->whereRaw('substr(CAST(t.tanggal AS VARCHAR),1,7) = ?', [$bulanStr])
             ->where('r.kode', 'like', $prefix.'%')
             ->orderBy('t.tanggal')->orderBy('d.id')
             ->get(['r.kode', 'r.nama', 't.tanggal', 'd.uraian', 'd.volume', 'd.nilai']);
@@ -431,7 +431,7 @@ class LaporanArkasController extends Controller
 
         $trs = KasTransaction::withoutGlobalScope('school')
             ->where('school_id', $sid)->where('tahun', $tahun)
-            ->whereRaw('substr(tanggal,1,7) = ?', [$bulanStr])
+            ->whereRaw('substr(CAST(tanggal AS VARCHAR),1,7) = ?', [$bulanStr])
             ->orderBy('tanggal')->orderBy('no_bku')->orderBy('id')
             ->with('details.rekening')->get();
 
@@ -489,7 +489,7 @@ class LaporanArkasController extends Controller
         $kop = $this->kop($sid, $tahun);
 
         $notas = KasNota::where('school_id', $sid)->where('tahun', $tahun)
-            ->whereRaw('substr(tanggal_nota,1,7) = ?', [$bulanStr])
+            ->whereRaw('substr(CAST(tanggal_nota AS VARCHAR),1,7) = ?', [$bulanStr])
             ->orderBy('tanggal_nota')->get();
 
         $trx = KasTransaction::withoutGlobalScope('school')
