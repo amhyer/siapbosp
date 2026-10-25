@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup Usulan Tampilan SiapBOSP — paritas ARKAS 4</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#fff; --line:#e2e8f0; --ink:#0f172a; --mute:#64748b;
+    --brand:#0f766e; --brand-2:#0d9488; --rose:#e11d48; --amber:#d97706;
+    --green:#15803d; --blue:#1d4ed8; --violet:#7c3aed;
+    --r:14px; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px -12px rgba(15,23,42,.18);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  h1,h2,h3,h4{margin:0;line-height:1.25}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 18px 72px}
+  .note{background:#fffbeb;border:1px solid #fde68a;color:#78350f;border-radius:12px;
+        padding:12px 14px;font-size:12.5px;margin-bottom:22px}
+  .sect{margin:34px 0 0}
+  .sect > h2{font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--mute);margin-bottom:10px}
+  .sect > p.lead{color:var(--mute);font-size:13px;margin:-4px 0 14px}
+  .frame{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+
+  /* top bar */
+  .top{display:flex;align-items:center;gap:14px;padding:10px 16px;background:#0b3b36;color:#e6fffb;flex-wrap:wrap}
+  .logo{font-weight:800;letter-spacing:.04em;font-size:13px}
+  .logo span{color:#5eead4}
+  .nav{display:flex;gap:4px;margin-left:8px;flex-wrap:wrap}
+  .nav a{color:#c7f9f2;text-decoration:none;font-size:12.5px;padding:6px 10px;border-radius:8px}
+  .nav a.on{background:rgba(94,234,212,.18);color:#fff;font-weight:600}
+  .right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#fb7185;box-shadow:0 0 0 3px rgba(251,113,133,.25)}
+  .chip{background:rgba(255,255,255,.12);padding:4px 9px;border-radius:999px}
+
+  /* generic */
+  .pad{padding:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .spread{justify-content:space-between}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:12.5px;
+       padding:7px 12px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  .btn:hover{background:#f8fafc}
+  .btn.p{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  .btn.p:hover{background:var(--brand-2)}
+  .btn.d{color:var(--mute)}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:700}
+  .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+  /* cards sumber dana */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px;padding:16px;background:#f8fafc}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;position:relative}
+  .card.ok{border-left:4px solid var(--green)}
+  .card.no{border-left:4px solid var(--amber)}
+  .card.off{border-left:4px solid #cbd5e1;background:#fcfdff}
+  .card h4{font-size:13.5px}
+  .card .yr{font-size:11px;color:var(--mute);font-weight:600}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;letter-spacing:.02em}
+  .b-green{background:#dcfce7;color:#166534;box-shadow:inset 0 0 0 1px #bbf7d0}
+  .b-amber{background:#fef3c7;color:#92400e;box-shadow:inset 0 0 0 1px #fde68a}
+  .b-rose{background:#ffe4e6;color:#9f1239;box-shadow:inset 0 0 0 1px #fecdd3}
+  .b-slate{background:#eef2f7;color:#475569;box-shadow:inset 0 0 0 1px #e2e8f0}
+  .b-blue{background:#dbeafe;color:#1e40af;box-shadow:inset 0 0 0 1px #bfdbfe}
+  .meta{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-top:10px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .acts{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+  .ico{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);
+       border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
+  .ico[disabled]{opacity:.4;cursor:not-allowed}
+  .bar{height:6px;border-radius:99px;background:#eef2f7;overflow:hidden;margin-top:10px}
+  .bar > i{display:block;height:100%;background:var(--brand)}
+
+  /* kertas kerja */
+  .kk-head{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(#fff,#fbfdfd)}
+  .pagu{font-size:11px}
+  .pagu b{display:block;font-size:18px;font-variant-numeric:tabular-nums;margin-top:2px}
+  .pagu.sisa b{color:var(--rose)}
+  .pagu.sisa.done b{color:var(--green)}
+  .tabs{display:flex;gap:2px;padding:0 12px;background:#f8fafc;border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs button{border:0;background:transparent;font:inherit;font-size:12px;padding:10px 11px;color:var(--mute);
+       cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .tabs button.on{color:var(--brand);font-weight:700;border-bottom-color:var(--brand);background:#fff}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{background:#f8fafc;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+     color:var(--mute);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  tr.komp td{background:#f8fafc;font-weight:700}
+  tr.komp .sw{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:middle}
+  .ind{padding-left:26px}
+  .ind2{padding-left:44px}
+  .kode{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--mute)}
+  .warnrow td{background:#fff7ed}
+  .hint{color:var(--rose);font-size:11.5px;font-weight:600}
+  .flash{animation:flash 2.4s ease-out}
+  @keyframes flash{0%{background:#fef9c3}70%{background:#fef9c3}100%{background:transparent}}
+
+  /* stepper */
+  .steps{display:flex;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);background:#f8fafc;flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute);
+        background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+  .step i{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:#eef2f7;
+          color:#64748b;font-style:normal;font-size:11px;font-weight:700}
+  .step.on{border-color:var(--brand);color:#0b3b36;font-weight:700;box-shadow:0 0 0 3px rgba(13,148,136,.1)}
+  .step.on i{background:var(--brand);color:#fff}
+  .step.done i{background:#dcfce7;color:#166534}
+  .fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px}
+  .f label{display:block;font-size:11.5px;font-weight:600;color:#475569;margin-bottom:4px}
+  .f input,.f select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
+        background:#fff;font:inherit;font-size:12.5px}
+  .f small{display:block;color:var(--mute);font-size:11px;margin-top:4px}
+  .check{display:flex;gap:8px;align-items:center;font-size:12.5px;color:#334155}
+
+  /* arsip */
+  .filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;padding:16px;background:#f8fafc;border-bottom:1px solid var(--line);align-items:end}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:#fff;font:inherit;font-size:12px;padding:8px 12px;cursor:pointer;color:var(--mute)}
+  .seg button.on{background:var(--brand);color:#fff;font-weight:600}
+
+  /* print preview */
+  .paper{background:#fff;padding:26px;position:relative;overflow:hidden}
+  .paper h3{text-align:center;font-size:14px}
+  .paper .sub{text-align:center;font-size:11.5px;color:#475569;margin-top:2px}
+  .draft{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .draft span{font-size:96px;font-weight:900;letter-spacing:.22em;color:rgba(225,29,72,.12);transform:rotate(-28deg)}
+  .paper table{font-size:11.5px}
+  .paper th,.paper td{border:1px solid #cbd5e1;padding:6px 7px}
+  .paper th{background:#f1f5f9}
+  .foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mute);margin-top:14px;border-top:1px dashed var(--line);padding-top:8px}
+  .tag{font-size:10px;font-weight:700;color:#fff;background:var(--violet);padding:2px 7px;border-radius:6px;vertical-align:middle;margin-left:8px}
+  @media print{.top,.note{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 style="font-size:22px">Usulan tampilan SiapBOSP — paritas ARKAS 4</h1>
+  <p style="color:var(--mute);margin:6px 0 18px;font-size:13px">
+    Mockup statis, bukan aplikasi. Semua angka contoh. Rujukan keputusan: <code>docs/MASUKAN-ARKAS4-UNTUK-SIAPBOSP.md</code>
+  </p>
+
+  <div class="note">
+    <b>Kenapa tampilan ini?</b> ARKAS 4 hanya punya 5 elemen navigasi dan memakai <b>kartu per sumber dana</b> sebagai
+    halaman depan. SiapBOSP punya 47 menu dalam 7 grup — informasinya lengkap, tetapi operator harus mengklik dalam
+    untuk tahu <i>“sumber dana mana yang belum beres”</i>. Mockup di bawah menjawab itu tanpa menghapus menu yang ada.
+  </div>
+
+  <!-- ================= 1. TOP BAR ================= -->
+  <div class="sect">
+    <h2>1 · Top bar &amp; pintu masuk</h2>
+    <p class="lead">Pertahankan 7 grup, tapi taruh tahun anggaran, versi ARKAS, dan status pajak di top bar (meniru “Perbarui Aplikasi” + “Profil ▾” ARKAS).</p>
+    <div class="frame">
+      <div class="top">
+        <div class="logo">SIAP<span>BOSP</span></div>
+        <nav class="nav">
+          <a href="#">🏫 Data Sekolah</a>
+          <a href="#" class="on">📝 Penganggaran</a>
+          <a href="#">📒 Penatausahaan</a>
+          <a href="#">🖨️ Laporan</a>
+          <a href="#">🗄️ Arsip</a>
+          <a href="#">🧩 Referensi</a>
+          <a href="#">⚙️ Pengaturan</a>
+        </nav>
+        <div class="right">
+          <span class="chip" title="Tahun anggaran aktif">2026 ▾</span>
+          <span class="chip" style="display:flex;align-items:center;gap:6px" title="Versi ARKAS di laptop lebih lama dari rilis terbaru">
+            <span class="dot"></span> ARKAS 4.2.15 → 4.3.0
+          </span>
+          <span class="chip">Bendahara ▾</span>
+        </div>
+      </div>
+      <div class="pad row spread" style="border-top:1px solid var(--line)">
+        <div class="row" style="gap:8px">
+          <span class="lbl">Pengingat</span>
+          <span class="badge b-rose">⚠ Pajak September belum dilaporkan · jatuh tempo 20 Okt</span>
+          <span class="badge b-amber">BKU Juli belum ditutup</span>
+        </div>
+        <div class="row" style="gap:8px">
+          <span class="badge b-blue">2 sumber dana menunggu review Dinas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. KARTU SUMBER DANA ================= -->
+  <div class="sect">
+    <h2>2 · Halaman depan Penganggaran <span class="tag">P1-4</span></h2>
+    <p class="lead">Kartu per sumber dana, status ARKAS sebagai chip, aksi cepat. Ikon hapus nonaktif saat dokumen sudah disahkan.</p>
+    <div class="frame">
+      <div class="pad row spread" style="border-bottom:1px solid var(--line)">
+        <div><b>Aktivasi &amp; Penyusunan Kertas Kerja</b> <span style="color:var(--mute);font-size:12px">· Tahun 2026</span></div>
+        <div class="row" style="gap:8px">
+          <button class="btn d">Riwayat 3 tahun ▾</button>
+          <button class="btn">🧾 Salin dari 2025</button>
+          <button class="btn p">+ Aktivasi Sumber Dana</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card ok">
+          <div class="row spread" style="align-items:flex-start">
+            <div><h4>BOSP Reguler</h4><div class="yr">Dana pusat · DAU</div></div>
+            <span class="badge b-green">Disahkan</span>
+          </div>
+          <div class="meta"><span>Pagu</span><b>Rp 1.234.000.000</b></div>
+          <div class="meta"><span>Sudah dianggarkan</span><b>Rp 1.234.000.000</b></div>
+          <div class="meta"><span>Belum dianggarkan</span><b style="color:var(--green)">Rp 0</b></div>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="acts">
+            <button class="ico" title="Lihat kertas kerja disahkan">👁</button>
+            <button class="ico" title="Cetak">🖨</button>
+            <button class="ico" title="Terkunci: dokumen sudah disahkan" disabled>🗑</button>
+            <button class="ico" style="margin-left:auto;width:auto;padding:0 10px;font-size:12px">Perubahan</button>
+          </div>
+        </div>
+
+        <div class="card no">
+          <div class="row spread" style="align-items:flex-start">
+            <div><h4>BOSP Kinerja</h4><div class="yr">Tahap 1 sudah cair</div></div>
+            <span class="badge b-amber">Perlu Diajukan Ulang</span>
+          </div>
+          <div class="meta"><span>Pagu</span><b>Rp 180.000.000</b></div>
+          <div class="meta"><span>Sudah dianggarkan</span><b>Rp 155.500.000</b></div>
+          <div class="meta"><span>Belum dianggarkan</span><b style="color:var(--rose)">Rp 24.500.000</b></div>
+          <div class="bar"><i style="width:86%;background:var(--amber)"></i></div>
+          <div class="acts">
+            <button class="ico" title="Lihat">👁</button>
+            <button class="ico" title="Cetak draf">🖨</button>
+            <button class="ico" title="Hapus draf">🗑</button>
+            <button class="ico" style="margin-left:auto;width:auto;padding:0 10px;font-size:12px">Kirim Pengajuan</button>
+          </div>
+        </div>
+
+        <div class="card no">
+          <div class="row spread" style="align-items:flex-start">
+            <div><h4>BOSP Afirmasi</h4><div class="yr">Sumber dana tambahan</div></div>
+            <span class="badge b-rose">Perlu Revisi</span>
+          </div>
+          <div class="meta"><span>Pagu</span><b>Rp 45.000.000</b></div>
+          <div class="meta"><span>Sudah dianggarkan</span><b>Rp 40.000.000</b></div>
+          <div class="meta"><span>Belum dianggarkan</span><b style="color:var(--rose)">Rp 5.000.000</b></div>
+          <div class="bar"><i style="width:89%;background:var(--rose)"></i></div>
+          <div class="acts">
+            <button class="ico" title="Lihat catatan Dinas">👁</button>
+            <button class="ico" title="Cetak">🖨</button>
+            <button class="ico" title="Hapus draf">🗑</button>
+            <button class="ico" style="margin-left:auto;width:auto;padding:0 10px;font-size:12px">Revisi Kertas Kerja</button>
+          </div>
+        </div>
+
+        <div class="card off">
+          <div class="row spread" style="align-items:flex-start">
+            <div><h4>BOSP Daerah</h4><div class="yr">Belum ada penetapan</div></div>
+            <span class="badge b-slate">Belum Aktif</span>
+          </div>
+          <div class="meta"><span>Pagu</span><b>—</b></div>
+          <div class="meta"><span>Sudah dianggarkan</span><b>—</b></div>
+          <div class="meta" style="visibility:hidden">.</div>
+          <div class="bar"><i style="width:0"></i></div>
+          <div class="acts">
+            <button class="ico" disabled>👁</button>
+            <button class="ico" disabled>🖨</button>
+            <button class="ico" disabled>🗑</button>
+            <button class="ico" style="margin-left:auto;width:auto;padding:0 10px;font-size:12px">Aktivasi</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pad" style="border-top:1px solid var(--line);font-size:12px;color:var(--mute)">
+        Chip status memakai kosakata Dinas (Disahkan · Perlu Revisi · Perlu Diajukan Ulang · Menunggu Review Dinas).
+        Alur internal Kepsek tetap ada, ditampilkan sebagai langkah kecil di dalam kartu — bukan sebagai status utama.
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 3. KERTAS KERJA ================= -->
+  <div class="sect">
+    <h2>3 · Kertas Kerja: gerbang pra-pengajuan <span class="tag">P0-2</span></h2>
+    <p class="lead">“Ajukan” nonaktif selama masih ada baris merah. Klik baris merah → lompat ke rincian bermasalah.</p>
+    <div class="frame">
+      <div class="kk-head">
+        <div style="min-width:150px"><h4>BOSP Kinerja 2026</h4>
+          <span class="badge b-amber" style="margin-top:6px">Perlu Diajukan Ulang</span></div>
+        <div class="pagu">PAGU<b>Rp 180.000.000</b></div>
+        <div class="pagu">SUDAH DIANGGARKAN<b>Rp 155.500.000</b></div>
+        <div class="pagu sisa">BELUM DIANGGARKAN<b>Rp 24.500.000</b></div>
+        <div style="margin-left:auto" class="row">
+          <button class="btn">📋 Panduan</button>
+          <button class="btn">🥧 Review &amp; Proporsi</button>
+          <button class="btn p" disabled title="Belum Dianggarkan harus Rp 0">📤 Ajukan Pengesahan</button>
+        </div>
+      </div>
+
+      <div class="pad" style="background:#fff1f2;border-bottom:1px solid #fecdd3;font-size:12.5px;color:#9f1239">
+        <b>Belum bisa diajukan — 3 hal harus dibereskan:</b>
+        <ol style="margin:6px 0 0 18px;padding:0">
+          <li><a href="#r1" style="color:#9f1239">Belum Dianggarkan Rp 24.500.000</a> — harus Rp 0</li>
+          <li><a href="#r2" style="color:#9f1239">Uraian 612 karakter</a> — batas 500</li>
+          <li><a href="#r3" style="color:#9f1239">Harga satuan Rp 1.850.000 melebihi batas Dinas Rp 1.500.000</a></li>
+        </ol>
+      </div>
+
+      <div class="tabs">
+        <button class="on">Jan</button><button>Feb</button><button>Mar</button><button>Apr</button>
+        <button>Mei</button><button>Jun</button><button>Jul</button><button>Agu</button>
+        <button>Sep</button><button>Okt</button><button>Nov</button><button>Des</button>
+        <button style="margin-left:auto;color:var(--brand)">📅 Per Tahapan</button>
+        <button style="color:var(--brand)">📊 Per Tahun</button>
+      </div>
+
+      <table>
+        <thead><tr>
+          <th style="width:34%">Uraian</th><th>Vol</th><th>Sat</th><th class="num">Harga</th>
+          <th class="num">Jumlah</th><th>Panduan</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr class="komp"><td colspan="7"><span class="sw" style="background:#0d9488"></span>Komponen 1 — Pengembangan Perpustakaan · 8,4%</td></tr>
+          <tr><td class="ind">Kegiatan: Pengadaan Buku Pengayaan</td><td>1</td><td>keg</td><td class="num">—</td><td class="num">—</td><td></td><td></td></tr>
+          <tr id="r2" class="warnrow">
+            <td class="ind2">Buku pengayaan literasi — <span class="kode">5.2.02.01.01.0024</span>
+              <div class="hint">Uraian 612 karakter · maksimal 500</div></td>
+            <td>240</td><td>eks</td><td class="num">62.000</td><td class="num">14.880.000</td>
+            <td>📘</td><td>⋯</td>
+          </tr>
+          <tr class="komp"><td colspan="7"><span class="sw" style="background:#7c3aed"></span>Komponen 2 — Kegiatan Pembelajaran dan Ekstrakurikuler · 41,2%</td></tr>
+          <tr id="r3" class="warnrow">
+            <td class="ind2">Honor narasumber pelatihan — <span class="kode">5.2.02.01.01.0003</span>
+              <div class="hint">Rp 1.850.000 &gt; batas Dinas Rp 1.500.000 / OJ</div></td>
+            <td>4</td><td>OJ</td><td class="num">1.850.000</td><td class="num">7.400.000</td>
+            <td>📘</td><td>⋯</td>
+          </tr>
+          <tr class="flash">
+            <td class="ind2">Alat tulis kantor — baru disimpan <span class="kode">5.2.02.01.01.0055</span></td>
+            <td>12</td><td>pak</td><td class="num">85.000</td><td class="num">1.020.000</td>
+            <td>📘</td><td>⋯</td>
+          </tr>
+          <tr id="r1" class="warnrow">
+            <td class="ind2">CADANGAN — belum dirinci <div class="hint">Rp 24.500.000 belum dialokasikan</div></td>
+            <td>—</td><td>—</td><td class="num">—</td><td class="num">24.500.000</td><td>📘</td>
+            <td><button class="btn" style="padding:4px 8px;font-size:11.5px">+ Masukkan</button></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pad row spread" style="border-top:1px solid var(--line);font-size:12px;color:var(--mute)">
+        <span>Autosave lokal aktif · perubahan belum dikirim ke Dinas</span>
+        <span class="row" style="gap:8px">
+          <button class="btn">Sisip Uraian</button>
+          <button class="btn">+ Tambah Kegiatan</button>
+          <button class="btn">Perbarui Data Kegiatan</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 4. BKU ================= -->
+  <div class="sect">
+    <h2>4 · Lembar BKU: aksi di tempat yang sama <span class="tag">P1-5</span></h2>
+    <p class="lead">Tab Jan–Des, tambah belanja / tarik / setor tanpa pindah menu, badge pajak di baris, kilat kuning untuk baris baru.</p>
+    <div class="frame">
+      <div class="kk-head">
+        <div><h4>BOSP Reguler · BKU 2026</h4><div class="yr" style="color:var(--mute);font-size:11.5px">Bendahara: Siti R. · SDN 1 Contoh</div></div>
+        <div class="pagu">DANA TERSEDIA<b>Rp 96.240.000</b></div>
+        <div class="pagu">SERAPAN JAN–JUN<b>Rp 41,7%</b></div>
+        <div style="margin-left:auto" class="row">
+          <button class="btn">💵 Tarik Tunai</button>
+          <button class="btn">💵 Setor Tunai</button>
+          <button class="btn p">+ Tambah Pembelanjaan</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button>Jan</button><button>Feb</button><button>Mar</button><button>Apr</button>
+        <button>Mei</button><button class="on">Jun</button><button>Jul</button><button>Agu</button>
+        <button>Sep</button><button>Okt</button><button>Nov</button><button>Des</button>
+        <button style="margin-left:auto">🔎 Cari</button>
+        <button>🖨 Cetak</button>
+        <button style="color:#9f1239">🔒 Tutup BKU Juni</button>
+      </div>
+      <div style="padding:0 16px">
+        <div class="bar" style="margin:14px 0"><i style="width:41.7%"></i></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Tgl</th><th style="width:34%">Uraian</th><th class="num">Penerimaan</th>
+          <th class="num">Pengeluaran</th><th class="num">Saldo</th><th>Pajak</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>01-06</td><td>Saldo bulan lalu</td><td class="num">—</td><td class="num">—</td><td class="num">104.300.000</td><td></td></tr>
+          <tr class="flash"><td>03-06</td><td>Belanja ATK — Toko Berkah <span class="kode">· nota 0123</span></td>
+            <td class="num">—</td><td class="num">1.020.000</td><td class="num">103.280.000</td>
+            <td><span class="badge b-rose">wajib lapor</span></td></tr>
+          <tr><td>05-06</td><td>Tarik tunai bank → kas</td><td class="num">—</td><td class="num">5.000.000</td><td class="num">98.280.000</td><td></td></tr>
+          <tr><td>08-06</td><td>Belanja cetak modul — SIPLah</td><td class="num">—</td><td class="num">2.040.000</td><td class="num">96.240.000</td>
+            <td><span class="badge b-green">terlaporkan</span></td></tr>
+          <tr><td>30-06</td><td>Pajak Bunga Bank</td><td class="num">—</td><td class="num">4.500</td><td class="num">96.235.500</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="pad row spread" style="border-top:1px solid var(--line);font-size:12px;color:var(--mute)">
+        <span>Watermark <b>DRAFT</b> aktif sampai BKU Juni ditutup</span>
+        <span class="row" style="gap:8px"><button class="btn">🗑 Hapus BKU (dengan alasan + jejak log)</button></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 5. WIZARD ================= -->
+  <div class="sect">
+    <h2>5 · Wizard belanja 3 langkah <span class="tag">P1-7</span></h2>
+    <p class="lead">Mengikuti urutan ARKAS: SIPLah dulu, tanggal transaksi = bulan pelunasan, NPWP 15 / NIK 16.</p>
+    <div class="frame">
+      <div class="steps">
+        <div class="step on"><i>1</i> Detail Transaksi</div>
+        <div class="step"><i>2</i> Kegiatan &amp; Rincian</div>
+        <div class="step"><i>3</i> Perhitungan Pajak</div>
+      </div>
+      <div class="pad" style="padding-bottom:0">
+        <label class="check"><input type="checkbox" checked> Belanja melalui <b>SIPLah</b>
+          <span style="color:var(--mute);font-size:11.5px">— invoice ditarik otomatis, pajak wajib lapor dinolkan</span></label>
+      </div>
+      <div class="fields">
+        <div class="f"><label>Tanggal transaksi</label><input type="date" value="2026-06-03">
+          <small>Diposting ke bulan pelunasan, bukan tanggal nota</small></div>
+        <div class="f"><label>Metode bayar</label><select><option>Non-tunai (bank)</option><option>Tunai</option></select></div>
+        <div class="f"><label>Nama toko / penyedia</label><input value="Toko Berkah"></div>
+        <div class="f"><label>Alamat</label><input value="Jl. Pendidikan 12"></div>
+        <div class="f"><label>Telepon</label><input value="0812xxxxxxx"></div>
+        <div class="f"><label>NPWP (15 digit) / NIK (16 digit)</label><input value="00.000.000.0-000.000" placeholder="15 atau 16 digit">
+          <small>Validasi panjang otomatis sesuai jenis</small></div>
+        <div class="f" style="display:flex;align-items:flex-end">
+          <label class="check"><input type="checkbox"> Usaha perseorangan (tanpa NPWP)</label>
+        </div>
+      </div>
+      <div class="pad row spread" style="border-top:1px solid var(--line)">
+        <span style="font-size:12px;color:var(--mute)">Langkah 1 dari 3</span>
+        <div class="row" style="gap:8px"><button class="btn">Batal</button><button class="btn p">Lanjut: Kegiatan &amp; Rincian →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 6. ARSIP ================= -->
+  <div class="sect">
+    <h2>6 · Arsip terpadu <span class="tag">P0-3</span></h2>
+    <p class="lead">Satu halaman, tiga filter, dua mode tampilan — meniru ARKAS; hanya dokumen sah yang masuk.</p>
+    <div class="frame">
+      <div class="filters">
+        <div class="f"><label>Jenis dokumen</label><select><option>BKU (ditutup)</option><option>RKAS disahkan</option><option>Dokumen pajak</option><option>SPTJM</option><option>Buku pembantu</option></select></div>
+        <div class="f"><label>Sumber dana</label><select><option>Semua</option><option>BOSP Reguler</option><option>BOSP Kinerja</option><option>BOSP Afirmasi</option></select></div>
+        <div class="f"><label>Tahun</label><select><option>2026</option><option>2025</option><option>2024</option></select></div>
+        <div class="f"><label>Mode tampilan</label>
+          <div class="seg"><button class="on">Akumulasi</button><button>per Sumber Dana</button></div></div>
+      </div>
+      <table>
+        <thead><tr><th>Dokumen</th><th>Sumber dana</th><th>Periode</th><th>Disahkan / ditutup</th><th class="num">Berkas</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>BKU Tahunan</td><td>BOSP Reguler</td><td>2026</td><td>—</td><td class="num">1 PDF</td><td><button class="btn">Lihat</button></td></tr>
+          <tr><td>BKU Juni</td><td>BOSP Reguler</td><td>Jun 2026</td><td>28-06-2026</td><td class="num">1 PDF</td><td><button class="btn">Lihat</button></td></tr>
+          <tr><td>Realisasi Penerimaan &amp; Belanja</td><td>Semua</td><td>Semester I</td><td>10-07-2026</td><td class="num">1 PDF</td><td><button class="btn">Lihat</button></td></tr>
+          <tr><td>RKAS Disahkan</td><td>BOSP Kinerja</td><td>2026</td><td>14-02-2026</td><td class="num">PDF + Excel</td><td><button class="btn">Lihat</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= 7. CETAK ================= -->
+  <div class="sect">
+    <h2>7 · Cetak: Format + Periode + watermark bersama <span class="tag">P1-6</span></h2>
+    <p class="lead">Dropdown format meniru ARKAS; semua cetak memakai watermark dan footer identitas yang sama.</p>
+    <div class="frame">
+      <div class="pad row spread" style="border-bottom:1px solid var(--line);background:#f8fafc">
+        <div class="row" style="gap:12px">
+          <div class="f" style="min-width:210px"><label>Format</label>
+            <select><option>BKU Bulanan</option><option selected>BKU Tahunan</option><option>BKU Tahapan</option><option>Rekapitulasi Realisasi (Semester)</option><option>Buku Pembantu Rincian Objek Belanja</option><option>SPTJM</option></select></div>
+          <div class="f" style="min-width:170px"><label>Periode</label>
+            <select><option>Tahun 2026 (Jan–Jun)</option><option>Juni 2026</option><option>Tahap 1</option></select></div>
+        </div>
+        <div class="row" style="gap:8px"><button class="btn">Pratinjau</button><button class="btn p">🖨 Cetak A4</button></div>
+      </div>
+
+      <div class="paper">
+        <div class="draft"><span>DRAFT</span></div>
+        <h3>BUKU KAS UMUM<br>SDN 1 CONTOH — TAHUN ANGGARAN 2026</h3>
+        <div class="sub">Sumber Dana: BOSP Reguler · Periode: Januari–Juni 2026</div>
+        <table style="margin-top:14px">
+          <thead><tr><th>Tgl</th><th>Uraian</th><th class="num">Penerimaan</th><th class="num">Pengeluaran</th><th class="num">Saldo</th></tr></thead>
+          <tbody>
+            <tr><td>01-06-2026</td><td>Saldo bulan lalu</td><td class="num">—</td><td class="num">—</td><td class="num">104.300.000</td></tr>
+            <tr><td>03-06-2026</td><td>Belanja ATK</td><td class="num">—</td><td class="num">1.020.000</td><td class="num">103.280.000</td></tr>
+            <tr><td>08-06-2026</td><td>Belanja cetak modul (SIPLah)</td><td class="num">—</td><td class="num">2.040.000</td><td class="num">96.240.000</td></tr>
+          </tbody>
+        </table>
+        <div class="foot">
+          <span>Dicetak dari SiapBOSP pada 26-10-2026 10:14 — <b>bukan dokumen resmi ARKAS</b></span>
+          <span>Halaman 1 / 4</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:34px;font-size:12px;color:var(--mute)">
+    Mockup ini hanya CSS inline (tanpa aset eksternal) agar bisa dibuka offline di laptop sekolah.
+    Urutan prioritas lengkap ada di <code>docs/MASUKAN-ARKAS4-UNTUK-SIAPBOSP.md</code>.
+  </p>
+</div>
+</body>
+</html>
