@@ -86,7 +86,7 @@ Scheduler menjalankan backup harian serta pembersihan run/file impor ARKAS lama.
 
 ## 5. Verifikasi sebelum membuka akses publik
 
-1. Di staging dengan versi PHP dan PostgreSQL yang sama seperti produksi, jalankan `composer install` termasuk dependensi pengujian lalu `php artisan test`. CI saat ini harus hijau pada commit release; workflow yang memakai SQLite saja bukan pengganti uji terhadap PostgreSQL target.
+1. Di staging dengan versi PHP dan PostgreSQL yang sama seperti produksi, jalankan `composer install` termasuk dependensi pengujian lalu `php artisan test`. CI menjalankan suite pada SQLite dan PostgreSQL 16; workflow harus hijau pada commit release. Smoke test staging tetap diperlukan untuk memeriksa konfigurasi, data, dan integrasi yang khusus produksi.
 2. Jalankan `php artisan migrate:status`; periksa route/cache dan log setelah `config:cache`.
 3. Uji login semua role, ganti/reset sandi, nonaktifkan akun dan sekolah, cabut/kedaluwarsakan API token, serta pastikan operator sekolah A tidak dapat membaca/menulis data sekolah B (termasuk HPP).
 4. Uji ekspor CSV/XLSX dengan teks yang diawali `=`, `+`, `-`, `@`, tab, dan CR; pastikan tidak dieksekusi sebagai formula.
