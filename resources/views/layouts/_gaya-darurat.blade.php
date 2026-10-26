@@ -83,6 +83,13 @@
     .kilat td { animation: none; background-color: #fef3c7; }
   }
   .num { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Jejak cetak kerangka aplikasi: tersembunyi di layar, tampil di kertas. */
+  .cetak-kaki { display: none; }
+  @media print {
+    .cetak-kaki { display: block; margin-top: 1rem; border-top: 1px solid #cbd5e1;
+      padding-top: .35rem; font-size: 9pt; color: #475569; }
+  }
   .badge {
     display: inline-flex; align-items: center; gap: .25rem; white-space: nowrap;
     border-radius: .25rem; padding: .125rem .5rem; font-size: 11px; font-weight: 600;
