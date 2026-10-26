@@ -1,0 +1,14 @@
+{
+  "name": "siapbosp-tangkapan-layar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tangkap layar seluruh menu & halaman SiapBOSP (dijalankan di komputer yang menjalankan aplikasi).",
+  "scripts": {
+    "foto": "node foto.cjs",
+    "daftar": "node foto.cjs --daftar",
+    "uji": "node foto.test.cjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^23.0.0"
+  }
+}

@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1800" font-family="sans-serif">
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<text x="24" y="40" font-size="22" font-weight="700" fill="#0f172a">SiapBOSP — Peta Menu &amp; Halaman</text>
+<text x="24" y="80" font-size="14" font-weight="700" fill="#4f46e5">operator · Utama</text>
+<text x="44" y="102" font-size="13" fill="#0f172a">Dashboard</text>
+<text x="420" y="102" font-size="11" fill="#64748b">/dashboard</text>
+<text x="44" y="122" font-size="13" fill="#0f172a">Login</text>
+<text x="420" y="122" font-size="11" fill="#64748b">/login</text>
+<text x="44" y="142" font-size="13" fill="#0f172a">Bantuan & Panduan</text>
+<text x="420" y="142" font-size="11" fill="#64748b">/bantuan</text>
+<text x="24" y="162" font-size="14" font-weight="700" fill="#4f46e5">operator · Penganggaran</text>
+<text x="44" y="184" font-size="13" fill="#0f172a">Kertas Kerja (RKAS)</text>
+<text x="420" y="184" font-size="11" fill="#64748b">/rkas</text>
+<text x="44" y="204" font-size="13" fill="#0f172a">RKAS — Buat Baru</text>
+<text x="420" y="204" font-size="11" fill="#64748b">/rkas/buat</text>
+<text x="44" y="224" font-size="13" fill="#0f172a">RKAS — Detail</text>
+<text x="420" y="224" font-size="11" fill="#64748b">/rkas/CONTOH</text>
+<text x="44" y="244" font-size="13" fill="#0f172a">Review & Proporsi Anggaran</text>
+<text x="420" y="244" font-size="11" fill="#64748b">/penganggaran/review</text>
+<text x="44" y="264" font-size="13" fill="#0f172a">Daftar Kegiatan</text>
+<text x="420" y="264" font-size="11" fill="#64748b">/penganggaran/kegiatan</text>
+<text x="44" y="284" font-size="13" fill="#0f172a">Anggaran Bulanan (ARKAS)</text>
+<text x="420" y="284" font-size="11" fill="#64748b">/penganggaran/anggaran-bulanan</text>
+<text x="44" y="304" font-size="13" fill="#0f172a">PBD → RKM → RKT (Perencanaan)</text>
+<text x="420" y="304" font-size="11" fill="#64748b">/perencanaan</text>
+<text x="44" y="324" font-size="13" fill="#0f172a">Referensi Harga (SSH/SBU)</text>
+<text x="420" y="324" font-size="11" fill="#64748b">/perencanaan/ssh</text>
+<text x="44" y="344" font-size="13" fill="#0f172a">Pemetaan Data (HPP)</text>
+<text x="420" y="344" font-size="11" fill="#64748b">/hpp</text>
+<text x="44" y="364" font-size="13" fill="#0f172a">Rekonsiliasi ARKAS</text>
+<text x="420" y="364" font-size="11" fill="#64748b">/rekonsiliasi</text>
+<text x="24" y="384" font-size="14" font-weight="700" fill="#4f46e5">operator · Penatausahaan</text>
+<text x="44" y="406" font-size="13" fill="#0f172a">Buku Kas Umum (BKU)</text>
+<text x="420" y="406" font-size="11" fill="#64748b">/pembukuan/bku</text>
+<text x="44" y="426" font-size="13" fill="#0f172a">BKU — Cetak</text>
+<text x="420" y="426" font-size="11" fill="#64748b">/pembukuan/bku/cetak</text>
+<text x="44" y="446" font-size="13" fill="#0f172a">Kas dan Bank</text>
+<text x="420" y="446" font-size="11" fill="#64748b">/pembukuan/kas</text>
+<text x="44" y="466" font-size="13" fill="#0f172a">Buku Pembantu</text>
+<text x="420" y="466" font-size="11" fill="#64748b">/pembukuan/buku-pembantu</text>
+<text x="44" y="486" font-size="13" fill="#0f172a">Rekap Realisasi</text>
+<text x="420" y="486" font-size="11" fill="#64748b">/pembukuan/rekap-realisasi</text>
+<text x="44" y="506" font-size="13" fill="#0f172a">Register Dokumen</text>
+<text x="420" y="506" font-size="11" fill="#64748b">/pembukuan/register</text>
+<text x="44" y="526" font-size="13" fill="#0f172a">SPTJM BOSP</text>
+<text x="420" y="526" font-size="11" fill="#64748b">/pembukuan/sptjm</text>
+<text x="44" y="546" font-size="13" fill="#0f172a">Pendapatan</text>
+<text x="420" y="546" font-size="11" fill="#64748b">/penerimaan/pendapatan</text>
+<text x="44" y="566" font-size="13" fill="#0f172a">Tarik Tunai (Bank→Tunai)</text>
+<text x="420" y="566" font-size="11" fill="#64748b">/penerimaan/ambil-simpanan</text>
+<text x="44" y="586" font-size="13" fill="#0f172a">Setor Tunai (Tunai→Bank)</text>
+<text x="420" y="586" font-size="11" fill="#64748b">/penerimaan/mutasi</text>
+<text x="44" y="606" font-size="13" fill="#0f172a">Pembelanjaan</text>
+<text x="420" y="606" font-size="11" fill="#64748b">/pengeluaran/belanja</text>
+<text x="44" y="626" font-size="13" fill="#0f172a">Pembelanjaan — Form Input</text>
+<text x="420" y="626" font-size="11" fill="#64748b">/pengeluaran/belanja/buat</text>
+<text x="44" y="646" font-size="13" fill="#0f172a">Belanja — Detail</text>
+<text x="420" y="646" font-size="11" fill="#64748b">/pengeluaran/belanja/CONTOH</text>
+<text x="44" y="666" font-size="13" fill="#0f172a">Belanja — Kwitansi</text>
+<text x="420" y="666" font-size="11" fill="#64748b">/pengeluaran/belanja/CONTOH/kwitansi</text>
+<text x="44" y="686" font-size="13" fill="#0f172a">Belanja — SPJ</text>
+<text x="420" y="686" font-size="11" fill="#64748b">/pengeluaran/belanja/CONTOH/spj</text>
+<text x="44" y="706" font-size="13" fill="#0f172a">Pajak (Setor & Utang)</text>
+<text x="420" y="706" font-size="11" fill="#64748b">/pengeluaran/setor-pajak</text>
+<text x="44" y="726" font-size="13" fill="#0f172a">Penutupan BKU</text>
+<text x="420" y="726" font-size="11" fill="#64748b">/penatausahaan/penutupan-bku</text>
+<text x="24" y="746" font-size="14" font-weight="700" fill="#4f46e5">operator · Arsip</text>
+<text x="44" y="768" font-size="13" fill="#0f172a">Arsip Dokumen Sah</text>
+<text x="420" y="768" font-size="11" fill="#64748b">/arsip</text>
+<text x="44" y="788" font-size="13" fill="#0f172a">Arsip — RKAS Disahkan</text>
+<text x="420" y="788" font-size="11" fill="#64748b">/arsip/rkas</text>
+<text x="44" y="808" font-size="13" fill="#0f172a">Arsip — BKU Ditutup</text>
+<text x="420" y="808" font-size="11" fill="#64748b">/arsip/bku</text>
+<text x="44" y="828" font-size="13" fill="#0f172a">Arsip — Dokumen Pajak</text>
+<text x="420" y="828" font-size="11" fill="#64748b">/arsip/pajak</text>
+<text x="44" y="848" font-size="13" fill="#0f172a">Arsip — Riwayat Impor</text>
+<text x="420" y="848" font-size="11" fill="#64748b">/arsip/impor</text>
+<text x="44" y="868" font-size="13" fill="#0f172a">Arsip — Riwayat Ekspor</text>
+<text x="420" y="868" font-size="11" fill="#64748b">/arsip/ekspor</text>
+<text x="24" y="888" font-size="14" font-weight="700" fill="#4f46e5">operator · Laporan</text>
+<text x="44" y="910" font-size="13" fill="#0f172a">LPJ & Tutup Buku per Tahap</text>
+<text x="420" y="910" font-size="11" fill="#64748b">/laporan/tahap</text>
+<text x="44" y="930" font-size="13" fill="#0f172a">LPJ per Tahap</text>
+<text x="420" y="930" font-size="11" fill="#64748b">/laporan/lpj</text>
+<text x="44" y="950" font-size="13" fill="#0f172a">Pajak Triwulan</text>
+<text x="420" y="950" font-size="11" fill="#64748b">/laporan/pajak-triwulan</text>
+<text x="44" y="970" font-size="13" fill="#0f172a">Realisasi per Sumber Dana</text>
+<text x="420" y="970" font-size="11" fill="#64748b">/laporan/realisasi-sumber-dana</text>
+<text x="44" y="990" font-size="13" fill="#0f172a">Rekonsiliasi ARKAS</text>
+<text x="420" y="990" font-size="11" fill="#64748b">/laporan/rekonsiliasi</text>
+<text x="24" y="1010" font-size="14" font-weight="700" fill="#4f46e5">operator · Laporan (Format ARKAS)</text>
+<text x="44" y="1032" font-size="13" fill="#0f172a">Rincian RKAS per Tahap</text>
+<text x="420" y="1032" font-size="11" fill="#64748b">/laporan-arkas/rkas-tahap</text>
+<text x="44" y="1052" font-size="13" fill="#0f172a">RKAS Bulanan</text>
+<text x="420" y="1052" font-size="11" fill="#64748b">/laporan-arkas/rkas-bulanan</text>
+<text x="44" y="1072" font-size="13" fill="#0f172a">Realisasi Anggaran</text>
+<text x="420" y="1072" font-size="11" fill="#64748b">/laporan-arkas/realisasi</text>
+<text x="44" y="1092" font-size="13" fill="#0f172a">Realisasi per Sumber Dana</text>
+<text x="420" y="1092" font-size="11" fill="#64748b">/laporan-arkas/realisasi-sumber-dana</text>
+<text x="44" y="1112" font-size="13" fill="#0f172a">Realisasi Penerimaan & Belanja</text>
+<text x="420" y="1112" font-size="11" fill="#64748b">/laporan-arkas/penerimaan-belanja</text>
+<text x="44" y="1132" font-size="13" fill="#0f172a">Realisasi Habis Pakai</text>
+<text x="420" y="1132" font-size="11" fill="#64748b">/laporan-arkas/habis-pakai</text>
+<text x="44" y="1152" font-size="13" fill="#0f172a">Realisasi Modal</text>
+<text x="420" y="1152" font-size="11" fill="#64748b">/laporan-arkas/modal</text>
+<text x="44" y="1172" font-size="13" fill="#0f172a">Daftar Kas Umum</text>
+<text x="420" y="1172" font-size="11" fill="#64748b">/laporan-arkas/daftar-kas-umum</text>
+<text x="44" y="1192" font-size="13" fill="#0f172a">Daftar Nota</text>
+<text x="420" y="1192" font-size="11" fill="#64748b">/laporan-arkas/daftar-nota</text>
+<text x="44" y="1212" font-size="13" fill="#0f172a">Penutupan Kas</text>
+<text x="420" y="1212" font-size="11" fill="#64748b">/laporan-arkas/penutupan-kas</text>
+<text x="24" y="1232" font-size="14" font-weight="700" fill="#4f46e5">operator · Data Referensi</text>
+<text x="44" y="1254" font-size="13" fill="#0f172a">Referensi Master</text>
+<text x="420" y="1254" font-size="11" fill="#64748b">/referensi</text>
+<text x="44" y="1274" font-size="13" fill="#0f172a">Referensi Harga (SSH/SBU)</text>
+<text x="420" y="1274" font-size="11" fill="#64748b">/referensi/harga</text>
+<text x="44" y="1294" font-size="13" fill="#0f172a">Referensi Kegiatan</text>
+<text x="420" y="1294" font-size="11" fill="#64748b">/referensi/kegiatan</text>
+<text x="24" y="1314" font-size="14" font-weight="700" fill="#4f46e5">operator · Pengaturan</text>
+<text x="44" y="1336" font-size="13" fill="#0f172a">Koneksi ARKAS</text>
+<text x="420" y="1336" font-size="11" fill="#64748b">/pengaturan/koneksi-arkas</text>
+<text x="44" y="1356" font-size="13" fill="#0f172a">Impor Database (ARKAS)</text>
+<text x="420" y="1356" font-size="11" fill="#64748b">/pengaturan/impor-database</text>
+<text x="44" y="1376" font-size="13" fill="#0f172a">Pemetaan Data (HPP)</text>
+<text x="420" y="1376" font-size="11" fill="#64748b">/pengaturan/pemetaan</text>
+<text x="44" y="1396" font-size="13" fill="#0f172a">Backup Data</text>
+<text x="420" y="1396" font-size="11" fill="#64748b">/pengaturan/backup</text>
+<text x="44" y="1416" font-size="13" fill="#0f172a">Deteksi Versi ARKAS</text>
+<text x="420" y="1416" font-size="11" fill="#64748b">/pengaturan/deteksi-versi</text>
+<text x="44" y="1436" font-size="13" fill="#0f172a">Sinkronisasi ke Pusat</text>
+<text x="420" y="1436" font-size="11" fill="#64748b">/pengaturan/sinkronisasi</text>
+<text x="44" y="1456" font-size="13" fill="#0f172a">Log Sistem</text>
+<text x="420" y="1456" font-size="11" fill="#64748b">/pengaturan/log</text>
+<text x="44" y="1476" font-size="13" fill="#0f172a">Ganti Password</text>
+<text x="420" y="1476" font-size="11" fill="#64748b">/ganti-password</text>
+<text x="44" y="1496" font-size="13" fill="#0f172a">Hapus Data</text>
+<text x="420" y="1496" font-size="11" fill="#64748b">/utility/hapus-data</text>
+<text x="24" y="1516" font-size="14" font-weight="700" fill="#4f46e5">operator · Profil Sekolah</text>
+<text x="44" y="1538" font-size="13" fill="#0f172a">Profil Sekolah</text>
+<text x="420" y="1538" font-size="11" fill="#64748b">/utility/profil</text>
+<text x="44" y="1558" font-size="13" fill="#0f172a">Data Penanggung Jawab</text>
+<text x="420" y="1558" font-size="11" fill="#64748b">/utility/penandatangan</text>
+<text x="44" y="1578" font-size="13" fill="#0f172a">Tahun Anggaran</text>
+<text x="420" y="1578" font-size="11" fill="#64748b">/data-sekolah/tahun-anggaran</text>
+<text x="44" y="1598" font-size="13" fill="#0f172a">Sumber Dana</text>
+<text x="420" y="1598" font-size="11" fill="#64748b">/data-sekolah/sumber-dana</text>
+<text x="44" y="1618" font-size="13" fill="#0f172a">Status Sinkronisasi ke Pusat</text>
+<text x="420" y="1618" font-size="11" fill="#64748b">/data-sekolah/sinkronisasi</text>
+<text x="24" y="1638" font-size="14" font-weight="700" fill="#4f46e5">operator · Impor ARKAS</text>
+<text x="44" y="1660" font-size="13" fill="#0f172a">Impor ARKAS (unggah)</text>
+<text x="420" y="1660" font-size="11" fill="#64748b">/impor-arkas</text>
+<text x="44" y="1680" font-size="13" fill="#0f172a">Cek Ulang Integritas Impor</text>
+<text x="420" y="1680" font-size="11" fill="#64748b">/impor-arkas/cek-integritas</text>
+<text x="24" y="1700" font-size="14" font-weight="700" fill="#4f46e5">kepsek · Kepala Sekolah</text>
+<text x="44" y="1722" font-size="13" fill="#0f172a">Dashboard (kepsek)</text>
+<text x="420" y="1722" font-size="11" fill="#64748b">/dashboard</text>
+<text x="44" y="1742" font-size="13" fill="#0f172a">BKU (kepsek)</text>
+<text x="420" y="1742" font-size="11" fill="#64748b">/pembukuan/bku</text>
+<text x="44" y="1762" font-size="13" fill="#0f172a">LPJ per Tahap (kepsek)</text>
+<text x="420" y="1762" font-size="11" fill="#64748b">/laporan/lpj</text>
+<text x="24" y="1782" font-size="14" font-weight="700" fill="#4f46e5">dinas · Panel Dinas</text>
+<text x="44" y="1804" font-size="13" fill="#0f172a">Dashboard Wilayah</text>
+<text x="420" y="1804" font-size="11" fill="#64748b">/dinas</text>
+<text x="44" y="1824" font-size="13" fill="#0f172a">Sekolah</text>
+<text x="420" y="1824" font-size="11" fill="#64748b">/dinas/sekolah</text>
+<text x="44" y="1844" font-size="13" fill="#0f172a">Sekolah — Detail</text>
+<text x="420" y="1844" font-size="11" fill="#64748b">/dinas/sekolah/CONTOH</text>
+<text x="44" y="1864" font-size="13" fill="#0f172a">Pagu / Alokasi</text>
+<text x="420" y="1864" font-size="11" fill="#64748b">/dinas/alokasi</text>
+<text x="44" y="1884" font-size="13" fill="#0f172a">Konsolidasi Wilayah</text>
+<text x="420" y="1884" font-size="11" fill="#64748b">/dinas/konsolidasi</text>
+<text x="44" y="1904" font-size="13" fill="#0f172a">RKAS Masuk</text>
+<text x="420" y="1904" font-size="11" fill="#64748b">/dinas/rkas</text>
+<text x="44" y="1924" font-size="13" fill="#0f172a">Kontrol Tahap</text>
+<text x="420" y="1924" font-size="11" fill="#64748b">/dinas/tahap</text>
+<text x="44" y="1944" font-size="13" fill="#0f172a">Pengguna</text>
+<text x="420" y="1944" font-size="11" fill="#64748b">/dinas/pengguna</text>
+<text x="44" y="1964" font-size="13" fill="#0f172a">Master Data</text>
+<text x="420" y="1964" font-size="11" fill="#64748b">/dinas/master</text>
+<text x="44" y="1984" font-size="13" fill="#0f172a">Keamanan</text>
+<text x="420" y="1984" font-size="11" fill="#64748b">/dinas/keamanan</text>
+<text x="44" y="2004" font-size="13" fill="#0f172a">Log Aktivitas</text>
+<text x="420" y="2004" font-size="11" fill="#64748b">/dinas/aktivitas</text>
+<text x="44" y="2024" font-size="13" fill="#0f172a">Pengumuman</text>
+<text x="420" y="2024" font-size="11" fill="#64748b">/dinas/pengumuman</text>
+<text x="44" y="2044" font-size="13" fill="#0f172a">LPJ Wilayah</text>
+<text x="420" y="2044" font-size="11" fill="#64748b">/dinas/lpj</text>
+</svg>
