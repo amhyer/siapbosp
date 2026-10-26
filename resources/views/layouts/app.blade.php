@@ -269,6 +269,13 @@
             $pajakIngat = $u->school_id ? (int) \App\Models\KasTax::where('status', 'belum')
                 ->whereHas('transaksi', fn ($q) => $q->where('school_id', $u->school_id)->where('type', 'belanja'))->sum('nilai') : 0;
           @endphp
+          {{-- Badge versi ala "Perbarui Aplikasi" ARKAS 4: angka versi + tautan ke Bantuan.
+               Kelas dipilih dari yang sudah ada di public/build (tanpa build ulang aset). --}}
+          <a href="{{ route('bantuan') }}#versi"
+             class="hidden whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-0.5 align-middle text-[11px] font-semibold text-slate-600 hover:bg-slate-50 md:inline"
+             title="SiapBOSP {{ config('app.version', 'v4.3.0') }} — selaras ARKAS 4 v4.3.0. Klik untuk versi &amp; pembaruan.">
+            ⟳ {{ config('app.version', 'v4.3.0') }}
+          </a>
           <details class="relative" data-dropdown>
             <summary class="relative inline-block cursor-pointer select-none list-none rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-lg leading-none hover:bg-slate-50 [&::-webkit-details-marker]:hidden" title="Notifikasi" aria-label="Notifikasi">🔔
               @if($notifBelum)<span class="absolute -right-2 -top-2 min-w-5 rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-5 text-white">{{ $notifBelum }}</span>@endif
@@ -302,7 +309,7 @@
             @csrf
             <label for="tahun-anggaran" class="hidden text-slate-500 md:inline">Tahun Anggaran</label>
             <select id="tahun-anggaran" name="tahun" class="inp inp-sm !w-auto" data-kirim-otomatis>
-              @for($y = 2023; $y <= 2028; $y++) <option value="{{ $y }}" @selected($tahunAktif === $y)>{{ $y }}</option> @endfor
+              @for($y = 2023; $y <= max(2028, (int) $tahunAktif); $y++) <option value="{{ $y }}" @selected($tahunAktif === $y)>{{ $y }}</option> @endfor
             </select>
           </form>
           {{-- Dropdown profil ala ARKAS 4: nama sekolah + data sekolah + Keluar --}}

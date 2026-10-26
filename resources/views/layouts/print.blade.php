@@ -18,6 +18,12 @@
   .toolbar a,.toolbar button{border:1px solid #cbd5e1;background:#fff;border-radius:.5rem;padding:.4rem .8rem;font-size:.82rem;text-decoration:none;color:#0f172a;cursor:pointer}
   .toolbar a:hover,.toolbar button:hover{background:#f1f5f9}
   .ttd{display:flex;justify-content:flex-end;margin-top:2rem}
+  /* Footer jejak cetak: ikut tercetak (tanpa .nonprint) agar dokumen tidak
+     disangka keluaran resmi ARKAS. */
+  .cetak-footer{margin-top:1.75rem;border-top:1px solid #cbd5e1;padding-top:.4rem;
+    display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;
+    font-size:.68rem;line-height:1.35;color:#64748b}
+  .cetak-footer b{color:#334155}
   .ttd-grid{display:grid;grid-template-columns:1fr 1fr;gap:3.5rem;text-align:center;font-size:.82rem}
   /* Kompatibilitas kelas Tailwind yang dipakai di isi LPJ cetak */
   .text-center{text-align:center}.text-right{text-align:right}.text-justify{text-align:justify}
@@ -43,6 +49,10 @@
 </head>
 <body>
 @yield('content')
+<footer class="cetak-footer">
+  <span>Dicetak dari <b>SiapBOSP {{ config('app.version', 'v4.3.0') }}</b> — bukan dokumen resmi ARKAS.</span>
+  <span>Cetak {{ now()->format('d/m/Y H:i') }} · {{ $sekolah->nama ?? auth()->user()?->school?->nama ?? '—' }} · TA {{ session('tahun', now()->year) }}</span>
+</footer>
 @include('layouts._interaksi')
 @include('layouts._cetak-preview')
 </body>

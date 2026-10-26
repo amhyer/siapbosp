@@ -42,6 +42,24 @@
     </ol>
   </div>
 
+  {{-- Aturan rincian (target kolom Panduan pada baris Kertas Kerja) --}}
+  <div class="card" id="rincian" style="scroll-margin-top:6rem">
+    <h3 class="font-semibold text-slate-700 text-sm mb-2">📘 Aturan menulis satu baris rincian</h3>
+    <ul class="list-disc space-y-1.5 pl-5 text-xs text-slate-600">
+      <li><b>Uraian maksimal 500 karakter</b> — lebih dari itu ditolak saat menyimpan.</li>
+      <li><b>Kode rekening wajib</b> dipilih; baris tanpa rekening membuat pengajuan diblokir.</li>
+      <li><b>Harga satuan</b> sebaiknya tidak melebihi standar harga (SSH/SBU) di
+        <a href="{{ route('referensi.harga') }}" class="text-indigo-600 underline">Referensi Harga</a>.
+        Kelebihan harga memunculkan peringatan, bukan blokir.</li>
+      <li><b>Proporsi komponen</b> (buku, honor, sarpras) mengikuti Permendikdasmen No. 8 Tahun 2026 dan
+        diperiksa di <a href="{{ route('penganggaran.review') }}" class="text-indigo-600 underline">Review &amp; Proporsi</a>.</li>
+      <li><b>Belum Dianggarkan harus Rp 0</b> sebelum tombol <b>Ajukan</b> aktif.</li>
+    </ul>
+    <p class="mt-2 text-[11px] text-slate-400">
+      Di ARKAS 4 aturan ini ditegakkan server Dinas; di SiapBOSP sebagian berupa peringatan agar sekolah tetap bisa bekerja offline.
+    </p>
+  </div>
+
   {{-- Dokumentasi teknis di folder aplikasi --}}
   <div class="card">
     <h3 class="font-semibold text-slate-700 text-sm mb-2">📚 Dokumentasi teknis (folder <code>docs/</code>)</h3>
@@ -55,8 +73,8 @@
     <p class="text-[11px] text-slate-400 mt-2">Berkas ini ada di folder aplikasi, tidak ditampilkan di dalam web.</p>
   </div>
 
-  {{-- Versi & pembaruan --}}
-  <div class="card">
+  {{-- Versi & pembaruan (target tautan badge versi di topbar) --}}
+  <div class="card" id="versi" style="scroll-margin-top:6rem">
     <h3 class="font-semibold text-slate-700 text-sm mb-2">↻ Versi &amp; pembaruan</h3>
     <dl class="grid grid-cols-[9rem_1fr] gap-y-1.5 text-xs">
       <dt class="text-slate-500">SiapBOSP</dt>

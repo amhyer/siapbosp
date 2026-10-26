@@ -323,14 +323,22 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 - Data yang sudah diketik tidak hilang saat mundur/maju karena panel hanya disembunyikan, bukan dibuang.
 - Pagar regresi: `tests/Feature/WizardBelanjaTest.php` (urutan langkah, tombol non-submit, kelengkapan `name=`, lampiran di langkah 1, larangan `on*` inline).
 
-### P2 — Kecil tapi murah
+### P2 — Kecil tapi murah · ✅ sudah diimplementasikan
 
-| Usulan | Alasan |
-|---|---|
-| Badge "versi ARKAS terbaru" di topbar (pakai `pengaturan.versi` yang sudah ada) | meniru "Perbarui Aplikasi" |
-| Tombol tahun anggaran di topbar | ARKAS taruh di Profil; SiapBOSP punya `datasekolah.tahun` yang terkubur |
-| Footer cetak: *"Dicetak dari SiapBOSP — bukan dokumen resmi ARKAS"* | mencegah salah pakai di Dinas |
-| Kolom **Panduan** (tautan Juknis) per baris rincian | dikerjakan sekali di partial |
+| Usulan | Alasan | Status |
+|---|---|---|
+| Badge versi di topbar | meniru "Perbarui Aplikasi" | ✅ `config('app.version')` di topbar → `bantuan#versi` |
+| Tombol tahun anggaran di topbar | ARKAS taruh di Profil; SiapBOSP punya `datasekolah.tahun` yang terkubur | ✅ sudah ada sebelumnya; **rentang tahunnya diperlebar** agar tahun di luar 2023–2028 tetap muncul terpilih |
+| Footer cetak: *"Dicetak dari SiapBOSP — bukan dokumen resmi ARKAS"* | mencegah salah pakai di Dinas | ✅ di `layouts.print`, jadi berlaku untuk **semua** halaman cetak |
+| Kolom **Panduan** (tautan Juknis) per baris rincian | dikerjakan sekali di partial | ✅ `partials/_panduan-rincian.blade.php` dipakai tabel rincian Kertas Kerja |
+
+**Yang sudah jadi / catatan:**
+- `config('app.version')` sebelumnya **tidak ada** di `config/app.php`; halaman Bantuan memanggilnya dengan fallback `v4.3.0` sehingga badge dan halaman selalu menampilkan angka cadangan. Kunci config-nya kini ditambahkan (bisa ditimpa lewat `APP_VERSION`), jadi versi punya satu sumber.
+- Badge hanya tampil di layar ≥ `md` (kelas dipilih dari CSS yang sudah ter-build; `sm:flex`/`sm:block` tidak ada di build sehingga tidak mungkin dipakai tanpa build ulang aset).
+- Footer cetak **ikut tercetak** (tanpa kelas `nonprint`) dan memuat versi, waktu cetak, nama sekolah, dan tahun anggaran.
+- Kolom Panduan berisi tiga tautan per baris: **Aturan uraian & proporsi** (`bantuan#rincian`, bagian baru di halaman Bantuan), **Standar harga rekening ini** (`referensi.harga?q=<kode rekening>`), dan **Review & proporsi** (`penganggaran.review`). Semua rute internal — tidak ada ketergantungan internet.
+- Halaman Bantuan dapat dua anchor (`#versi`, `#rincian`) dengan `scroll-margin-top` inline karena kelas `scroll-mt-24` tidak ter-build.
+- Pagar regresi: `tests/Feature/P2ArkasParitasTest.php` (5 test).
 
 
 ---
@@ -372,7 +380,7 @@ Lembar gabungan semua panel: [`mockup/00-semua-tampilan.png`](mockup/00-semua-ta
 | **S3** | ~~P1-5 tab BKU + badge pajak~~ ✅ · ~~P1-6 format cetak~~ ✅ | sedang | selesai |
 | **S4** | P1-4 kartu sumber dana | sedang | mengubah halaman depan `rkas.index` |
 | **S5** | ~~P1-7 wizard belanja~~ ✅ | sedang–tinggi (form sentral) | selesai — lihat `WizardBelanjaTest` |
-| **S6** | P2 sekumpulan kecil | rendah | bisa digabung ke sprint mana pun |
+| **S6** | ~~P2 sekumpulan kecil~~ ✅ | rendah | selesai |
 
 Tiap sprint: `php artisan test`, uji cetak (A4), dan cek `Belum Dianggarkan` pada data nyata.
 
