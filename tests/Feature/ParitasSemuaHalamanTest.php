@@ -143,10 +143,17 @@ class ParitasSemuaHalamanTest extends TestCase
 
         preg_match_all('#href="([^"]+)"#', $blok[0], $cocok);
 
-        return array_values(array_unique(array_filter(
-            $cocok[1],
-            fn ($u) => str_starts_with($u, '/') && $u !== '#'
-        )));
+        // route() menghasilkan URL absolut (http://localhost/rkas), jadi
+        // ambil bagian path-nya agar bisa diminta langsung oleh $this->get().
+        $tautan = [];
+        foreach ($cocok[1] as $u) {
+            $path = parse_url($u, PHP_URL_PATH);
+            if (is_string($path) && $path !== '' && $path !== '/keluar') {
+                $tautan[$path] = true;
+            }
+        }
+
+        return array_keys($tautan);
     }
 
     /** @param  list<string>  $tautan */
