@@ -62,9 +62,10 @@ class BkuCetakFormatTest extends TestCase
 
         $this->actingAs($this->op);
 
-        // Kas 2026: Jan +10jt (tahap 1), Feb -1jt (tahap 1) +5jt (tahap 2), Mar -2jt (tahap 2)
+        // Kas 2026: Jan +10jt (tahap 1), Feb -1jt (tahap 1) +5jt (tahap 2), Mar -2jt (tahap 2).
+        // Semua lewat Kas Bank karena pendapatan.store selalu mencatat ke bank.
         $this->pencairan('2026-01-10', 10_000_000, $this->tahap1);
-        $this->belanja('2026-02-05', 1_000_000, $this->tahap1, 'tunai');
+        $this->belanja('2026-02-05', 1_000_000, $this->tahap1, 'transfer');
         $this->pencairan('2026-02-20', 5_000_000, $this->tahap2);
         $this->belanja('2026-03-15', 2_000_000, $this->tahap2, 'transfer');
     }
@@ -153,8 +154,9 @@ class BkuCetakFormatTest extends TestCase
             ->assertSee('15-03-2026')
             ->assertSee('Format : <b>Tahunan</b>', false);
 
-        // 10jt - 1jt + 5jt - 2jt
+        // 10jt - 1jt + 5jt - 2jt; blok penutup harus menjumlah ke angka yang sama
         $r->assertSee('Saldo Buku Kas Umum : <b>Rp 12.000.000</b>', false);
+        $r->assertSee('Jumlah : <b>Rp 12.000.000</b>', false);
         // Tanda tangan ikut akhir rentang, bukan bulan acuan.
         $r->assertSee('31 Desember 2026');
     }
@@ -186,6 +188,9 @@ class BkuCetakFormatTest extends TestCase
         // Baris terakhir tahap 1 di 05-02: 10jt - 1jt. Pencairan tahap 2 (20 Feb)
         // terjadi sesudahnya, jadi tidak boleh masuk penutup.
         $r->assertSee('Saldo Buku Kas Umum : <b>Rp 9.000.000</b>', false);
+        // Penutup memakai snapshot baris terakhir tahap 1, bukan posisi 31 Desember:
+        // tanpa snapshot, blok ini akan menjumlah ke 14jt sementara saldo 9jt.
+        $r->assertSee('Jumlah : <b>Rp 9.000.000</b>', false);
 
         // Tahap 2 memuat barisnya sendiri.
         $this->cetak(['bulan' => '2026-03', 'format' => 'tahapan', 'tahap' => $this->tahap2->id])
