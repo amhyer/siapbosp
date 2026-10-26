@@ -6,7 +6,7 @@
 <meta name="description" content="SiapBOSP — Sistem Akuntansi Dana BOSP multi sekolah: perencanaan, pembukuan, dan pelaporan.">
 <link rel="icon" href="/favicon.ico">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#4f46e5">
+<meta name="theme-color" content="#1a56db">
 <link rel="apple-touch-icon" href="/icons/icon.svg">
 @use('App\Support\Aset')
 <title>{{ $title ?? 'SiapBOSP' }} — SiapBOSP</title>
