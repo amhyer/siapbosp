@@ -36,6 +36,23 @@ pemanggil kosong (`php artisan serve` mewarisi `$_ENV` yang bisa kosong).
 
 Konfigurasi: `%APPDATA%\SiapBOS-Agen\config.json` (server + token).
 
+## `cek-sumber-dana.js` — probe read-only daftar sumber dana
+
+Dipakai **sebelum** fitur "Sumber Dana Tambahan" per sekolah dibangun (dan
+kapan pun daftar sumber dana ARKAS perlu diperiksa). Membuka `arkas.db`
+read-only, lalu menulis laporan teks: tabel apa pun yang namanya mengandung
+"sumber" (skema + isi), sumber dana yang dipakai di `anggaran`/`kas_umum` per
+tahun, dan sumber dana/ID yang dipakai tetapi tidak ada di `ref_sumber_dana`.
+
+```
+node cek-sumber-dana.js --db "C:\salinan\arkas.db" --keluar hasil-sumber-dana.txt
+```
+
+Tidak menulis ke database, tidak mengunggah apa pun. Tanpa Node terpasang,
+salin berkas ini ke folder `agen\TarikArkas\` (bersama `node.exe` + `lib\`)
+lalu jalankan `node.exe cek-sumber-dana.js`. Panduan lengkap untuk operator:
+[`../docs/UJI-ARKAS-LAPTOP-SUMBER-DANA.md`](../docs/UJI-ARKAS-LAPTOP-SUMBER-DANA.md).
+
 ## Membuat paket portable (`dist-portable/TarikArkas/`)
 
 Single-`.exe` murni tidak memungkinkan: modul SQLite-native (SQLCipher)
