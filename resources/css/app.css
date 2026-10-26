@@ -6,11 +6,36 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-brand-50: #eef2ff;
-    --color-brand-100: #e0e7ff;
-    --color-brand-500: #6366f1;
-    --color-brand-600: #4f46e5;
-    --color-brand-700: #4338ca;
+
+    /* ===================================================================
+       PALET ARKAS 4
+       ARKAS memakai biru tua (#1a56db) dengan sudut tegas, bukan indigo
+       dengan sudut membulat besar. Seluruh view di proyek ini memakai
+       utilitas `indigo-*`, jadi peta indigo → biru dipasang SEKALI di sini
+       dan semua halaman ikut berubah tanpa menyentuh view satu per satu.
+       =================================================================== */
+    --color-indigo-50: #eff6ff;
+    --color-indigo-100: #dbeafe;
+    --color-indigo-200: #bfdbfe;
+    --color-indigo-300: #93c5fd;
+    --color-indigo-400: #60a5fa;
+    --color-indigo-500: #3b82f6;
+    --color-indigo-600: #1a56db;
+    --color-indigo-700: #1e429f;
+    --color-indigo-800: #1e3a8a;
+    --color-indigo-900: #172554;
+    --color-indigo-950: #172554;
+
+    --color-brand-50: #eff6ff;
+    --color-brand-100: #dbeafe;
+    --color-brand-500: #3b82f6;
+    --color-brand-600: #1a56db;
+    --color-brand-700: #1e429f;
+
+    /* Sudut ARKAS: kartu & tombol tidak lagi membulat besar. */
+    --radius-lg: 6px;
+    --radius-xl: 8px;
+    --radius-2xl: 10px;
 }
 
 @layer base {
@@ -26,10 +51,10 @@
 @layer components {
     /* ===== Form ===== */
     .inp {
-        @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm transition;
+        @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 transition;
     }
     .inp:focus {
-        @apply border-indigo-500 outline-none ring-2 ring-indigo-200;
+        @apply border-indigo-600 outline-none ring-2 ring-indigo-100;
     }
     .inp-sm {
         @apply px-2.5 py-1.5 text-[13px];
@@ -43,13 +68,13 @@
 
     /* ===== Tombol ===== */
     .btn {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 active:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 active:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60;
     }
     .btn2 {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-[13px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-200;
+        @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-200;
     }
     .btn-danger {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-rose-700;
+        @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-rose-700;
     }
     .btn-sm {
         @apply px-3 py-1.5 text-xs;
@@ -57,22 +82,22 @@
 
     /* ===== Kartu & tabel ===== */
     .card {
-        @apply rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.06)] sm:p-5;
+        @apply rounded-xl border border-slate-200 bg-white p-4 sm:p-5;
     }
     .card-title {
         @apply text-sm font-semibold text-slate-700;
     }
     .tbl-wrap {
-        @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:rounded-xl sm:border sm:border-slate-200 sm:px-0;
+        @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:rounded-lg sm:border sm:border-slate-200 sm:px-0;
     }
     .tbl {
-        @apply w-full min-w-[640px] border-collapse text-[13px];
+        @apply w-full min-w-[640px] border-collapse text-[12.5px];
     }
     .tbl th {
-        @apply border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+        @apply border-b border-slate-200 bg-slate-50 px-2.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500;
     }
     .tbl td {
-        @apply border-b border-slate-100 px-3 py-2.5 align-top text-slate-700;
+        @apply border-b border-slate-100 px-2.5 py-2 align-top text-slate-700;
     }
     .tbl tbody tr:last-child td {
         @apply border-b-0;
@@ -87,7 +112,7 @@
         @apply whitespace-nowrap text-right tabular-nums;
     }
     .badge {
-        @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold;
+        @apply inline-flex items-center gap-1 whitespace-nowrap rounded px-2 py-0.5 text-[11px] font-semibold;
     }
     .bdan {
         @apply bg-indigo-100 text-indigo-700 hover:bg-indigo-200;
@@ -98,13 +123,13 @@
 
     /* ===== Sidebar ===== */
     .navw a, .navw .menu-btn {
-        @apply flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13.5px] text-slate-300 no-underline transition;
+        @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] text-slate-300 no-underline transition;
     }
     .navw a:hover, .navw .menu-btn:hover {
         @apply bg-white/10 text-white no-underline;
     }
     .navw a.on {
-        @apply bg-indigo-600 font-semibold text-white shadow-sm;
+        @apply bg-indigo-600 font-semibold text-white;
     }
     .navw .menu-btn {
         @apply font-semibold text-slate-200;
@@ -141,7 +166,7 @@
         @apply shrink-0;
     }
     .navw-util {
-        @apply flex items-center gap-2.5 rounded-xl px-3 py-2 text-[12.5px] text-slate-400 no-underline transition;
+        @apply flex items-center gap-2.5 rounded-md px-3 py-2 text-[12.5px] text-slate-400 no-underline transition;
     }
     .navw-util:hover {
         @apply bg-white/10 text-white no-underline;
@@ -152,7 +177,7 @@
 
     /* ===== Alert & empty ===== */
     .alert {
-        @apply flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm;
+        @apply flex items-start gap-2.5 rounded-md border px-4 py-3 text-sm;
     }
     .alert-ok { @apply border-emerald-200 bg-emerald-50 text-emerald-800; }
     .alert-warn { @apply border-amber-200 bg-amber-50 text-amber-800; }
@@ -167,7 +192,7 @@
         @apply mt-1 text-[13px] text-slate-500;
     }
     .toolbar {
-        @apply flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgb(15_23_42/0.06)] sm:p-5 !py-3;
+        @apply flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:p-5 !py-3;
     }
 
     /* ===== Pagination Laravel ===== */

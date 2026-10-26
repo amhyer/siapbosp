@@ -343,7 +343,15 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 
 ---
 
-## 4a. Gambar tampilan usulan
+## 4a. Sistem tampilan (dipakai semua halaman)
+
+Rupa seluruh halaman diatur dari satu tempat: `resources/css/app.css` (token `@theme` +
+kelas komponen `@layer components`) dan `resources/views/layouts/_gaya-darurat.blade.php`
+(jalur tanpa build). Palet ARKAS (biru `#1a56db`, sudut tegas, kartu pipih) dipasang
+sebagai pemetaan token sehingga satu perubahan berlaku untuk semua halaman.
+Rincian, aturan menambah UI, dan cara build ulang aset: [`SISTEM-TAMPILAN.md`](SISTEM-TAMPILAN.md).
+
+## 4b. Gambar tampilan usulan
 
 Berkas PNG di `docs/mockup/` (digambar manual dengan Pillow, teks & angka identik dengan dokumen ini — **bukan** hasil AI generator). Sumber: `docs/mockup/render_mockup.py`.
 

@@ -9,7 +9,7 @@
     </select>
   </form>
   <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button>
-  <a href="{{ route('laporan.lpj', ['stage' => $stageId]) }}" data-cetak="LPJ Lengkap" style="background:#eef2ff;border-color:#c7d2fe">📦 LPJ Lengkap</a>
+  <a href="{{ route('laporan.lpj', ['stage' => $stageId]) }}" data-cetak="LPJ Lengkap" style="background:#eff6ff;border-color:#bfdbfe">📦 LPJ Lengkap</a>
   <a href="{{ route('laporan.lpj.zip', ['stage' => $stageId]) }}" style="background:#ecfdf5;border-color:#6ee7b7">⬇️ Paket ZIP</a>
   <a href="{{ route('laporan.lpj.pdf', ['stage' => $stageId]) }}" style="background:#fef2f2;border-color:#fca5a5;font-weight:700">📕 PDF Asli</a>
   <a href="{{ route('laporan.lpj.xlsx', ['stage' => $stageId]) }}" style="background:#f0fdf4;border-color:#86efac;font-weight:700">📗 Excel 4 Sheet</a>
@@ -38,7 +38,7 @@
   @endif
   @if($terkunci && (!$lpj || $lpj->status === 'ditolak'))
     <form method="post" action="{{ route('laporan.lpj.kumpulkan', $stageId) }}" data-konfirmasi="Kirim LPJ tahap ini ke Dinas untuk ditinjau?">@csrf
-      <button style="background:#4f46e5;color:#fff;font-weight:700;border-color:#4f46e5">{{ $lpj ? '🔄 Kirim Ulang LPJ ke Dinas' : '📨 Kirim LPJ ke Dinas' }}</button>
+      <button style="background:#1a56db;color:#fff;font-weight:700;border-color:#1a56db">{{ $lpj ? '🔄 Kirim Ulang LPJ ke Dinas' : '📨 Kirim LPJ ke Dinas' }}</button>
     </form>
   @endif
 </div>
