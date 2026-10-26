@@ -194,4 +194,47 @@ class BkuBulanTest extends TestCase
         $this->assertFalse(BkuTutupBulan::terkunciBulan($this->sid + 1, '2025-04')); // sekolah lain tak terkunci
         $this->assertSame(['2025-04'], BkuTutupBulan::bulanTerkunci($this->sid, 2025));
     }
+
+    /**
+     * Aksi cepat di lembar BKU (sisa P1-5): catat dana masuk atau belanja tanpa
+     * pindah menu, seperti tombol di lembar BKU ARKAS 4.
+     *
+     * Tombolnya tautan biasa — bukan handler atribut inline — karena CSP
+     * memasang `script-src-attr 'none'`.
+     */
+    public function test_lembar_bku_memuat_aksi_cepat_penerimaan_dan_belanja(): void
+    {
+        $html = $this->withSession(['tahun' => 2025])
+            ->get('/pembukuan/bku?bulan=2025-02')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Tambah Penerimaan Dana', $html);
+        $this->assertStringContainsString('href="'.route('pendapatan.index').'"', $html);
+        $this->assertStringContainsString('Tambah Pembelanjaan', $html);
+        $this->assertStringContainsString('href="'.route('belanja.create').'"', $html);
+
+        // Keduanya harus tautan, bukan tombol ber-onclick (patuh CSP).
+        $this->assertDoesNotMatchRegularExpression('/<a[^>]*\son(click|change)=/i', $html);
+        $this->assertMatchesRegularExpression(
+            '/<a href="[^"]*penerimaan\/pendapatan"[^>]*class="btn"[^>]*>\s*➕?\s*Tambah Penerimaan Dana/',
+            $html, 'Aksi "Tambah Penerimaan Dana" harus tautan bergaya .btn.');
+    }
+
+    /** Saat bulan sudah ditutup, aksi cepat disembunyikan (selaras Tutup BKU). */
+    public function test_aksi_cepat_hilang_pada_bulan_terkunci(): void
+    {
+        $this->kok('2025-01-10', 5_000_000);
+        $this->withSession(['tahun' => 2025])->post(route('bku.tutup'), ['bulan' => '2025-01'])
+            ->assertSessionHas('ok');
+
+        $terkunci = $this->withSession(['tahun' => 2025])
+            ->get('/pembukuan/bku?bulan=2025-01')->assertOk()->getContent();
+        $this->assertStringNotContainsString('Tambah Penerimaan Dana', $terkunci);
+        $this->assertStringNotContainsString('Tambah Pembelanjaan', $terkunci);
+
+        // Bulan yang masih terbuka tetap menampilkan aksi cepat.
+        $terbuka = $this->withSession(['tahun' => 2025])
+            ->get('/pembukuan/bku?bulan=2025-02')->assertOk()->getContent();
+        $this->assertStringContainsString('Tambah Penerimaan Dana', $terbuka);
+        $this->assertStringContainsString('Tambah Pembelanjaan', $terbuka);
+    }
 }

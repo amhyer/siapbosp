@@ -26,6 +26,15 @@
     <span class="text-slate-500">Lompat ke bulan:</span>
     <input type="month" name="bulan" value="{{ $bulan }}" class="inp !w-auto" data-kirim-otomatis>
   </form>
+  {{-- Aksi cepat ala ARKAS 4: catat dana masuk atau belanja langsung dari lembar
+       BKU tanpa pindah menu. Disembunyikan saat bulan terkunci karena server
+       sudah menolak pencatatan pada bulan tertutup (cekBulan). --}}
+  @unless ($terkunciBulanIni)
+  <div class="flex flex-wrap gap-2 items-center">
+    <a href="{{ route('pendapatan.index') }}" class="btn">➕ Tambah Penerimaan Dana</a>
+    <a href="{{ route('belanja.create') }}" class="btn2 btn">➕ Tambah Pembelanjaan</a>
+  </div>
+  @endunless
   <div class="flex flex-wrap gap-2 items-center">
     @unless ($terkunciBulanIni)
     <details class="relative">

@@ -274,14 +274,20 @@ Tampilan: (•) Akumulasi   ( ) per Sumber Dana        [🖨 Cetak daftar]
 
 Ikon hapus **tidak** ditambahkan karena belum ada rute hapus RKAS — lebih baik tidak ada tombol daripada tombol yang tidak berfungsi.
 
-### P1-5 — Grid 12 kotak bulan di BKU · ✅ sudah diimplementasikan (aksi inline belum)
+### P1-5 — Grid 12 kotak bulan + aksi cepat di BKU · ✅ sebagian besar (kilat kuning belum)
 
 - **Sudah:** grid 12 kotak bulan (4×3) di **atas** tabel BKU sebagai pemilih bulan utama, dengan tanda ✓ untuk bulan
   yang sudah selesai/tertutup; `<input type="month">` dipertahankan sebagai "Lompat ke bulan".
-- Tambah `+ Tambah Pembelanjaan` **di dalam** lembar BKU (dewasa ini harus pindah menu).
-- Tambah **Tarik Tunai / Setor Tunai** sebagai tombol di lembar (rute `ambil`/`mutasi` sudah ada).
-- **Kilat kuning** pada baris yang baru disimpan (`?baru={id}` + CSS animation).
-- Badge **Pajak Wajib Lapor** merah pada baris BKU + kartu pengingat di dashboard: *"Pajak bulan lalu belum dilaporkan — jatuh tempo tgl 20"*.
+- **Sudah:** aksi cepat **➕ Tambah Penerimaan Dana** (rute `pendapatan.index`) dan **➕ Tambah Pembelanjaan**
+  (rute `belanja.create`) langsung di toolbar lembar BKU, jadi tidak perlu pindah menu. Keduanya tautan biasa
+  (CSP `script-src-attr 'none'`), dan **disembunyikan saat bulan terkunci** — server memang sudah menolak
+  pencatatan pada bulan tertutup lewat `cekBulan()`. Dijaga `BkuBulanTest` (2 test).
+- **Sudah:** badge status per bulan, termasuk *⚠️ Belum Lapor Pajak* pada grid, serta pengingat tenggat tgl 20 di
+  dashboard — padanan "Pajak Wajib Lapor" ARKAS.
+- **Belum (sengaja):** **Tarik Tunai / Setor Tunai** sebagai tombol di lembar (rute `ambil`/`mutasi` sudah ada,
+  tetapi ini perpindahan antar-kas, bukan tambah transaksi — ditempatkan di menu Penerimaan agar tidak
+  membingungkan operator).
+- **Belum:** **kilat kuning** pada baris yang baru disimpan (`?baru={id}` + animasi CSS).
 
 ### P1-6 — Dropdown Format + Periode pada cetak BKU · ✅ sudah diimplementasikan
 
@@ -306,7 +312,7 @@ Sekaligus: **watermark DRAFT** dipindah jadi komponen bersama (`partials.waterma
 - Watermark DRAFT kini dihitung per **rentang**: bulanan = bulan itu saja, akumulasi = Januari s/d bulan terpilih, tahunan/tahapan = 12 bulan. Satu bulan terbuka saja sudah memunculkan DRAFT.
 - Nama bulan/hari pada dokumen sekarang Indonesia eksplisit (tidak lagi bergantung `APP_LOCALE`, yang default-nya `en`).
 - Format tak dikenal (`?format=ngawur`) jatuh ke Bulanan, bukan error.
-- Pagar regresi: `tests/Feature/BkuCetakFormatTest.php` (7 test).
+- Pagar regresi: `tests/Feature/BkuCetakFormatTest.php` (8 test).
 
 ### P1-7 — Wizard belanja berlabel 3 langkah · ✅ sudah diimplementasikan
 
@@ -385,7 +391,7 @@ Lembar gabungan semua panel: [`mockup/00-semua-tampilan.png`](mockup/00-semua-ta
 |---|---|---|---|
 | **S1** | ✅ P0-1 kosakata status + P0-2 gerbang ajukan (selesai) | rendah | mencegah salah kirim ke Dinas |
 | **S2** | P0-3 arsip terpadu | sedang (rute baru) | memperbaiki temuan operator paling sering |
-| **S3** | ~~P1-5 tab BKU + badge pajak~~ ✅ · ~~P1-6 format cetak~~ ✅ | sedang | selesai |
+| **S3** | ~~P1-5 tab BKU + badge pajak + aksi cepat~~ ✅ · ~~P1-6 format cetak~~ ✅ | sedang | selesai (kecuali kilat kuning) |
 | **S4** | P1-4 kartu sumber dana | sedang | mengubah halaman depan `rkas.index` |
 | **S5** | ~~P1-7 wizard belanja~~ ✅ | sedang–tinggi (form sentral) | selesai — lihat `WizardBelanjaTest` |
 | **S6** | ~~P2 sekumpulan kecil~~ ✅ | rendah | selesai |
