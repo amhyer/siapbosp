@@ -1,5 +1,13 @@
 @extends('layouts.app', ['title' => 'Belanja'])
 @section('content')
+{{-- Tab sumber dana ala ARKAS 4: menyaring daftar belanja per jenis BOS. --}}
+@include('partials._tab-sumber-dana', [
+  'rute' => route('belanja.index'),
+  'aktif' => $tabAktif,
+  'tabs' => $tabsSumber,
+  'query' => array_filter(['q' => $q ?? '']),
+  'semua' => 'Semua sumber dana',
+])
 <div class="flex flex-wrap justify-between items-center gap-2">
   <p class="text-sm text-slate-500">Pencatatan belanja Dana BOSP (tahun {{ $tahun }}).</p>
   <a href="{{ route('belanja.create') }}" class="btn">➕ Input Belanja</a>
@@ -45,7 +53,19 @@
         <td class="num font-semibold text-rose-700">{{ rp($t->total) }}</td>
         <td class="text-right whitespace-nowrap">
           <a href="{{ route('belanja.show', $t) }}" class="badge bdan">lihat</a>
-          <form method="post" action="{{ route('pengeluaran.destroy',$t) }}" class="inline" data-konfirmasi="Hapus belanja ini?">@csrf @method('DELETE')<button class="badge bdel">✖</button></form>
+          {{-- Hapus wajib beralasan: alasannya masuk Log Sistem (jejak audit). --}}
+          <details class="relative inline-block text-left">
+            <summary class="badge bdel cursor-pointer list-none" title="Hapus &amp; catat alasan">✖</summary>
+            <form method="post" action="{{ route('pengeluaran.destroy', $t) }}"
+                  class="absolute right-0 z-40 mt-1 w-60 space-y-1.5 rounded-lg border border-slate-200 bg-white p-2.5 text-xs shadow-xl">
+              @csrf @method('DELETE')
+              <div class="font-bold text-slate-700">Hapus belanja {{ rp($t->total) }}</div>
+              <label class="block font-semibold text-slate-600">Alasan (wajib, tercatat di Log Sistem)</label>
+              <input name="alasan" class="inp mt-1 text-xs" required minlength="5" maxlength="200"
+                     placeholder="mis. salah input nominal">
+              <button class="btn-danger btn btn-sm w-full justify-center">Hapus &amp; catat</button>
+            </form>
+          </details>
         </td>
       </tr>
       @empty

@@ -125,16 +125,52 @@ class ArsipController extends Controller
         ]);
     }
 
+    /**
+     * Daftar tahun yang pantas muncul di filter arsip.
+     *
+     * Dulunya rentangnya dipaku 2023–2028 di view, sehingga sekolah dengan
+     * arsip 2021/2022 tidak punya pilihan yang cocok dan select tampil tanpa
+     * nilai terpilih. Kini diambil dari data yang benar-benar ada, ditambah
+     * tahun sesi dan tahun yang sedang diminta.
+     *
+     * @return array<int,int>
+     */
+    private function daftarTahunArsip(int $sid, ?int $tahunDiminta = null): array
+    {
+        $tahun = RkasHeader::where('school_id', $sid)->pluck('tahun')
+            ->merge(BkuTutupBulan::where('school_id', $sid)->pluck('tahun'))
+            ->merge(TutupBuku::where('school_id', $sid)->pluck('tahun'))
+            ->merge(\App\Models\KasTransaction::where('school_id', $sid)->distinct()->pluck('tahun'))
+            ->map(fn ($t) => (int) $t)
+            ->push((int) session('tahun', now()->year));
+
+        if ($tahunDiminta) {
+            $tahun->push($tahunDiminta);
+        }
+
+        return $tahun->unique()->sortDesc()->values()->all();
+    }
+
     /** RKAS yang sudah disahkan/dikunci (dokumen sah untuk pemeriksaan). */
     public function rkas(Request $r)
     {
+        $sid = auth()->user()->school_id;
         $tahun = (int) $r->query('tahun', session('tahun', now()->year));
+        $sumber = trim((string) $r->query('sumber', ''));
+
         $items = RkasHeader::with('details')
             ->where('tahun', $tahun)
             ->whereIn('status', ['disahkan', 'dikunci'])
+            ->when($sumber !== '', fn ($q) => $q->where('sumber_dana', $sumber))
             ->orderByDesc('revisi_ke')->get();
 
-        return view('arsip.rkas', compact('items', 'tahun'));
+        $daftarTahun = $this->daftarTahunArsip((int) $sid, $tahun);
+        $daftarSumber = RkasHeader::where('school_id', $sid)
+            ->whereIn('status', ['disahkan', 'dikunci'])
+            ->where('tahun', $tahun)
+            ->distinct()->orderBy('sumber_dana')->pluck('sumber_dana')->filter()->values();
+
+        return view('arsip.rkas', compact('items', 'tahun', 'sumber', 'daftarTahun', 'daftarSumber'));
     }
 
     /** Periode BKU yang sudah ditutup (bulan & tahap). */
@@ -147,8 +183,9 @@ class ArsipController extends Controller
             ->orderByDesc('bulan')->get();
         $tahap = TutupBuku::where('school_id', $sid)->where('tahun', $tahun)
             ->with('stage')->orderByDesc('stage_id')->get();
+        $daftarTahun = $this->daftarTahunArsip((int) $sid, $tahun);
 
-        return view('arsip.bku', compact('bulan', 'tahap', 'tahun'));
+        return view('arsip.bku', compact('bulan', 'tahap', 'tahun', 'daftarTahun'));
     }
 
     /** Dokumen pajak: pajak dipungut, status setor/lapor, NTPN, & lampiran. */
@@ -160,8 +197,9 @@ class ArsipController extends Controller
         $pajak = KasTax::with(['transaksi', 'rekeningPajak'])
             ->whereHas('transaksi', fn ($q) => $q->where('school_id', $sid)->where('tahun', $tahun))
             ->orderByDesc('id')->limit(300)->get();
+        $daftarTahun = $this->daftarTahunArsip((int) $sid, $tahun);
 
-        return view('arsip.pajak', compact('pajak', 'tahun'));
+        return view('arsip.pajak', compact('pajak', 'tahun', 'daftarTahun'));
     }
 
     /** Riwayat impor data ARKAS (hanya sekolah ini). */

@@ -1,13 +1,13 @@
 @extends('layouts.print', ['title' => 'BKU ' . $labelPeriode])
 @section('content')
+{{-- Watermark DRAFT dipasang oleh layouts.print; $isDraft/$draftPesan dari
+     controller dihitung per rentang Format × Periode. --}}
 @php
   $sekolah = auth()->user()->school;
   $tglAwal = $awal->format('d-m-Y');
   $tglAkhir = $akhir->format('d-m-Y');
   $gayaPilih = 'border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .5rem;font-size:.82rem;background:#fff;font-family:inherit';
 @endphp
-@include('partials._watermark-draft')
-
 {{-- Pemilih Format + Periode ala ARKAS 4 (tampil di layar, tidak ikut tercetak). --}}
 <div class="toolbar nonprint">
   <form method="get" action="{{ route('bku.cetak') }}" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">

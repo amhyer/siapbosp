@@ -31,24 +31,12 @@
   </div>
 </div>
 
-{{-- ===== Tab sumber dana (ARKAS 4) ===== --}}
-<div class="card !p-0 overflow-hidden">
-  <div class="flex flex-wrap items-center gap-1 border-b border-slate-200 px-3" role="tablist" aria-label="Sumber dana">
-    @foreach($tabs as $kunci => $tab)
-      <a href="{{ route('rkas.index', ['tab' => $kunci]) }}"
-         role="tab"
-         aria-selected="{{ $tabAktif === $kunci ? 'true' : 'false' }}"
-         class="border-b-2 px-3.5 py-3 text-[13px] font-semibold no-underline transition
-                {{ $tabAktif === $kunci
-                    ? 'border-indigo-600 text-indigo-700'
-                    : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700' }}">
-        {{ $tab['label'] }}
-      </a>
-    @endforeach
-  </div>
+{{-- Tab sumber dana: partial bersama, bentuknya sama dengan halaman lain. --}}
+@include('partials._tab-sumber-dana', ['rute' => route('rkas.index'), 'aktif' => $tabAktif])
 
+<div class="card">
   {{-- ===== Satu baris per tahun anggaran ===== --}}
-  <div class="space-y-3 p-4">
+  <div class="space-y-3">
     @foreach($dokumen as $dok)
       @php $u = $dok['utama']; @endphp
       <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3.5">

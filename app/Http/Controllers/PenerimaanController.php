@@ -7,8 +7,10 @@ use App\Models\BkuTutupBulan;
 use App\Models\BosType;
 use App\Models\KasTransaction;
 use App\Models\Rekening;
+use App\Models\RkasHeader;
 use App\Models\Stage;
 use App\Models\TutupBuku;
+use App\Services\JejakHapus;
 use App\Services\KasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -34,9 +36,17 @@ class PenerimaanController extends Controller
         $b['rekenings'] = Rekening::pendapatan()->orderBy('kode')->get();
         $q = trim((string) request('q', ''));
         $b['q'] = $q;
+
+        // Tab sumber dana ala ARKAS 4: menyaring riwayat per jenis BOS.
+        $tab = (string) request('tab', '');
+        $tab = array_key_exists($tab, RkasHeader::TAB_SUMBER_DANA) ? $tab : '';
+        $b['tabAktif'] = $tab;
+        $b['tabsSumber'] = RkasHeader::TAB_SUMBER_DANA;
+
         $b['items'] = KasTransaction::where('type', 'pendapatan')->where('tahun', $b['tahun'])
             ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('keterangan', 'ilike', "%{$q}%")
                 ->orWhere('no_bukti', 'ilike', "%{$q}%")))
+            ->when($tab !== '', fn ($w) => $w->whereIn('bos_type_id', RkasHeader::bosTypeIds($tab)))
             ->orderByDesc('tanggal')->orderByDesc('id')->with('details.rekening')->paginate(15)->withQueryString();
         // ala ARKAS (konfirmasi penerimaan dana): pagu vs yang diterima (SILPA ikut disebut)
         $b['pagu'] = Allocation::where('tahun', $b['tahun'])->sum('nilai');
@@ -191,7 +201,7 @@ class PenerimaanController extends Controller
         return back()->with('ok', 'Setor tunai tersimpan: Tunai → Bank.');
     }
 
-    public function destroy(KasTransaction $kasTransaction)
+    public function destroy(Request $r, KasTransaction $kasTransaction)
     {
         abort_unless(in_array($kasTransaction->type, ['pendapatan', 'ambil_simpanan', 'mutasi_tunai_ke_bank']), 403);
         if (TutupBuku::terkunci(auth()->user()->school_id, $kasTransaction->tahun, $kasTransaction->stage_id)) {
@@ -203,9 +213,13 @@ class PenerimaanController extends Controller
         if (auth()->user()->role !== 'operator') {
             return back()->with('error', 'Hanya operator yang boleh menghapus.');
         }
+        // Setiap penghapusan wajib beralasan dan meninggalkan jejak audit
+        // (append-only), karena ARKAS 4 sendiri tidak mengenal hapus langsung.
+        $alasan = $r->validate(JejakHapus::aturan(), JejakHapus::pesan())['alasan'];
+        JejakHapus::catat($kasTransaction, $alasan);
         $kasTransaction->delete();
 
-        return back()->with('ok', 'Transaksi dihapus.');
+        return back()->with('ok', 'Transaksi dihapus dan tercatat di Log Sistem.');
     }
 
     /** Bukti kunci BKU bulanan (ala ARKAS): catatan pada bulan yang sudah ditutup diblokir. */

@@ -198,7 +198,7 @@ Detail perilaku yang penting ditiru:
 | # | Aspek | ARKAS 4 | SiapBOSP sekarang (bukti) | Selisih |
 |---|---|---|---|---|
 | 1 | Navigasi | 3 area kerja di sidebar + top bar identitas | 3 area kerja utama + 3 grup tambahan + utilitas (`layouts/app.blade.php`) | ✅ disamakan |
-| 2 | Halaman depan Penganggaran | tab sumber dana + daftar dokumen **per tahun** | daftar KK (`rkas.index`) + `datasekolah.sumber-dana` terpisah | **Belum ada baris per tahun + tab** |
+| 2 | Halaman depan Penganggaran | tab sumber dana + daftar dokumen **per tahun** | `rkas.index`: 6 tab + satu baris per tahun (partial `_tab-sumber-dana`) | ✅ disamakan |
 | 3 | Status KK | 7 status Dinas | 7 status internal (`RkasHeader::LABEL_STATUS`: draft, diajukan, disetujui, dikirim_dinas, revisi, disahkan, dikunci) | **Kosakata beda**, ada 2 tahap internal (Kepsek) |
 | 4 | Gerbang "Ajukan" | Belum Dianggarkan = Rp 0, Uraian ≤500, harga ≤ batas Dinas | "Belum Dianggarkan" **ditampilkan**; pembatas 500 char & batas harga belum ada | **Belum memblokir** |
 | 5 | Tab bulan KK | 12 tab | tab **Per Tahapan / Per Tahun** + select bulan | beda model, bukan kekurangan |
@@ -206,10 +206,10 @@ Detail perilaku yang penting ditiru:
 | 7 | BKU | 12 tab bulan, aksi inline, kilat kuning | `<input type="month">`, aksi belanja di menu lain | **Aksi terpencar** |
 | 8 | Tarik/Setor Tunai | tombol di lembar BKU | menu terpisah (`ambil.index`, `mutasi.index`) | setara fungsi, beda letak |
 | 9 | Badge pajak | merah di BKU + pengingat tgl 20 | badge "wajib lapor" **hanya di daftar belanja** | **Belum di BKU/dashboard** |
-| 10 | Hapus BKU | via pengajuan | 🔒 Tutup BKU ada; alur hapus belum berjejak | risiko audit |
+| 10 | Hapus BKU | via pengajuan | 🔒 Tutup BKU ada; hapus transaksi **wajib beralasan** dan tercatat di `activity_logs` (`JejakHapus`) | ✅ jejak audit ada; alur pengajuan ke pusat tidak ditiru (offline) |
 | 11 | Cetak BKU | dropdown Format + Periode | **satu format** (`bku-cetak.blade.php`) | **kurang 3 format** |
-| 12 | Watermark DRAFT | semua cetak bulan berjalan | **ada**, tapi hanya BKU | perlu diperluas |
-| 13 | Arsip | 1 halaman, 3 filter, 2 mode | 5 halaman terpisah; filter `tahun` saja (`rkas`, `pajak`), `bku` tanpa filter | **perlu disatukan** |
+| 12 | Watermark DRAFT | semua cetak bulan berjalan | **semua cetakan** (`layouts.print` + dokumen `.dokumen`), status dihitung `StatusDraft` | ✅ disamakan |
+| 13 | Arsip | 1 halaman, 3 filter, 2 mode | `/arsip` = 3 filter; sub-halaman memakai **partial filter bersama** (Tahun dari data, bukan rentang dipaku); `arsip/bku` kini berfilter | ✅ bentuk seragam; sub-halaman tetap ada |
 | 14 | Wizard belanja | 3 langkah berlabel | 1 form (`belanja-form.blade.php`) + rute `hitung-pajak` terpisah | **tanpa stepper** |
 | 15 | Sumber dana | 6–7 kartu, PAUD/Kesetaraan dikurangi | `RkasHeader::SUMBER_DANA_ARKAS` 7 nilai ✔ | setara |
 | 16 | Riwayat | 3 tahun | semua tahun ✔ | **SiapBOSP lebih baik** |
@@ -356,6 +356,20 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 
 
 ---
+
+## 3a. Sisa paritas yang memang belum sama
+
+Dicek ulang 2026-10-26 terhadap kode. Empat celah besar sudah ditutup (jejak hapus,
+watermark semua cetak, tab sumber dana, filter arsip seragam). Yang masih berbeda:
+
+| Hal | ARKAS 4 | SiapBOSP | Sifat |
+|---|---|---|---|
+| Pita tab di **semua** halaman | ada di setiap layar | ada di 3 halaman yang benar-benar menyaring (Kertas Kerja, Pendapatan, Belanja) | sengaja: tab tanpa penyaringan = tab mati |
+| Tombol Tarik/Setor Tunai di lembar BKU | ada | di menu Penerimaan | sengaja: perpindahan antar-kas, bukan tambah transaksi |
+| Tab *Sumber Dana Tambahan* | select sumber + "Unduh dan Perbarui Data" | kartu keterangan + tab dokumen | belum: butuh layanan pusat |
+| Utilitas bawah sidebar | 4 (Tutorial · Pertanyaan Umum · Hubungi Kami · Perbarui Aplikasi) | 2 (Bantuan & Panduan · Perbarui Aplikasi) | belum |
+| Ikon baris ✎ 🗑 🖨 | tiga aksi | Buka/PDF/Excel, tanpa hapus RKAS | sengaja: rute hapus RKAS belum ada |
+| Aktivasi BKU / Tutup BKU wajib internet | ya | tidak (offline) | sengaja — nilai jual SiapBOSP |
 
 ## 4a. Sistem tampilan (dipakai semua halaman)
 

@@ -4,13 +4,12 @@
 <div class="card">
   <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
     <h3 class="card-title mb-0">🗄️ RKAS Disahkan</h3>
-    <form method="get" class="flex gap-2 items-end">
-      <div><label class="lbl">Tahun</label>
-        <select name="tahun" class="inp !w-auto" data-kirim-otomatis>
-          @for($y = 2023; $y <= 2028; $y++)<option value="{{ $y }}" @selected($tahun === $y)>{{ $y }}</option>@endfor
-        </select>
-      </div>
-    </form>
+    @include('arsip.partials._filter', [
+      'tahun' => $tahun,
+      'daftarTahun' => $daftarTahun,
+      'sumberFields' => $daftarSumber,
+      'sumber' => $sumber,
+    ])
   </div>
   <div class="overflow-x-auto">
     <table class="tbl">

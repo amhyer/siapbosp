@@ -1,6 +1,8 @@
 @extends('layouts.app', ['title' => 'Buku Pembantu Rincian Objek Belanja'])
 @section('subtitle', 'Buku pembantu rincian objek belanja per semester — kerangka ARKAS 4, isi tetap berformat dokumen saat dicetak')
 @section('content')
+{{-- Dokumen berkerangka aplikasi tetap bertanda air DRAFT saat belum final. --}}
+@include('partials._watermark-draft')
 @php
   $namaSem = $semester === 1 ? 'Semester 1 (Januari–Juni)' : 'Semester 2 (Juli–Desember)';
   $bendahara = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'bendahara'));
