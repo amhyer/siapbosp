@@ -99,12 +99,12 @@ class BkuCetakFormatTest extends TestCase
     private function tutupSemuaBulan(): void
     {
         foreach (range(1, 12) as $n) {
-            BkuTutupBulan::create([
-                'school_id' => $this->sid,
-                'tahun' => 2026,
-                'bulan' => sprintf('2026-%02d', $n),
-                'ditutup_oleh' => 'operator',
-            ]);
+            // firstOrCreate: bulan yang sudah ditutup test lain tidak boleh ditulis ulang
+            // (tabel punya UNIQUE school_id + bulan).
+            BkuTutupBulan::firstOrCreate(
+                ['school_id' => $this->sid, 'bulan' => sprintf('2026-%02d', $n)],
+                ['tahun' => 2026, 'ditutup_oleh' => 'operator']
+            );
         }
     }
 
