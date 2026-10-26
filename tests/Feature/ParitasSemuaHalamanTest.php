@@ -178,9 +178,12 @@ class ParitasSemuaHalamanTest extends TestCase
                 }
             }
 
+            // Halaman biasa: tepat satu <h1> (judul di header kerangka).
+            // Halaman dokumen (.dokumen) boleh menambah judul sampul sendiri.
             $jumlahH1 = preg_match_all('#<h1[ >]#', $isi);
-            if ($jumlahH1 !== 1) {
-                $gagal[] = $u.' → '.$jumlahH1.' tag <h1> (harus tepat 1 di header)';
+            $dokumen = str_contains($isi, 'class="dokumen"');
+            if ($jumlahH1 < 1 || (! $dokumen && $jumlahH1 !== 1)) {
+                $gagal[] = $u.' → '.$jumlahH1.' tag <h1> (halaman non-dokumen harus tepat 1 di header)';
             }
         }
 
