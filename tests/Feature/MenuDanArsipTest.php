@@ -79,7 +79,12 @@ class MenuDanArsipTest extends TestCase
 
         // Dashboard tetap tautan langsung; "Data Sekolah" tidak lagi jadi grup sidebar.
         $this->assertStringContainsString('href="'.route('dashboard').'"', $nav, 'Dashboard bukan tautan langsung.');
-        $this->assertStringContainsString('📊 Dashboard', $nav);
+        $this->assertMatchesRegularExpression('#>Dashboard</a>#', $nav, 'Dashboard bukan tautan langsung.');
+
+        // ARKAS 4: sidebar tanpa ikon/emoji — label menu teks saja.
+        $this->assertDoesNotMatchRegularExpression(
+            '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $nav,
+            'Sidebar ARKAS 4 tanpa ikon; label menu harus berupa teks saja.');
         $this->assertStringNotContainsString('Beranda', $nav, 'Induk menu Beranda seharusnya sudah dihapus.');
         $this->assertStringNotContainsString('Tahun Anggaran', $nav,
             'Data Sekolah seharusnya pindah ke dropdown profil, bukan sidebar.');
