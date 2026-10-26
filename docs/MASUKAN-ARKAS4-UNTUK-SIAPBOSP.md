@@ -283,21 +283,30 @@ Ikon hapus **tidak** ditambahkan karena belum ada rute hapus RKAS — lebih baik
 - **Kilat kuning** pada baris yang baru disimpan (`?baru={id}` + CSS animation).
 - Badge **Pajak Wajib Lapor** merah pada baris BKU + kartu pengingat di dashboard: *"Pajak bulan lalu belum dilaporkan — jatuh tempo tgl 20"*.
 
-### P1-6 — Dropdown Format + Periode pada cetak BKU
+### P1-6 — Dropdown Format + Periode pada cetak BKU · ✅ sudah diimplementasikan
 
 Tambahkan `?format=` pada `pembukuan.bkuCetak`:
 
 | Format | Isi | Status |
 |---|---|---|
-| Bulanan | bulan terpilih | **sudah ada** |
-| Tahunan | Jan–Des satu tahun | baru |
-| Tahapan | per tahap salur | baru |
-| Akumulasi | seluruh transaksi s/d bulan terpilih | baru |
+| Bulanan | bulan terpilih | ✅ (default, perilaku lama) |
+| Tahunan | Jan–Des satu tahun | ✅ |
+| Tahapan | per tahap salur | ✅ |
+| Akumulasi | seluruh transaksi s/d bulan terpilih | ✅ |
 | Rekapitulasi Realisasi (Semester) | `pembukuan.rekapRealisasi` | sudah ada (rute lain) |
 | Buku Pembantu Rincian Objek Belanja | `pembukuan.bukuPembantu` | sudah ada (rute lain) |
 | SPTJM | `pembukuan.sptjm` | sudah ada (rute lain) |
 
 Sekaligus: **watermark DRAFT** dipindah jadi komponen bersama (`partials.watermark-draft`) yang dipakai **semua** cetak, bukan hanya BKU.
+
+**Yang sudah jadi:**
+- Toolbar cetak punya pemilih **Format** + **Periode** (dan **Tahap** saat format Tahapan) memakai `data-kirim-otomatis`, jadi tanpa atribut `onchange` (patuh CSP). Tombol `Terapkan` tetap ada sebagai cadangan tanpa JavaScript.
+- Kontrak hitung tidak berubah: kolom **Saldo** selalu posisi kas sesungguhnya per baris, baris **Saldo Awal** = posisi kas tepat sebelum tanggal awal periode. Format hanya mengubah rentang.
+- Blok penutup (Saldo Bank / Kas Tunai / Jumlah) memakai snapshot **baris terakhir yang dicetak**, sehingga tetap konsisten walau format Tahapan menyembunyikan baris tahap lain.
+- Watermark DRAFT kini dihitung per **rentang**: bulanan = bulan itu saja, akumulasi = Januari s/d bulan terpilih, tahunan/tahapan = 12 bulan. Satu bulan terbuka saja sudah memunculkan DRAFT.
+- Nama bulan/hari pada dokumen sekarang Indonesia eksplisit (tidak lagi bergantung `APP_LOCALE`, yang default-nya `en`).
+- Format tak dikenal (`?format=ngawur`) jatuh ke Bulanan, bukan error.
+- Pagar regresi: `tests/Feature/BkuCetakFormatTest.php` (7 test).
 
 ### P1-7 — Wizard belanja berlabel 3 langkah · ✅ sudah diimplementasikan
 
@@ -360,7 +369,7 @@ Lembar gabungan semua panel: [`mockup/00-semua-tampilan.png`](mockup/00-semua-ta
 |---|---|---|---|
 | **S1** | ✅ P0-1 kosakata status + P0-2 gerbang ajukan (selesai) | rendah | mencegah salah kirim ke Dinas |
 | **S2** | P0-3 arsip terpadu | sedang (rute baru) | memperbaiki temuan operator paling sering |
-| **S3** | P1-5 tab BKU + badge pajak + P1-6 format cetak | sedang | nilai tampilan tertinggi |
+| **S3** | ~~P1-5 tab BKU + badge pajak~~ ✅ · ~~P1-6 format cetak~~ ✅ | sedang | selesai |
 | **S4** | P1-4 kartu sumber dana | sedang | mengubah halaman depan `rkas.index` |
 | **S5** | ~~P1-7 wizard belanja~~ ✅ | sedang–tinggi (form sentral) | selesai — lihat `WizardBelanjaTest` |
 | **S6** | P2 sekumpulan kecil | rendah | bisa digabung ke sprint mana pun |

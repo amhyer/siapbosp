@@ -123,38 +123,174 @@ class PembukuanController extends Controller
             'bulanGrid', 'terkunciMap', 'bisaBuka', 'silpaTahunLalu', 'infoTutup'));
     }
 
+    /** Nama bulan & hari Indonesia — dokumen cetak tidak boleh bergantung APP_LOCALE. */
+    private const BULAN_ID = [1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+    private const HARI_ID = [1 => 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+    /** Format cetak BKU pada parameter ?format= (ARKAS 4 Bab XXI). */
+    public const FORMAT_CETAK = [
+        'bulanan' => 'Bulanan',
+        'tahunan' => 'Tahunan',
+        'tahapan' => 'Tahapan',
+        'akumulasi' => 'Akumulasi',
+    ];
+
+    /**
+     * Cetak BKU dengan pemilih Format + Periode ala ARKAS 4.
+     *
+     * Format hanya mengubah rentang tanggal (dan penyaringan tahap), bukan cara
+     * saldo dihitung: kolom Saldo selalu posisi kas sesungguhnya per baris, dan
+     * baris "Saldo Awal" adalah posisi kas tepat sebelum tanggal awal periode.
+     */
     public function bkuCetak()
     {
-        $bulan = request('bulan', now()->format('Y-m'));
-        [$rows, $saldoAwal, $tahun] = $this->hitungBulan($bulan);
-        $penandatangan = Penandatangan::orderBy('id')->get();
+        $format = (string) request('format', 'bulanan');
+        if (! array_key_exists($format, self::FORMAT_CETAK)) {
+            $format = 'bulanan'; // format tak dikenal jangan sampai merusak halaman cetak
+        }
+
         $sid = auth()->user()->school_id;
-        $mulai = $bulan.'-01';
+        $tahun = (int) session('tahun', now()->year);
+
+        // Bulan acuan: dipakai apa adanya pada format Bulanan dan sebagai batas
+        // akhir pada format Akumulasi. Tahunnya selalu mengikuti tahun anggaran
+        // aktif agar rentang tidak melompat ke buku tahun lain.
+        $masukan = (string) request('bulan', now()->format('Y-m'));
+        $acuan = preg_match('/^\d{4}-\d{2}$/', $masukan) === 1 ? $masukan : now()->format('Y-m');
+        $bulan = $tahun.'-'.substr($acuan, 5, 2);
+
+        $awalBulan = Carbon::parse($bulan.'-01')->startOfMonth();
+        $akhirBulan = $awalBulan->copy()->endOfMonth();
+        $namaBulanAwal = self::BULAN_ID[(int) $awalBulan->format('n')];
+        $namaBulanAkhir = self::BULAN_ID[(int) $akhirBulan->format('n')];
+        $tglAkhirBulanTeks = $akhirBulan->format('d').' '.$namaBulanAkhir.' '.$tahun;
+        $awalTahun = Carbon::create($tahun, 1, 1)->startOfDay();
+        $akhirTahun = Carbon::create($tahun, 12, 31)->startOfDay();
+
+        $stages = Stage::where('tahun', $tahun)->orderBy('urutan')->orderBy('id')->get();
+        $tahap = $stages->firstWhere('id', (int) request('tahap')) ?? $stages->first();
+
+        switch ($format) {
+            case 'tahunan':
+                $awal = $awalTahun;
+                $akhir = $akhirTahun;
+                $labelPeriode = 'TAHUN ANGGARAN '.$tahun;
+                $labelSaldoAwal = 'Saldo Awal Tahun';
+                $catatan = 'Format Tahunan mencetak seluruh transaksi 1 Januari – 31 Desember '.$tahun.'.';
+                break;
+            case 'akumulasi':
+                $awal = $awalTahun;
+                $akhir = $akhirBulan;
+                $labelPeriode = '1 JANUARI – '.strtoupper($tglAkhirBulanTeks);
+                $labelSaldoAwal = 'Saldo Awal Tahun';
+                $catatan = 'Format Akumulasi mencetak seluruh transaksi sejak 1 Januari sampai akhir '
+                    .$namaBulanAkhir.' '.$tahun.'.';
+                break;
+            case 'tahapan':
+                $awal = $awalTahun;
+                $akhir = $akhirTahun;
+                $labelPeriode = 'TAHAPAN '.strtoupper((string) ($tahap->nama ?? '—')).' TAHUN '.$tahun;
+                $labelSaldoAwal = 'Saldo Awal Tahun';
+                $catatan = 'Format Tahapan hanya mencetak baris '.(string) ($tahap->nama ?? '—')
+                    .' tahun '.$tahun.'. Kolom Saldo tetap posisi kas sesungguhnya, jadi baris tahap lain '
+                    .'tidak ditampilkan tetapi tetap memengaruhi saldo.';
+                break;
+            default:
+                $awal = $awalBulan;
+                $akhir = $akhirBulan;
+                $labelPeriode = 'BULAN '.strtoupper($namaBulanAwal).' TAHUN '.$tahun;
+                $labelSaldoAwal = 'Saldo Bulan Lalu';
+                $catatan = 'Format Bulanan mencetak transaksi '.$namaBulanAwal.' '.$tahun.' saja.';
+        }
+
+        // Nama bulan penutup HARUS diturunkan dari tanggal akhir rentang yang sudah
+        // final — format Tahunan/Tahapan berakhir 31 Desember, bukan bulan acuan.
+        $namaBulanAkhir = self::BULAN_ID[(int) $akhir->format('n')];
+
+        $l = KasService::ledger($sid, $tahun);
+        $saldoAwal = $l['saldoAwalTahun']; // SILPA tahun lalu terbawa otomatis
         $tunaiAwal = 0;
         $bankAwal = 0;
-        foreach (KasService::ledger($sid, null)['items'] as $it) {
-            $tgl = $it['trx']->tanggal->format('Y-m-d');
-            if ($tgl < $mulai) {
+        $posTunai = 0;
+        $posBank = 0;
+        $snapTunai = null;
+        $snapBank = null;
+        $rows = [];
+
+        foreach ($l['items'] as $it) {
+            $t = $it['trx'];
+            $d = $it['dTunai'] + $it['dBank'];
+
+            if ($t->tanggal->lt($awal)) {
+                $saldoAwal += $d;
                 $tunaiAwal += $it['dTunai'];
                 $bankAwal += $it['dBank'];
+
+                continue;
             }
+            if ($t->tanggal->gt($akhir)) {
+                continue;
+            }
+
+            // Posisi kas bergerak untuk SEMUA transaksi dalam rentang; hanya baris
+            // yang lolos saringan tahap yang dicetak (lihat $catatan).
+            $posTunai += $it['dTunai'];
+            $posBank += $it['dBank'];
+
+            if ($format === 'tahapan' && (int) $t->stage_id !== (int) ($tahap->id ?? 0)) {
+                continue;
+            }
+
+            $rows[] = [
+                'trx' => $t,
+                'masuk' => max(0, $d),
+                'keluar' => max(0, -$d),
+                'saldo' => $saldoAwal + $posTunai + $posBank,
+            ];
+            $snapTunai = $tunaiAwal + $posTunai;
+            $snapBank = $bankAwal + $posBank;
         }
-        $tunaiAkhir = $tunaiAwal;
-        $bankAkhir = $bankAwal;
-        foreach ($rows as $row) {
-            [$dt, $db] = KasService::efek($row['trx']->type, $row['trx']->metode_bayar, (int) $row['trx']->total);
-            $tunaiAkhir += $dt;
-            $bankAkhir += $db;
+
+        // Penutup memakai posisi kas pada baris TERAKHIR YANG DICETAK supaya konsisten
+        // dengan kolom Saldo; bila tak ada baris, pakai posisi akhir rentang.
+        $saldoAkhir = $rows !== [] ? end($rows)['saldo'] : $saldoAwal + $posTunai + $posBank;
+        $tunaiAkhir = $snapTunai ?? ($tunaiAwal + $posTunai);
+        $bankAkhir = $snapBank ?? ($bankAwal + $posBank);
+
+        // Watermark DRAFT aktif bila ADA bulan dalam rentang yang belum ditutup.
+        // Rentang dihitung dari indeks bulan (tahun*12+bulan) agar bebas dari API Carbon.
+        $rentangBulan = [];
+        $mulaiIdx = (int) $awal->format('Y') * 12 + (int) $awal->format('n');
+        $akhirIdx = (int) $akhir->format('Y') * 12 + (int) $akhir->format('n');
+        for ($i = $mulaiIdx; $i <= $akhirIdx; $i++) {
+            $rentangBulan[] = sprintf('%04d-%02d', intdiv($i - 1, 12), (($i - 1) % 12) + 1);
         }
+        $bulanTerbuka = array_values(array_diff($rentangBulan, BkuTutupBulan::bulanTerkunci($sid, $tahun)));
+        $isDraft = $bulanTerbuka !== [];
+        $draftPesan = '';
+        if ($isDraft) {
+            $draftPesan = $format === 'bulanan'
+                ? 'BKU bulan ini belum ditutup. Lakukan Tutup BKU Bulan Ini terlebih dahulu agar tanda air DRAFT hilang.'
+                : count($bulanTerbuka).' bulan dalam periode ini belum ditutup (mulai '.$bulanTerbuka[0].'). '
+                    .'Tutup BKU setiap bulan agar tanda air DRAFT hilang.';
+        }
+
+        $penandatangan = Penandatangan::orderBy('id')->get();
         $domBos = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
             ->selectRaw('bos_type_id, sum(total) j')->groupBy('bos_type_id')->orderByDesc('j')->first();
         $kopSumber = $domBos?->bosType?->nama ?? 'BOSP Reguler';
         $revisiKe = (int) RkasHeader::where('school_id', $sid)->where('tahun', $tahun)->max('revisi_ke');
         $kodeNama = ArkasKode::peta($sid, $tahun);
-        $isDraft = ! BkuTutupBulan::terkunciBulan($sid, $bulan);
+        $formatPilihan = self::FORMAT_CETAK;
+        $tglAkhirTeks = $akhir->format('d').' '.$namaBulanAkhir.' '.$akhir->format('Y');
+        $hariIniTeks = self::HARI_ID[(int) $akhir->format('N')].' '.$tglAkhirTeks;
 
         return view('pembukuan.bku-cetak', compact('rows', 'bulan', 'saldoAwal', 'tahun', 'penandatangan',
-            'tunaiAwal', 'bankAwal', 'tunaiAkhir', 'bankAkhir', 'kopSumber', 'revisiKe', 'kodeNama', 'isDraft'));
+            'tunaiAwal', 'bankAwal', 'tunaiAkhir', 'bankAkhir', 'kopSumber', 'revisiKe', 'kodeNama', 'isDraft',
+            'format', 'formatPilihan', 'labelPeriode', 'labelSaldoAwal', 'catatan', 'draftPesan',
+            'awal', 'akhir', 'saldoAkhir', 'stages', 'tahap', 'tglAkhirTeks', 'hariIniTeks'));
     }
 
     public function bkuCsv()
