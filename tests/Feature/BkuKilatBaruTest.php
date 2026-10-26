@@ -78,12 +78,12 @@ class BkuKilatBaruTest extends TestCase
         return $this->withSession(['tahun' => 2026])->post(route('pendapatan.store'), $data);
     }
 
-    /** POST belanja (metode bank agar saldo kas tunai tidak jadi kendala). */
+    /** POST belanja (metode transfer agar saldo kas tunai tidak jadi kendala). */
     private function belanja(string $tanggal, int $nilai, ?string $kembali = null)
     {
         $data = [
             'tanggal' => $tanggal, 'bos_type_id' => $this->bosId, 'stage_id' => $this->tahap->id,
-            'metode_bayar' => 'bank', 'keterangan' => 'Belanja '.$tanggal,
+            'metode_bayar' => 'transfer', 'keterangan' => 'Belanja '.$tanggal,
             'rekening_id' => [$this->rekBelanja], 'nilai' => [$nilai],
         ];
         if ($kembali !== null) {
