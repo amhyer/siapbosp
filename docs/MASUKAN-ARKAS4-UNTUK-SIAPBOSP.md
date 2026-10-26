@@ -339,7 +339,7 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 | Usulan | Alasan | Status |
 |---|---|---|
 | Badge versi di topbar | meniru "Perbarui Aplikasi" | ✅ `config('app.version')` di topbar → `bantuan#versi` |
-| Tombol tahun anggaran di topbar | ARKAS taruh di Profil; SiapBOSP punya `datasekolah.tahun` yang terkubur | ✅ sudah ada sebelumnya; **rentang tahunnya diperlebar** agar tahun di luar 2023–2028 tetap muncul terpilih |
+| Tombol tahun anggaran di topbar | ARKAS taruh di Profil; SiapBOSP punya `datasekolah.tahun` yang terkubur | ✅ sudah ada sebelumnya; **rentang tahunnya diperlebar dua arah** (`min(2023, tahun aktif)`–`max(2028, tahun aktif)`) agar tahun arsip 2021 maupun tahun depan tetap muncul terpilih |
 | Footer cetak: *"Dicetak dari SiapBOSP — bukan dokumen resmi ARKAS"* | mencegah salah pakai di Dinas | ✅ di `layouts.print` **dan** jejak cetak `.cetak-kaki` di kerangka aplikasi, jadi berlaku juga untuk halaman dokumen (LPJ, Buku Pembantu) dan halaman biasa yang dicetak |
 | Kolom **Panduan** (tautan Juknis) per baris rincian | dikerjakan sekali di partial | ✅ `partials/_panduan-rincian.blade.php` dipakai tabel rincian Kertas Kerja |
 
