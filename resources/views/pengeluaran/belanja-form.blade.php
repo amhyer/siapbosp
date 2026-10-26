@@ -138,7 +138,7 @@
 <div class="card space-y-2">
   <div class="flex flex-wrap justify-between items-center gap-2">
     <div>
-      <h3 class="font-semibold text-slate-700">Perhitungan Pajak Otomatis <span class="text-xs font-normal text-slate-400">(ARKAS 4 v4.3.0)</span></h3>
+      <h3 class="font-semibold text-slate-700">Perhitungan Pajak Otomatis <span class="text-xs font-normal text-slate-400">(ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }})</span></h3>
       <p id="catatanPajakArkas" class="text-[11px] text-slate-500">Klik <b>⚡ Hitung Rekomendasi Pajak ARKAS 4</b> setelah mengisi rincian belanja untuk mengisi PPN (11%/12% &gt; Rp2 juta), PPh 21/22/23, atau SSPD 10% otomatis. Tarif PPN mengikuti tahun transaksi: <b>12%</b> untuk 2026 ke atas (penyesuaian PPN 12% pada ARKAS &amp; SiPLah), <b>11%</b> untuk tahun sebelumnya — nilai pajak yang sudah tersimpan tak dihitung ulang.</p>
     </div>
     <div class="flex gap-2">

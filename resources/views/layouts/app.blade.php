@@ -273,7 +273,7 @@
                Kelas dipilih dari yang sudah ada di public/build (tanpa build ulang aset). --}}
           <a href="{{ route('bantuan') }}#versi"
              class="hidden whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-0.5 align-middle text-[11px] font-semibold text-slate-600 hover:bg-slate-50 md:inline"
-             title="SiapBOSP {{ config('app.version', 'v4.3.0') }} — selaras ARKAS 4 v4.3.0. Klik untuk versi &amp; pembaruan.">
+             title="SiapBOSP {{ config('app.version', 'v4.3.0') }} — selaras ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }}. Klik untuk versi &amp; pembaruan.">
             ⟳ {{ config('app.version', 'v4.3.0') }}
           </a>
           <details class="relative" data-dropdown>
@@ -349,7 +349,7 @@
         @yield('content')
       </div>
       <footer class="nonprint mt-8 border-t border-slate-200 pt-4 pb-2 text-center text-[11px] text-slate-400">
-        SiapBOSP · Sistem Akuntansi Dana BOSP · Selaras ARKAS 4 v4.3.0 &amp; Permendikdasmen No. 8 Tahun 2026 · TA {{ $tahunAktif }}
+        SiapBOSP · Sistem Akuntansi Dana BOSP · Selaras ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }} &amp; Permendikdasmen No. 8 Tahun 2026 · TA {{ $tahunAktif }}
       </footer>
       {{-- Jejak cetak (P2): berlaku untuk SEMUA halaman, bukan hanya layouts.print —
            termasuk halaman dokumen (.dokumen) yang memakai kerangka aplikasi. --}}

@@ -80,7 +80,7 @@
       <dt class="text-slate-500">SiapBOSP</dt>
       <dd class="font-semibold">{{ config('app.version', 'v4.3.0') }}</dd>
       <dt class="text-slate-500">Acuan ARKAS</dt>
-      <dd class="font-semibold">ARKAS 4 v4.3.0</dd>
+      <dd class="font-semibold">ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }}</dd>
       <dt class="text-slate-500">Juknis</dt>
       <dd class="font-semibold">Permendikdasmen No. 8 Tahun 2026</dd>
       <dt class="text-slate-500">Tahun anggaran aktif</dt>
