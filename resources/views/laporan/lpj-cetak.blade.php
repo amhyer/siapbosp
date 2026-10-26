@@ -1,5 +1,7 @@
 @extends('layouts.app', ['title' => 'LPJ ' . ($cakupan ?? $stage->nama) . ' ' . $tahun])
 @section('content')
+{{-- Dokumen berkerangka aplikasi tetap bertanda air DRAFT saat belum final. --}}
+@include('partials._watermark-draft')
 <div class="dokumen">
 @php
   $kepsek = $penandatangan->firstWhere('jabatan', 'Kepala Sekolah') ?? $penandatangan->first(fn($p) => stripos($p->jabatan, 'kepala') !== false);

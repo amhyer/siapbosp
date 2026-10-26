@@ -48,6 +48,10 @@
 </style>
 </head>
 <body>
+{{-- Tanda air DRAFT berlaku untuk SEMUA cetakan (ARKAS 4 Bab XXI), bukan hanya
+     cetak BKU. View yang menghitung statusnya sendiri (mis. bku-cetak dengan
+     rentang Format/Periode) cukup mengirim $isDraft lewat controller. --}}
+@include('partials._watermark-draft')
 @yield('content')
 <footer class="cetak-footer">
   <span>Dicetak dari <b>SiapBOSP {{ config('app.version', 'v4.3.0') }}</b> — bukan dokumen resmi ARKAS.</span>

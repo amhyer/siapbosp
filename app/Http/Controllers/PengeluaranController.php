@@ -14,6 +14,7 @@ use App\Models\RekeningPajak;
 use App\Models\RkasHeader;
 use App\Models\Stage;
 use App\Models\TutupBuku;
+use App\Services\JejakHapus;
 use App\Services\JuknisBosp2026Service;
 use App\Services\KasService;
 use Carbon\Carbon;
@@ -29,13 +30,25 @@ class PengeluaranController extends Controller
     public function belanja()
     {
         $q = trim((string) request('q', ''));
+        $tab = (string) request('tab', '');
+        $tab = array_key_exists($tab, RkasHeader::TAB_SUMBER_DANA) ? $tab : '';
+
         $items = KasTransaction::where('type', 'belanja')->where('tahun', $this->tahun())
-            ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('keterangan', 'ilike', "%{$q}%")
-                ->orWhere('no_bukti', 'ilike', "%{$q}%")))
+            ->when($q !== '', function ($w) use ($q) {
+                // lower() + LIKE portabel: sqlite tidak mengenal ILIKE.
+                $pola = '%'.mb_strtolower($q).'%';
+
+                return $w->where(fn ($x) => $x->whereRaw('LOWER(keterangan) LIKE ?', [$pola])
+                    ->orWhereRaw('LOWER(COALESCE(no_bukti, \'\')) LIKE ?', [$pola]));
+            })
+            ->when($tab !== '', fn ($w) => $w->whereIn('bos_type_id', RkasHeader::bosTypeIds($tab)))
             ->orderByDesc('tanggal')->orderByDesc('id')
             ->with(['details.rekening', 'taxes'])->paginate(15)->withQueryString();
 
-        return view('pengeluaran.belanja', compact('items') + ['tahun' => $this->tahun(), 'q' => $q]);
+        return view('pengeluaran.belanja', compact('items') + [
+            'tahun' => $this->tahun(), 'q' => $q,
+            'tabAktif' => $tab, 'tabsSumber' => RkasHeader::TAB_SUMBER_DANA,
+        ]);
     }
 
     public function belanjaCreate()
@@ -397,7 +410,7 @@ class PengeluaranController extends Controller
         return back()->with('ok', 'Setor utang pajak tersimpan.');
     }
 
-    public function destroy(KasTransaction $kasTransaction)
+    public function destroy(Request $r, KasTransaction $kasTransaction)
     {
         abort_unless(in_array($kasTransaction->type, ['belanja', 'setor_utang_pajak']), 403);
         if (TutupBuku::terkunci(auth()->user()->school_id, $kasTransaction->tahun, $kasTransaction->stage_id)) {
@@ -412,9 +425,11 @@ class PengeluaranController extends Controller
         if (auth()->user()->role !== 'operator') {
             return back()->with('error', 'Hanya operator yang boleh menghapus.');
         }
+        $alasan = $r->validate(JejakHapus::aturan(), JejakHapus::pesan())['alasan'];
+        JejakHapus::catat($kasTransaction, $alasan);
         $kasTransaction->delete();
 
-        return back()->with('ok', 'Transaksi dihapus.');
+        return back()->with('ok', 'Transaksi dihapus dan tercatat di Log Sistem.');
     }
 
     private function cekBulan(string $tanggal): ?string

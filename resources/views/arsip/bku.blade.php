@@ -1,6 +1,15 @@
 @extends('layouts.app', ['title' => 'Arsip — BKU Ditutup'])
 @section('subtitle', 'Periode pencatatan yang sudah dikunci')
 @section('content')
+{{-- Filter tahun: sebelumnya halaman ini tidak punya filter sama sekali. --}}
+<div class="card flex flex-wrap items-end justify-between gap-2">
+  <div>
+    <div class="font-bold text-slate-800 text-sm">🗄️ Arsip BKU</div>
+    <p class="text-[11px] text-slate-500">Bulan dan tahap yang sudah dikunci — padanan arsip BKU ARKAS 4.</p>
+  </div>
+  @include('arsip.partials._filter', ['tahun' => $tahun, 'daftarTahun' => $daftarTahun])
+</div>
+
 <div class="grid lg:grid-cols-2 gap-4">
   <div class="card">
     <h3 class="card-title mb-3">🔒 Penutupan BKU Bulanan</h3>
@@ -11,7 +20,8 @@
         <tbody>
           @forelse($bulan as $b)
             <tr>
-              <td>{{ \App\Services\CekIntegritasService::BULAN[(int) $b->bulan] ?? $b->bulan }} {{ substr((string) $b->bulan, -2) }}</td>
+              @php($bulanKe = (int) substr((string) $b->bulan, 5, 2))
+              <td>{{ \App\Services\CekIntegritasService::BULAN[$bulanKe] ?? $b->bulan }} {{ $b->tahun }}</td>
               <td><span class="badge bg-emerald-100 text-emerald-700">🔒 Tertutup</span></td>
               <td>{{ $b->ditutup_oleh ?? '—' }}</td>
               <td class="text-[11px] text-slate-500">{{ $b->ditutup_at?->format('d/m/Y H:i') ?? '—' }}</td>

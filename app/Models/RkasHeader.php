@@ -69,6 +69,25 @@ class RkasHeader extends Model
         'tambahan' => ['label' => 'Sumber Dana Tambahan', 'sumber' => ['BOSP Afirmasi', 'Afirmasi']],
     ];
 
+    /**
+     * Id BosType yang termasuk satu tab sumber dana.
+     *
+     * Dipakai halaman yang menyaring TRANSAKSI per tab (pendapatan, belanja):
+     * tab ARKAS memakai nama sumber dana, sedangkan transaksi menyimpan
+     * `bos_type_id`. Pemetaan ini menjaga keduanya tetap sejalan.
+     *
+     * @return array<int,int>
+     */
+    public static function bosTypeIds(string $tab): array
+    {
+        $sumber = self::TAB_SUMBER_DANA[$tab]['sumber'] ?? null;
+        if (! $sumber) {
+            return [];
+        }
+
+        return \App\Models\BosType::whereIn('nama', $sumber)->pluck('id')->all();
+    }
+
     public const SUMBER_DANA_ARKAS = [
         'BOS Reguler',
         'BOS Kinerja',

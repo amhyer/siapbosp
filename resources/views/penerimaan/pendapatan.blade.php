@@ -1,5 +1,14 @@
 @extends('layouts.app', ['title' => 'Pendapatan'])
 @section('content')
+{{-- Tab sumber dana ala ARKAS 4: menyaring riwayat pendapatan per jenis BOS. --}}
+@include('partials._tab-sumber-dana', [
+  'rute' => route('pendapatan.index'),
+  'aktif' => $tabAktif,
+  'tabs' => $tabsSumber,
+  'query' => array_filter(['q' => $q ?? '']),
+  'semua' => 'Semua sumber dana',
+])
+
 <div class="grid lg:grid-cols-3 gap-5">
 <div class="card">
   <div class="flex justify-between text-xs text-slate-500 mb-3"><span>Saldo Bank:</span><b class="text-sky-700">{{ rp($saldo['bank']) }}</b></div>
@@ -62,7 +71,21 @@
         <td>#{{ $t->no_bku }}</td><td>{{ $t->tanggal->format('d/m/Y') }}</td><td>{{ $t->keterangan }}</td>
         <td class="text-xs text-slate-500">@foreach($t->details as $d)<div>{{ $d->rekening->kode ?? '' }} — {{ rp($d->nilai) }}</div>@endforeach</td>
         <td class="num font-semibold text-emerald-700">{{ rp($t->total) }}</td>
-        <td><form method="post" action="{{ route('penerimaan.destroy', $t) }}" data-konfirmasi="Hapus pendapatan ini?">@csrf @method('DELETE')<button class="badge bdel">✖</button></form></td>
+        <td>
+          {{-- Hapus wajib beralasan: alasannya masuk Log Sistem (jejak audit). --}}
+          <details class="relative">
+            <summary class="badge bdel cursor-pointer list-none" title="Hapus &amp; catat alasan">✖</summary>
+            <form method="post" action="{{ route('penerimaan.destroy', $t) }}"
+                  class="absolute right-0 z-40 mt-1 w-60 space-y-1.5 rounded-xl border border-slate-200 bg-white p-2.5 text-xs shadow-xl">
+              @csrf @method('DELETE')
+              <div class="font-bold text-slate-700">Hapus pendapatan {{ rp($t->total) }}</div>
+              <label class="block font-semibold text-slate-600">Alasan (wajib, tercatat di Log Sistem)</label>
+              <input name="alasan" class="inp mt-1 text-xs" required minlength="5" maxlength="200"
+                     placeholder="mis. salah input nominal">
+              <button class="btn-danger btn btn-sm w-full justify-center">Hapus &amp; catat</button>
+            </form>
+          </details>
+        </td>
       </tr>
       @empty
       <tr><td colspan="6" class="text-center text-slate-400 py-6">Belum ada pendapatan.</td></tr>

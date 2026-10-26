@@ -1,5 +1,7 @@
 @extends('layouts.app', ['title' => 'SPTJM Dana BOSP Semester ' . $semester . ' TA ' . $tahun])
 @section('content')
+{{-- Dokumen berkerangka aplikasi tetap bertanda air DRAFT saat belum final. --}}
+@include('partials._watermark-draft')
 <div class="dokumen">
 <div class="toolbar nonprint">
   <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF SPTJM</button>
