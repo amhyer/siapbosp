@@ -222,6 +222,7 @@
         <th class="num">Tahap 2</th>
         <th class="num">Jumlah</th>
         <th>Sumber</th>
+        <th>Panduan</th>
         @if($bisaSisip)<th></th>@endif
       </tr>
     </thead>
@@ -239,6 +240,7 @@
         <td class="num text-xs text-indigo-700">{{ rp($d->nominalTahap2()) }}</td>
         <td class="num font-semibold">{{ rp($d->jumlah) }}</td>
         <td>{{ $d->sumber_dana }}</td>
+        <td>@include('partials._panduan-rincian', ['kode' => $d->rekening->kode ?? ''])</td>
         @if($bisaSisip)
         <td>
           <details class="relative">
@@ -266,7 +268,7 @@
       <tr class="font-bold">
         <td colspan="9" class="text-right">TOTAL</td>
         <td class="num">{{ rp($h->details->sum('jumlah')) }}</td>
-        <td @if($bisaSisip) colspan="2" @endif></td>
+        <td @if($bisaSisip) colspan="3" @else colspan="2" @endif></td>
       </tr>
     </tfoot>
   </table>

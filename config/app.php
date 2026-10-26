@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Versi Aplikasi
+    |--------------------------------------------------------------------------
+    |
+    | Dipakai badge versi di topbar dan halaman Bantuan. Sebelumnya nilai ini
+    | hanya muncul sebagai fallback di resources/views/bantuan.blade.php
+    | (config('app.version', 'v4.3.0')) sehingga kunci config-nya tidak ada.
+    |
+    */
+
+    'version' => env('APP_VERSION', 'v4.3.0'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |
