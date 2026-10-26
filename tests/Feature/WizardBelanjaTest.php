@@ -180,8 +180,14 @@ class WizardBelanjaTest extends TestCase
         $awal2 = $akhir;
         $akhir2 = strpos($html, 'id="langkah-3"');
         $langkah2 = substr($html, $awal2, $akhir2 - $awal2);
-        $this->assertStringContainsString('name="nilai[]"', $langkah2);
+
+        // Baris rincian dibuat JS dari template, jadi yang ada di markup statis
+        // langkah 2 adalah tabel kosong + tombol tambah; nilai[] ada di #tplR.
+        $this->assertStringContainsString('id="tblR"', $langkah2);
+        $this->assertStringContainsString('data-tambah-rincian', $langkah2);
         $this->assertStringNotContainsString('name="nilai_pajak[]"', $langkah2);
+
+        $this->assertMatchesRegularExpression('/<template\s+id="tplR"[\s\S]*?name="nilai\[\]"[\s\S]*?<\/template>/', $html);
     }
 
     public function test_tarif_ppn_dan_ringkasan_tetap_tersedia(): void
