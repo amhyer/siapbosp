@@ -116,3 +116,11 @@ kelas komponen `app.css` ada di jalur darurat.
 - **Ikon/emoji.** ARKAS 4 tidak memakai ikon di sidebar sekolah; SiapBOSP masih
   memakai emoji pada beberapa item menu Dinas. Belum diubah karena akan mengubah
   hafalan pengguna tanpa manfaat fungsional.
+
+## Sidebar tanpa ikon
+
+ARKAS 4 menampilkan tiga area kerja (Penganggaran · Penatausahaan · Arsip) sebagai
+teks saja, tanpa ikon. Karena itu label menu SiapBOSP juga teks murni — emoji
+hanya dipakai di dalam isi halaman (tombol aksi), bukan di navigasi.
+`MenuDanArsipTest` menjaga aturan ini: blok `<nav class="navw">` tidak boleh
+memuat emoji.

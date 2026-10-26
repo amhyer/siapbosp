@@ -75,29 +75,29 @@
      ===================================================================== --}}
 @php
   $menuUtama = [
-    ['label'=>'📝 Penganggaran','open'=>request()->is('rkas*')||request()->is('perencanaan*')||request()->is('penganggaran*'),'items'=>[
+    ['label'=>'Penganggaran','open'=>request()->is('rkas*')||request()->is('perencanaan*')||request()->is('penganggaran*'),'items'=>[
       ['Kertas Kerja (RKAS)', route('rkas.index'), request()->is('rkas*')],
       ['Review & Proporsi Anggaran', route('penganggaran.review'), request()->is('penganggaran/review*')],
       ['Daftar Kegiatan', route('penganggaran.kegiatan'), request()->is('penganggaran/kegiatan*')],
       ['Anggaran Bulanan (ARKAS)', route('penganggaran.anggaran-bulanan'), request()->is('penganggaran/anggaran-bulanan')],
-      ['🧭 PBD → RKM → RKT (Perencanaan)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
+      ['PBD → RKM → RKT (Perencanaan)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
     ]],
-    ['label'=>'📒 Penatausahaan','open'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*')||request()->is('penatausahaan*'),'items'=>[
+    ['label'=>'Penatausahaan','open'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*')||request()->is('penatausahaan*'),'items'=>[
       ['Buku Kas Umum', route('bku'), request()->routeIs('bku')],
       ['Kas dan Bank', route('kas'), request()->routeIs('kas')],
       ['Penerimaan', '#', false],
       ['Pendapatan', route('pendapatan.index'), request()->is('penerimaan/pendapatan*')],
-      ['💵 Tarik Tunai (Bank→Tunai)', route('ambil.index'), request()->is('penerimaan/ambil*')],
-      ['💵 Setor Tunai (Tunai→Bank)', route('mutasi.index'), request()->is('penerimaan/mutasi*')],
+      ['Tarik Tunai (Bank→Tunai)', route('ambil.index'), request()->is('penerimaan/ambil*')],
+      ['Setor Tunai (Tunai→Bank)', route('mutasi.index'), request()->is('penerimaan/mutasi*')],
       ['Pengeluaran & Pajak', '#', false],
       ['Pembelanjaan', route('belanja.index'), request()->is('pengeluaran/belanja*')],
       ['Pajak (Setor & Utang)', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
       ['Buku Pembantu', route('pembukuan.bukuPembantu'), request()->routeIs('pembukuan.bukuPembantu')],
       ['Pelaporan', '#', false],
       ['Penutupan BKU', route('penatausahaan.penutupan-bku'), request()->is('penatausahaan/penutupan-bku')],
-      ['📄 SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
+      ['SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
     ]],
-    ['label'=>'🗄️ Arsip','open'=>request()->is('arsip*'),'items'=>[
+    ['label'=>'Arsip','open'=>request()->is('arsip*'),'items'=>[
       ['Arsip Dokumen Sah', route('arsip.index'), request()->routeIs('arsip.index')],
       ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
       ['BKU Ditutup', route('arsip.bku'), request()->is('arsip/bku*')],
@@ -108,12 +108,12 @@
   ];
 
   $menuTambahan = [
-    ['label'=>'🖨️ Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*'),'items'=>[
+    ['label'=>'Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*'),'items'=>[
       ['LPJ & Tutup Buku per Tahap', route('laporan.tahap'), request()->routeIs('laporan.tahap')],
-      ['📦 LPJ per Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
-      ['🧾 Pajak Triwulan', route('laporan.pajak-tw'), request()->routeIs('laporan.pajak-tw')],
+      ['LPJ per Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
+      ['Pajak Triwulan', route('laporan.pajak-tw'), request()->routeIs('laporan.pajak-tw')],
       ['Realisasi per Sumber Dana', route('laporan.realisasi-sumber-dana'), request()->is('laporan/realisasi-sumber-dana')],
-      ['🔍 Rekonsiliasi ARKAS', route('laporan.rekonsiliasi'), request()->is('laporan/rekonsiliasi')],
+      ['Rekonsiliasi ARKAS', route('laporan.rekonsiliasi'), request()->is('laporan/rekonsiliasi')],
       ['Format ARKAS', '#', false],
       ['Rincian RKAS per Tahap (ARKAS)', route('laporan-arkas.rkas-tahap'), request()->is('laporan-arkas/rkas-tahap')],
       ['Realisasi Anggaran (ARKAS)', route('laporan-arkas.realisasi'), request()->is('laporan-arkas/realisasi')],
@@ -123,19 +123,19 @@
       ['Daftar Kas Umum (ARKAS)', route('laporan-arkas.kas-umum'), request()->is('laporan-arkas/daftar-kas-umum')],
       ['Daftar Nota (ARKAS)', route('laporan-arkas.nota'), request()->is('laporan-arkas/daftar-nota')],
     ]],
-    ['label'=>'🧩 Data Referensi','open'=>request()->is('referensi*')||request()->is('perencanaan/ssh*'),'items'=>[
+    ['label'=>'Data Referensi','open'=>request()->is('referensi*')||request()->is('perencanaan/ssh*'),'items'=>[
       ['Referensi Master', route('referensi'), request()->routeIs('referensi')],
-      ['🏷️ Referensi Harga (SSH/SBU)', route('referensi.harga'), request()->is('referensi/harga')],
+      ['Referensi Harga (SSH/SBU)', route('referensi.harga'), request()->is('referensi/harga')],
     ]],
-    ['label'=>'⚙️ Pengaturan','open'=>request()->is('pengaturan*')||request()->is('utility*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>array_values(array_filter([
-      ['🔌 Koneksi ARKAS', route('pengaturan.koneksi'), request()->is('pengaturan/koneksi*')],
-      ['⬆️ Impor Database (ARKAS)', route('pengaturan.impor-database'), request()->is('pengaturan/impor-database')],
-      ['🗺️ Pemetaan Data (HPP)', route('pengaturan.pemetaan'), request()->is('pengaturan/pemetaan')],
-      ['💾 Backup Data', route('pengaturan.backup'), request()->is('pengaturan/backup*')],
-      ['🔎 Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],
-      ['📋 Log Sistem', route('pengaturan.log'), request()->is('pengaturan/log*')],
-      ['🔐 Ganti Password', route('password.edit'), request()->routeIs('password.edit')],
-      $u->role === 'operator' ? ['🗑️ Hapus Data', route('hapusdata.form'), request()->is('utility/hapus-data*')] : null,
+    ['label'=>'Pengaturan','open'=>request()->is('pengaturan*')||request()->is('utility*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>array_values(array_filter([
+      ['Koneksi ARKAS', route('pengaturan.koneksi'), request()->is('pengaturan/koneksi*')],
+      ['Impor Database (ARKAS)', route('pengaturan.impor-database'), request()->is('pengaturan/impor-database')],
+      ['Pemetaan Data (HPP)', route('pengaturan.pemetaan'), request()->is('pengaturan/pemetaan')],
+      ['Backup Data', route('pengaturan.backup'), request()->is('pengaturan/backup*')],
+      ['Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],
+      ['Log Sistem', route('pengaturan.log'), request()->is('pengaturan/log*')],
+      ['Ganti Password', route('password.edit'), request()->routeIs('password.edit')],
+      $u->role === 'operator' ? ['Hapus Data', route('hapusdata.form'), request()->is('utility/hapus-data*')] : null,
     ]))],
   ];
 
@@ -168,7 +168,7 @@
 
     <nav class="navw flex-1 gap-[2px] overflow-y-auto px-3 py-3" aria-label="Menu">
       @if(!$u->isDinas())
-        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'on' : '' }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif>📊 Dashboard</a>
+        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'on' : '' }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif>Dashboard</a>
 
         {{-- 3 area kerja ARKAS 4 --}}
         <div class="navw-utama">
@@ -211,32 +211,32 @@
         @endforeach
       @else
         <p class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Wilayah</p>
-        <a href="{{ route('dinas.dashboard') }}" class="{{ request()->routeIs('dinas.dashboard') ? 'on' : '' }}">📊 Dashboard Wilayah</a>
-        <a href="{{ route('dinas.sekolah') }}" class="{{ request()->routeIs('dinas.sekolah*') ? 'on' : '' }}">🏫 Sekolah</a>
-        <a href="{{ route('dinas.alokasi') }}" class="{{ request()->routeIs('dinas.alokasi') ? 'on' : '' }}">💰 Pagu / Alokasi</a>
-        <a href="{{ route('dinas.konsolidasi') }}" class="{{ request()->routeIs('dinas.konsolidasi') ? 'on' : '' }}">🗂️ Konsolidasi Wilayah</a>
+        <a href="{{ route('dinas.dashboard') }}" class="{{ request()->routeIs('dinas.dashboard') ? 'on' : '' }}">Dashboard Wilayah</a>
+        <a href="{{ route('dinas.sekolah') }}" class="{{ request()->routeIs('dinas.sekolah*') ? 'on' : '' }}">Sekolah</a>
+        <a href="{{ route('dinas.alokasi') }}" class="{{ request()->routeIs('dinas.alokasi') ? 'on' : '' }}">Pagu / Alokasi</a>
+        <a href="{{ route('dinas.konsolidasi') }}" class="{{ request()->routeIs('dinas.konsolidasi') ? 'on' : '' }}">Konsolidasi Wilayah</a>
         <p class="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Verifikasi</p>
-        <a href="{{ route('dinas.rkas') }}" class="{{ request()->routeIs('dinas.rkas*') ? 'on' : '' }}">📋 RKAS Masuk</a>
-        <a href="{{ route('dinas.tahap') }}" class="{{ request()->routeIs('dinas.tahap') ? 'on' : '' }}">🗓️ Kontrol Tahap</a>
+        <a href="{{ route('dinas.rkas') }}" class="{{ request()->routeIs('dinas.rkas*') ? 'on' : '' }}">RKAS Masuk</a>
+        <a href="{{ route('dinas.tahap') }}" class="{{ request()->routeIs('dinas.tahap') ? 'on' : '' }}">Kontrol Tahap</a>
         <p class="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Kelola</p>
-        <a href="{{ route('dinas.pengguna') }}" class="{{ request()->routeIs('dinas.pengguna') ? 'on' : '' }}">👥 Pengguna</a>
-        <a href="{{ route('dinas.master') }}" class="{{ request()->routeIs('dinas.master*') ? 'on' : '' }}">🧱 Master Data</a>
-        <a href="{{ route('referensi') }}" class="{{ request()->routeIs('referensi') ? 'on' : '' }}">🧩 Referensi</a>
-        <a href="{{ route('dinas.keamanan') }}" class="{{ request()->routeIs('dinas.keamanan') ? 'on' : '' }}">🛡️ Keamanan</a>
-        <a href="{{ route('dinas.aktivitas') }}" class="{{ request()->routeIs('dinas.aktivitas') ? 'on' : '' }}">📋 Log Aktivitas</a>
-        <a href="{{ route('dinas.pengumuman') }}" class="{{ request()->routeIs('dinas.pengumuman') ? 'on' : '' }}">📣 Pengumuman</a>
-        <a href="{{ route('dinas.backup') }}" data-konfirmasi="Unduh backup database sekarang?">💾 Backup DB</a>
-        <a href="{{ route('password.edit') }}" class="{{ request()->routeIs('password.edit') ? 'on' : '' }}">🔐 Ganti Password</a>
+        <a href="{{ route('dinas.pengguna') }}" class="{{ request()->routeIs('dinas.pengguna') ? 'on' : '' }}">Pengguna</a>
+        <a href="{{ route('dinas.master') }}" class="{{ request()->routeIs('dinas.master*') ? 'on' : '' }}">Master Data</a>
+        <a href="{{ route('referensi') }}" class="{{ request()->routeIs('referensi') ? 'on' : '' }}">Referensi</a>
+        <a href="{{ route('dinas.keamanan') }}" class="{{ request()->routeIs('dinas.keamanan') ? 'on' : '' }}">Keamanan</a>
+        <a href="{{ route('dinas.aktivitas') }}" class="{{ request()->routeIs('dinas.aktivitas') ? 'on' : '' }}">Log Aktivitas</a>
+        <a href="{{ route('dinas.pengumuman') }}" class="{{ request()->routeIs('dinas.pengumuman') ? 'on' : '' }}">Pengumuman</a>
+        <a href="{{ route('dinas.backup') }}" data-konfirmasi="Unduh backup database sekarang?">Backup DB</a>
+        <a href="{{ route('password.edit') }}" class="{{ request()->routeIs('password.edit') ? 'on' : '' }}">Ganti Password</a>
       @endif
     </nav>
 
     <div class="border-t border-white/10 px-3 py-2.5">
       @if(!$u->isDinas())
         <a href="{{ route('bantuan') }}" class="navw-util {{ request()->routeIs('bantuan') ? 'on' : '' }}">
-          <span aria-hidden="true">ⓘ</span><span>Bantuan &amp; Panduan</span>
+          <span>Bantuan &amp; Panduan</span>
         </a>
         <a href="{{ route('pengaturan.versi') }}" class="navw-util {{ request()->is('pengaturan/deteksi-versi*') ? 'on' : '' }}">
-          <span aria-hidden="true">↻</span><span>Perbarui Aplikasi</span>
+          <span>Perbarui Aplikasi</span>
         </a>
       @endif
       <div class="mt-2 flex items-center gap-2.5 rounded-xl bg-white/5 px-3 py-2.5">
@@ -290,8 +290,7 @@
                 @endif
               </div>
               @if($pajakIngat > 0)
-                <a href="{{ route('setorpajak.index') }}" class="mb-1 block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
-                  ⚠️ Pajak belum disetor <b>{{ rp($pajakIngat) }}</b> — segera setor.
+                <a href="{{ route('setorpajak.index') }}" class="mb-1 block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">Pajak belum disetor <b>{{ rp($pajakIngat) }}</b> — segera setor.
                 </a>
               @endif
               @forelse($notifList as $n)
