@@ -733,7 +733,7 @@ class DinasController extends Controller
     {
         $q = ActivityLog::where('aksi', 'like', 'auth%');
         if ($email = $r->query('email')) {
-            $q->where('user_name', 'ilike', "%{$email}%");
+            $q->whereRaw('LOWER(user_name) LIKE ?', ['%'.mb_strtolower($email).'%']);
         }
         $riwayat = $q->orderByDesc('created_at')->paginate(50)->withQueryString();
         $h24 = ActivityLog::where('aksi', 'like', 'auth%')->where('created_at', '>=', now()->subDay());

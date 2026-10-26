@@ -94,7 +94,7 @@ class JejakHapusTest extends TestCase
         $t = $this->pendapatan();
 
         $this->withSession(['tahun' => 2026])->delete(route('penerimaan.destroy', $t))
-            ->assertSessionHas('error');
+            ->assertSessionHasErrors('alasan');
 
         $this->assertDatabaseHas('kas_transactions', ['id' => $t->id]);
         $this->assertDatabaseMissing('activity_logs', ['aksi' => 'hapus_transaksi']);
@@ -107,7 +107,7 @@ class JejakHapusTest extends TestCase
 
         $this->withSession(['tahun' => 2026])
             ->delete(route('penerimaan.destroy', $t), ['alasan' => 'salah'])
-            ->assertSessionHas('error');
+            ->assertSessionHasErrors('alasan');
 
         $this->assertDatabaseHas('kas_transactions', ['id' => $t->id]);
         $this->assertDatabaseMissing('activity_logs', ['aksi' => 'hapus_transaksi']);

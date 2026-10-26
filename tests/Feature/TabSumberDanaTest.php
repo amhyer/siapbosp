@@ -102,8 +102,13 @@ class TabSumberDanaTest extends TestCase
 
             $this->assertStringContainsString('role="tablist"', $html, $url.' tanpa pita tab.');
             foreach (['BOSP Reguler', 'BOSP Daerah', 'BOSP Kinerja', 'SiLPA BOSP Kinerja', 'Lainnya', 'Sumber Dana Tambahan'] as $label) {
-                $this->assertStringContainsString('>'.$label.'</a>', $html, $url.' kehilangan tab '.$label.'.');
+                $this->assertStringContainsString($label, $html, $url.' kehilangan tab '.$label.'.');
             }
+
+            // Enam tab ARKAS (+1 "Semua sumber dana" di halaman transaksi).
+            $jumlahTab = substr_count($html, 'role="tab"');
+            $this->assertGreaterThanOrEqual(6, $jumlahTab, $url.' hanya punya '.$jumlahTab.' tab.');
+            $this->assertStringContainsString('aria-selected="true"', $html, $url.' tanpa tab aktif.');
         }
     }
 
@@ -161,7 +166,10 @@ class TabSumberDanaTest extends TestCase
     {
         $html = $this->halaman('/penerimaan/pendapatan?q=pencairan');
 
-        $this->assertMatchesRegularExpression('/href="[^"]*tab=reguler[^"]*q=pencairan[^"]*"/', $html);
+        // Urutan parameter tidak dijanjikan; yang penting keduanya ada di tautan yang sama.
+        $this->assertMatchesRegularExpression(
+            '/href="[^"]*(?=[^"]*tab=reguler)(?=[^"]*q=pencairan)[^"]*"/', $html,
+            'Tautan tab harus mempertahankan kata kunci pencarian.');
     }
 
     /** Pemetaan tab -> jenis BOS tersedia dan tidak kosong untuk 6 tab. */

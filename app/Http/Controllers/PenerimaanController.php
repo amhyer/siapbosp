@@ -44,8 +44,13 @@ class PenerimaanController extends Controller
         $b['tabsSumber'] = RkasHeader::TAB_SUMBER_DANA;
 
         $b['items'] = KasTransaction::where('type', 'pendapatan')->where('tahun', $b['tahun'])
-            ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('keterangan', 'ilike', "%{$q}%")
-                ->orWhere('no_bukti', 'ilike', "%{$q}%")))
+            ->when($q !== '', function ($w) use ($q) {
+                // lower() + LIKE portabel: sqlite tidak mengenal ILIKE.
+                $pola = '%'.mb_strtolower($q).'%';
+
+                return $w->where(fn ($x) => $x->whereRaw('LOWER(keterangan) LIKE ?', [$pola])
+                    ->orWhereRaw('LOWER(COALESCE(no_bukti, \'\')) LIKE ?', [$pola]));
+            })
             ->when($tab !== '', fn ($w) => $w->whereIn('bos_type_id', RkasHeader::bosTypeIds($tab)))
             ->orderByDesc('tanggal')->orderByDesc('id')->with('details.rekening')->paginate(15)->withQueryString();
         // ala ARKAS (konfirmasi penerimaan dana): pagu vs yang diterima (SILPA ikut disebut)

@@ -78,9 +78,10 @@ class ArsipFilterTest extends TestCase
     /** BKU kini punya filter tahun (sebelumnya tidak ada filter apa pun). */
     public function test_arsip_bku_punya_filter_tahun_yang_bekerja(): void
     {
+        // Tabel hanya punya ditutup_oleh + timestamps (tidak ada kolom ditutup_at).
         BkuTutupBulan::create([
             'school_id' => $this->sekolah->id, 'tahun' => 2025, 'bulan' => '2025-03',
-            'ditutup_oleh' => 'Operator', 'ditutup_at' => now(),
+            'ditutup_oleh' => 'Operator',
         ]);
 
         $html2025 = $this->halaman('/arsip/bku?tahun=2025', 2026);
@@ -104,7 +105,11 @@ class ArsipFilterTest extends TestCase
 
         $kinerja = $this->halaman('/arsip/rkas?tahun=2026&sumber=BOS+Kinerja');
         $this->assertStringContainsString('BOS Kinerja', $kinerja);
-        $this->assertStringNotContainsString('>BOS Reguler<', $kinerja);
+
+        // "BOS Reguler" masih muncul SEKALI sebagai pilihan di select sumber
+        // dana — yang harus hilang adalah barisnya di tabel dokumen.
+        $this->assertSame(1, substr_count($kinerja, 'BOS Reguler'),
+            'Baris RKAS BOS Reguler seharusnya tersaring keluar.');
     }
 
     /** Bentuk filter sama di semua halaman arsip (partial bersama). */
