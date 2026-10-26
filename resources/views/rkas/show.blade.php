@@ -118,7 +118,7 @@
   </div>
   @else
   <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-800 font-semibold">
-    ✅ Seluruh parameter Kertas Kerja telah memenuhi ketentuan ARKAS 4 v4.3.0 &amp; Permendikdasmen No. 8 Tahun 2026.
+    ✅ Seluruh parameter Kertas Kerja telah memenuhi ketentuan ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }} &amp; Permendikdasmen No. 8 Tahun 2026.
   </div>
   @endif
 

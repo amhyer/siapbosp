@@ -24,9 +24,34 @@ return [
     | hanya muncul sebagai fallback di resources/views/bantuan.blade.php
     | (config('app.version', 'v4.3.0')) sehingga kunci config-nya tidak ada.
     |
+    | `?:` dipakai (bukan argumen kedua env()) karena kunci yang ADA tetapi
+    | kosong — seperti APP_VERSION= pada .env hasil salin .env.example — membuat
+    | env() mengembalikan string kosong, dan badge akan tampil kosong.
+    |
+    | PENTING: ini versi SiapBOSP sendiri, BUKAN versi ARKAS. Keduanya terpisah
+    | — memperbarui ARKAS di laptop tidak mengubah nilai ini. Acuan ARKAS ada di
+    | kunci `arkas_acuan` di bawah.
+    |
     */
 
-    'version' => env('APP_VERSION', 'v4.3.0'),
+    'version' => env('APP_VERSION') ?: 'v4.3.0',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Versi ARKAS 4 yang Menjadi Acuan
+    |--------------------------------------------------------------------------
+    |
+    | Ditampilkan di footer kerangka, judul badge versi, dan halaman Bantuan
+    | ("Selaras ARKAS 4 v…"). Sebelumnya angka ini ditulis harfiah di tiga view
+    | sehingga mudah tertinggal saat ARKAS naik versi; kini satu kunci config.
+    |
+    | Ini BUKAN hasil deteksi: versi ARKAS yang benar-benar terpasang dibaca
+    | terpisah oleh VersiArkasService::deteksi() langsung dari database ARKAS.
+    | Ubah nilai ini saat SiapBOSP diselaraskan ke acuan ARKAS yang baru.
+    |
+    */
+
+    'arkas_acuan' => env('ARKAS_ACUAN') ?: '4.3.0',
 
     /*
     |--------------------------------------------------------------------------

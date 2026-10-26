@@ -1,5 +1,5 @@
 @extends('layouts.app', ['title' => 'Penganggaran / Kertas Kerja RKAS-BOSP'])
-@section('subtitle', 'Kertas Kerja Murni, Pergeseran, & Perubahan sesuai ARKAS 4 v4.3.0 & Permendikdasmen No. 8 Tahun 2026')
+@section('subtitle', 'Kertas Kerja Murni, Pergeseran, & Perubahan sesuai ARKAS 4 v'.config('app.arkas_acuan', '4.3.0').' & Permendikdasmen No. 8 Tahun 2026')
 @section('content')
 
 {{-- ===== Toolbar atas ===== --}}
