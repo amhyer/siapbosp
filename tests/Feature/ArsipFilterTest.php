@@ -106,9 +106,10 @@ class ArsipFilterTest extends TestCase
         $kinerja = $this->halaman('/arsip/rkas?tahun=2026&sumber=BOS+Kinerja');
         $this->assertStringContainsString('BOS Kinerja', $kinerja);
 
-        // "BOS Reguler" masih muncul SEKALI sebagai pilihan di select sumber
-        // dana — yang harus hilang adalah barisnya di tabel dokumen.
-        $this->assertSame(1, substr_count($kinerja, 'BOS Reguler'),
+        // Nama sumber dana juga muncul di dalam pilihan select (value + teks),
+        // jadi blok filter dibuang dulu; yang diperiksa adalah baris tabelnya.
+        $tabel = (string) preg_replace('#<form method="get".*?</form>#s', '', $kinerja);
+        $this->assertStringNotContainsString('BOS Reguler', $tabel,
             'Baris RKAS BOS Reguler seharusnya tersaring keluar.');
     }
 

@@ -106,7 +106,8 @@ class JejakHapusTest extends TestCase
         $t = $this->pendapatan();
 
         $this->withSession(['tahun' => 2026])
-            ->delete(route('penerimaan.destroy', $t), ['alasan' => 'salah'])
+            // 'salah' = 5 karakter, masih lolos min:5 — pakai yang benar-benar pendek.
+            ->delete(route('penerimaan.destroy', $t), ['alasan' => 'eh'])
             ->assertSessionHasErrors('alasan');
 
         $this->assertDatabaseHas('kas_transactions', ['id' => $t->id]);

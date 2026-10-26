@@ -20,7 +20,8 @@
         <tbody>
           @forelse($bulan as $b)
             <tr>
-              <td>{{ \App\Services\CekIntegritasService::BULAN[(int) $b->bulan] ?? $b->bulan }} {{ substr((string) $b->bulan, -2) }}</td>
+              @php($bulanKe = (int) substr((string) $b->bulan, 5, 2))
+              <td>{{ \App\Services\CekIntegritasService::BULAN[$bulanKe] ?? $b->bulan }} {{ $b->tahun }}</td>
               <td><span class="badge bg-emerald-100 text-emerald-700">🔒 Tertutup</span></td>
               <td>{{ $b->ditutup_oleh ?? '—' }}</td>
               <td class="text-[11px] text-slate-500">{{ $b->ditutup_at?->format('d/m/Y H:i') ?? '—' }}</td>
