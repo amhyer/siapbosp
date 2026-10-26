@@ -2,6 +2,8 @@
 @section('content')
 @php
   $terkunciBulanIni = in_array($bulan, $terkunciMap, true);
+  // Baris yang baru saja disimpan (dari aksi cepat) diberi kilat kuning sebentar.
+  $barisBaru = (int) request('baru');
   $tglBulan = \Carbon\Carbon::parse($bulan.'-01');
   $serapan = $pagu > 0 ? min(100, round($belanjaTh / $pagu * 100)) : 0;
   $statusWarna = [
@@ -31,8 +33,8 @@
        sudah menolak pencatatan pada bulan tertutup (cekBulan). --}}
   @unless ($terkunciBulanIni)
   <div class="flex flex-wrap gap-2 items-center">
-    <a href="{{ route('pendapatan.index') }}" class="btn">➕ Tambah Penerimaan Dana</a>
-    <a href="{{ route('belanja.create') }}" class="btn2 btn">➕ Tambah Pembelanjaan</a>
+    <a href="{{ route('pendapatan.index', ['kembali' => 'bku', 'bulan' => $bulan]) }}" class="btn">➕ Tambah Penerimaan Dana</a>
+    <a href="{{ route('belanja.create', ['kembali' => 'bku', 'bulan' => $bulan]) }}" class="btn2 btn">➕ Tambah Pembelanjaan</a>
   </div>
   @endunless
   <div class="flex flex-wrap gap-2 items-center">
@@ -176,7 +178,7 @@
         $kegLabel = $keg !== '' ? trim($keg . ' ' . ($kodeNama[$keg] ?? '')) : '—';
         $rek = $t->details->map(fn($d) => $d->rekening->kode ?? '')->filter()->unique()->implode(', ');
       @endphp
-      <tr>
+      <tr @class(['kilat' => $barisBaru > 0 && (int) $t->id === $barisBaru])>
         <td class="whitespace-nowrap">{{ $t->tanggal->format('d-m-Y') }}</td>
         <td class="text-xs">{{ $kegLabel }}</td>
         <td class="font-mono text-xs whitespace-nowrap">{{ $rek ?: '—' }}</td>

@@ -3,6 +3,9 @@
 @section('content')
 <form method="post" action="{{ route('belanja.store') }}" class="space-y-5" enctype="multipart/form-data" id="formBelanja" data-wizard>
 @csrf
+{{-- Penanda asal form: bila dibuka dari aksi cepat lembar BKU, setelah
+     tersimpan operator kembali ke BKU dengan baris baru dikilatkan. --}}
+<input type="hidden" name="kembali" value="{{ old('kembali', request('kembali')) }}">
 
 {{-- Langkah wizard mengikuti ARKAS 4: Detail Transaksi -> Kegiatan & Rincian -> Perhitungan Pajak --}}
 <div class="card">

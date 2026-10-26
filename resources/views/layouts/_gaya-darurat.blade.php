@@ -76,6 +76,12 @@
   .tbl tbody tr:last-child td { border-bottom: 0; }
   .tbl tbody tr:hover td { background: rgb(248 250 252 / .7); }
   .tbl tfoot td { background: #f8fafc; font-weight: 700; color: #1e293b; }
+  /* Baris baru disimpan — kilat kuning (sama dengan jalur build). */
+  .kilat td { animation: kilat-baris 2.6s ease-out 1; }
+  @keyframes kilat-baris { 0%, 25% { background-color: #fef3c7; } 100% { background-color: transparent; } }
+  @media (prefers-reduced-motion: reduce) {
+    .kilat td { animation: none; background-color: #fef3c7; }
+  }
   .num { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
   .badge {
     display: inline-flex; align-items: center; gap: .25rem; white-space: nowrap;

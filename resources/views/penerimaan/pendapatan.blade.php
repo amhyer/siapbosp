@@ -6,6 +6,9 @@
   <h3 class="font-semibold text-slate-700 mb-3">Input Pendapatan</h3>
   <form method="post" action="{{ route('pendapatan.store') }}" class="space-y-3">
     @csrf
+    {{-- Penanda asal form: bila dibuka dari aksi cepat lembar BKU, setelah
+         tersimpan operator kembali ke BKU dengan baris baru dikilatkan. --}}
+    <input type="hidden" name="kembali" value="{{ old('kembali', request('kembali')) }}">
     <div><label class="text-xs font-semibold text-slate-600">Tanggal Transaksi</label><input type="date" name="tanggal" class="inp mt-1" value="{{ date('Y-m-d') }}" required></div>
     <div><label class="text-xs font-semibold text-slate-600">Jenis BOS</label>
       <select name="bos_type_id" class="inp mt-1">@foreach($bosTypes as $b)<option value="{{ $b->id }}">{{ $b->nama }}</option>@endforeach</select></div>

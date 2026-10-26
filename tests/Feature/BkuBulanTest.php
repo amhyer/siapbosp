@@ -208,14 +208,18 @@ class BkuBulanTest extends TestCase
             ->get('/pembukuan/bku?bulan=2025-02')->assertOk()->getContent();
 
         $this->assertStringContainsString('Tambah Penerimaan Dana', $html);
-        $this->assertStringContainsString('href="'.route('pendapatan.index').'"', $html);
+        $this->assertStringContainsString(
+            'href="'.route('pendapatan.index').'?kembali=bku&amp;bulan=2025-02"', $html,
+            'Aksi penerimaan harus membawa penanda ?kembali=bku agar operator kembali ke BKU.');
         $this->assertStringContainsString('Tambah Pembelanjaan', $html);
-        $this->assertStringContainsString('href="'.route('belanja.create').'"', $html);
+        $this->assertStringContainsString(
+            'href="'.route('belanja.create').'?kembali=bku&amp;bulan=2025-02"', $html,
+            'Aksi belanja harus membawa penanda ?kembali=bku agar operator kembali ke BKU.');
 
         // Keduanya harus tautan, bukan tombol ber-onclick (patuh CSP).
         $this->assertDoesNotMatchRegularExpression('/<a[^>]*\son(click|change)=/i', $html);
         $this->assertMatchesRegularExpression(
-            '/<a href="[^"]*penerimaan\/pendapatan"[^>]*class="btn"[^>]*>\s*➕?\s*Tambah Penerimaan Dana/',
+            '/<a href="[^"]*penerimaan\/pendapatan\?kembali=bku&amp;bulan=[0-9-]+" class="btn">\s*➕?\s*Tambah Penerimaan Dana/',
             $html, 'Aksi "Tambah Penerimaan Dana" harus tautan bergaya .btn.');
     }
 
