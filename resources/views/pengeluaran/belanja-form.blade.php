@@ -1,10 +1,37 @@
 @extends('layouts.app', ['title' => 'Input Belanja BKU'])
 @section('subtitle', 'Pencatatan pembelanjaan Non-SIPLah & SIPLah lengkap dengan identitas penyedia & kalkulator pajak ARKAS 4')
 @section('content')
-<form method="post" action="{{ route('belanja.store') }}" class="space-y-5" enctype="multipart/form-data">
+<form method="post" action="{{ route('belanja.store') }}" class="space-y-5" enctype="multipart/form-data" id="formBelanja" data-wizard>
 @csrf
+
+{{-- Langkah wizard mengikuti ARKAS 4: Detail Transaksi -> Kegiatan & Rincian -> Perhitungan Pajak --}}
+<div class="card">
+  <ol class="flex flex-wrap items-center gap-2 text-xs" role="tablist" aria-label="Langkah input belanja">
+    <li role="presentation">
+      <button type="button" role="tab" data-langkah-tombol="1" id="tab-langkah-1" aria-selected="true" aria-controls="langkah-1"
+              class="wizard-step on flex items-center gap-2 rounded-full border border-indigo-600 bg-white px-3 py-1.5 font-semibold text-indigo-700">
+        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">1</span> Detail Transaksi
+      </button>
+    </li>
+    <li role="presentation">
+      <button type="button" role="tab" data-langkah-tombol="2" id="tab-langkah-2" aria-selected="false" aria-controls="langkah-2"
+              class="wizard-step flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
+        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">2</span> Kegiatan &amp; Rincian
+      </button>
+    </li>
+    <li role="presentation">
+      <button type="button" role="tab" data-langkah-tombol="3" id="tab-langkah-3" aria-selected="false" aria-controls="langkah-3"
+              class="wizard-step flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
+        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">3</span> Perhitungan Pajak
+      </button>
+    </li>
+  </ol>
+  <noscript><style>.js-langkah.hidden{display:block!important}.js-simpan[hidden]{display:inline-flex!important}</style></noscript>
+</div>
+
+<div role="tabpanel" id="langkah-1" data-langkah="1" aria-labelledby="tab-langkah-1">
 <div class="card space-y-4">
-  <h3 class="font-semibold text-slate-700">1️⃣ Identitas Transaksi &amp; Penyedia (Sesuai ARKAS 4 Bab XV–XVI)</h3>
+  <h3 class="font-semibold text-slate-700">Detail Transaksi &amp; Penyedia <span class="text-xs font-normal text-slate-400">(ARKAS 4 Bab XV–XVI)</span></h3>
   <div class="grid sm:grid-cols-3 gap-4">
     <div>
       <label class="text-xs font-semibold text-slate-600">No Bukti (BKU / Kuitansi)</label>
@@ -79,11 +106,21 @@
       </div>
     </div>
   </div>
-</div>
 
+  {{-- Lampiran bukti ikut langkah 1: bukti transaksi (kuitansi/nota). --}}
+  <div class="border-t border-slate-100 pt-3">
+    <h4 class="font-semibold text-slate-700 text-[13px] mb-2">📎 Lampiran Bukti
+      <span class="text-xs font-normal text-slate-400">(kuitansi/foto nota — PDF/JPG/PNG, maks 4MB per berkas)</span>
+    </h4>
+    <input type="file" name="lampiran[]" multiple accept=".pdf,.jpg,.jpeg,.png" class="inp py-2">
+  </div>
+</div>
+</div>{{-- /langkah 1 --}}
+
+<div role="tabpanel" id="langkah-2" data-langkah="2" aria-labelledby="tab-langkah-2" class="js-langkah hidden">
 <div class="card">
   <div class="flex justify-between items-center mb-3">
-    <h3 class="font-semibold text-slate-700">2️⃣ Rincian Rekening Belanja</h3>
+    <h3 class="font-semibold text-slate-700">Kegiatan &amp; Rincian Belanja</h3>
     <button type="button" class="btn2 btn" data-tambah-rincian>➕ Tambah Rincian</button>
   </div>
   <div class="overflow-x-auto"><table class="tbl" id="tblR">
@@ -92,11 +129,13 @@
     <tfoot><tr><td colspan="2" class="text-right font-semibold">TOTAL BELANJA</td><td class="num font-bold" id="grandR">Rp 0</td><td></td></tr></tfoot>
   </table></div>
 </div>
+</div>{{-- /langkah 2 --}}
 
+<div role="tabpanel" id="langkah-3" data-langkah="3" aria-labelledby="tab-langkah-3" class="js-langkah hidden">
 <div class="card space-y-2">
   <div class="flex flex-wrap justify-between items-center gap-2">
     <div>
-      <h3 class="font-semibold text-slate-700">3️⃣ Perhitungan Pajak Otomatis (ARKAS 4 v4.3.0)</h3>
+      <h3 class="font-semibold text-slate-700">Perhitungan Pajak Otomatis <span class="text-xs font-normal text-slate-400">(ARKAS 4 v4.3.0)</span></h3>
       <p id="catatanPajakArkas" class="text-[11px] text-slate-500">Klik <b>⚡ Hitung Rekomendasi Pajak ARKAS 4</b> setelah mengisi rincian belanja untuk mengisi PPN (11%/12% &gt; Rp2 juta), PPh 21/22/23, atau SSPD 10% otomatis. Tarif PPN mengikuti tahun transaksi: <b>12%</b> untuk 2026 ke atas (penyesuaian PPN 12% pada ARKAS &amp; SiPLah), <b>11%</b> untuk tahun sebelumnya — nilai pajak yang sudah tersimpan tak dihitung ulang.</p>
     </div>
     <div class="flex gap-2">
@@ -110,15 +149,33 @@
   </table></div>
 </div>
 
-<div class="card">
-  <h3 class="font-semibold text-slate-700 mb-2">4️⃣ Lampiran Bukti <span class="text-xs font-normal text-slate-400">(kuitansi/foto nota — PDF/JPG/PNG, maks 4MB per berkas)</span></h3>
-  <input type="file" name="lampiran[]" multiple accept=".pdf,.jpg,.jpeg,.png" class="inp py-2">
+{{-- Ringkasan sebelum menyimpan (nilai dihitung ulang oleh JS) --}}
+<div class="card bg-slate-50">
+  <h4 class="font-semibold text-slate-700 text-[13px] mb-2">🧾 Ringkasan</h4>
+  <dl class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+    <dt class="text-slate-500">Total belanja</dt>
+    <dd class="font-bold text-slate-800" id="ringkasBelanja">Rp 0</dd>
+    <dt class="text-slate-500">Pajak dipungut</dt>
+    <dd class="font-bold text-slate-800" id="ringkasPajak">Rp 0</dd>
+    <dt class="text-slate-500">Sumber</dt>
+    <dd class="font-semibold text-slate-700" id="ringkasSumber">Non-SIPLah</dd>
+    <dt class="text-slate-500">Metode bayar</dt>
+    <dd class="font-semibold text-slate-700" id="ringkasMetode">Tunai</dd>
+  </dl>
+</div>
+</div>{{-- /langkah 3 --}}
+
+<div class="card flex flex-wrap items-center justify-between gap-2" data-wizard-nav>
+  <button type="button" class="btn2 btn" data-langkah-mundur>← Kembali</button>
+  <span class="text-xs text-slate-500" id="wizardPosisi" aria-live="polite">Langkah 1 dari 3</span>
+  <div class="flex flex-wrap gap-2">
+    <button type="button" class="btn" data-langkah-maju>Lanjut: Kegiatan &amp; Rincian →</button>
+    <a href="{{ route('belanja.index') }}" class="btn2 btn" data-wizard-batal>Batal</a>
+    <button class="btn js-simpan" data-wizard-simpan hidden>💾 Simpan Belanja</button>
+  </div>
 </div>
 
-<div class="flex gap-3">
-  <button class="btn">💾 Simpan Belanja</button>
-  <a href="{{ route('belanja.index') }}" class="btn2 btn">Batal</a>
-</div>
+<p class="text-[11px] text-slate-400" id="wizardPesan" role="status" aria-live="polite"></p>
 </form>
 
 <template id="tplR"><tr>
@@ -208,4 +265,185 @@ document.getElementById('metode').addEventListener('change', infoSaldo);
 
 tambahRincian(); infoSaldo(); toggleSiplah();
 </script>
+
+{{-- Wizard 3 langkah: hanya tampilan. Seluruh field tetap di dalam SATU form,
+     jadi tombol Simpan mengirim POST yang sama seperti sebelumnya. --}}
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
+(function () {
+  const form = document.getElementById('formBelanja');
+  if (!form) return;
+
+  const JUDUL = { 1: 'Detail Transaksi', 2: 'Kegiatan & Rincian', 3: 'Perhitungan Pajak' };
+  const MAJU  = { 1: 'Lanjut: Kegiatan & Rincian →', 2: 'Lanjut: Perhitungan Pajak →', 3: '' };
+  const TOTAL = 3;
+  let langkah = 1;
+
+  const panel = (n) => form.querySelector('[data-langkah="' + n + '"]');
+  const tombol = (n) => form.querySelector('[data-langkah-tombol="' + n + '"]');
+  const btnMaju = form.querySelector('[data-langkah-maju]');
+  const btnMundur = form.querySelector('[data-langkah-mundur]');
+  const btnSimpan = form.querySelector('[data-wizard-simpan]');
+  const posisi = document.getElementById('wizardPosisi');
+  const pesan = document.getElementById('wizardPesan');
+
+  function kelasTombol(n, aktif, sudahDilewati) {
+    const el = tombol(n);
+    if (!el) return;
+    el.classList.toggle('on', aktif);
+    el.classList.toggle('border-indigo-600', aktif);
+    el.classList.toggle('text-indigo-700', aktif);
+    el.classList.toggle('bg-white', true);
+    el.classList.toggle('border-slate-200', !aktif);
+    el.classList.toggle('text-slate-500', !aktif);
+    el.classList.toggle('font-semibold', aktif);
+    el.setAttribute('aria-selected', aktif ? 'true' : 'false');
+    const num = el.querySelector('.wizard-num');
+    if (num) {
+      num.classList.toggle('bg-indigo-600', aktif);
+      num.classList.toggle('text-white', aktif);
+      num.classList.toggle('bg-emerald-100', !aktif && sudahDilewati);
+      num.classList.toggle('text-emerald-700', !aktif && sudahDilewati);
+      // Status netral: kembalikan gaya dasar supaya warna tidak bertumpuk.
+      num.classList.toggle('bg-slate-100', !aktif && !sudahDilewati);
+      num.classList.toggle('text-slate-500', !aktif && !sudahDilewati);
+    }
+  }
+
+  function tampilkan(n, fokus) {
+    langkah = Math.min(TOTAL, Math.max(1, n));
+    for (let i = 1; i <= TOTAL; i++) {
+      const pnl = panel(i);
+      if (pnl) pnl.classList.toggle('hidden', i !== langkah);
+      kelasTombol(i, i === langkah, i < langkah);
+    }
+    if (posisi) posisi.textContent = 'Langkah ' + langkah + ' dari ' + TOTAL + ' — ' + JUDUL[langkah];
+    if (btnMundur) btnMundur.classList.toggle('invisible', langkah === 1);
+    if (btnMaju) {
+      btnMaju.classList.toggle('hidden', langkah === TOTAL);
+      btnMaju.textContent = MAJU[langkah] || '';
+    }
+    if (btnSimpan) btnSimpan.classList.toggle('hidden', langkah !== TOTAL);
+    if (pesan) pesan.textContent = '';
+    if (langkah === TOTAL) perbaruiRingkasan();
+    if (fokus) {
+      const pertama = panel(langkah)?.querySelector('input:not([type=hidden]),select,textarea');
+      if (pertama) pertama.focus({ preventScroll: false });
+    }
+  }
+
+  /** Kembalikan elemen pertama yang tidak valid pada satu langkah. */
+  function salahDi(n, abaikanTersembunyi) {
+    const pnl = panel(n);
+    if (!pnl) return null;
+    for (const el of pnl.querySelectorAll('input,select,textarea')) {
+      if (el.disabled || el.type === 'hidden') continue;
+      if (!abaikanTersembunyi && el.offsetParent === null) continue;
+      if (!el.checkValidity()) return el;
+    }
+    return null;
+  }
+
+  /** Lompat ke langkah tempat elemen berada. */
+  function pindahKe(el) {
+    const pnl = el && el.closest('[data-langkah]');
+    if (!pnl) return;
+    const n = parseInt(pnl.dataset.langkah, 10);
+    if (n !== langkah) tampilkan(n, false);
+  }
+
+  function pesanUntuk(el) {
+    if (!el) return 'Lengkapi dulu isian yang wajib.';
+    const label = el.closest('div')?.querySelector('label')?.textContent?.trim();
+    return '⚠️ ' + (label ? label.replace(/\s+/g, ' ') + ' belum lengkap. ' : '') + (el.validationMessage || '');
+  }
+
+  function bolehLanjut(n) {
+    const el = salahDi(n);
+    if (el) {
+      if (pesan) pesan.textContent = pesanUntuk(el);
+      el.focus();
+      return false;
+    }
+    return true;
+  }
+
+  form.addEventListener('click', function (ev) {
+    const maju = ev.target.closest('[data-langkah-maju]');
+    if (maju) {
+      if (bolehLanjut(langkah)) tampilkan(langkah + 1, true);
+      return;
+    }
+    if (ev.target.closest('[data-langkah-mundur]')) { tampilkan(langkah - 1, true); return; }
+    const tab = ev.target.closest('[data-langkah-tombol]');
+    if (tab) {
+      const tujuan = parseInt(tab.dataset.langkahTombol, 10);
+      // Maju hanya bila langkah sekarang valid; mundur selalu boleh.
+      if (tujuan > langkah && !bolehLanjut(langkah)) return;
+      tampilkan(tujuan, true);
+    }
+  });
+
+  // Cegah Enter mengirim form saat masih di langkah 1–2.
+  form.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' && langkah !== TOTAL && ev.target.tagName !== 'TEXTAREA'
+        && !(ev.target.tagName === 'BUTTON')) {
+      ev.preventDefault();
+    }
+  });
+
+  // Validasi menyeluruh sebelum benar-benar dikirim.
+  form.addEventListener('submit', function (ev) {
+    for (let i = 1; i <= TOTAL; i++) {
+      const el = salahDi(i, true);
+      if (el) {
+        ev.preventDefault();
+        tampilkan(i, false);
+        if (pesan) pesan.textContent = pesanUntuk(el);
+        el.focus();
+        return;
+      }
+    }
+  });
+
+  // Validasi natif browser hanya bisa fokus ke satu field; kalau field itu ada di
+  // langkah lain yang tersembunyi, pengguna akan mentok tanpa pesan. Karena itu
+  // field pertama yang invalid dipakai sebagai penentu langkah.
+  let invalidPertama = null;
+  form.addEventListener('invalid', function (ev) {
+    if (!invalidPertama) invalidPertama = ev.target;
+  }, true);
+  form.addEventListener('click', function (ev) {
+    if (!ev.target.closest('[data-wizard-simpan]')) return;
+    invalidPertama = null;
+    setTimeout(function () {
+      if (!invalidPertama) return;
+      pindahKe(invalidPertama);
+      if (pesan) pesan.textContent = pesanUntuk(invalidPertama);
+    }, 0);
+  });
+
+  function angka(v) { return parseInt(v, 10) || 0; }
+
+  function perbaruiRingkasan() {
+    const belanja = Array.from(form.querySelectorAll('.nR')).reduce((a, el) => a + angka(el.value), 0);
+    const pajak = Array.from(form.querySelectorAll('.nP')).reduce((a, el) => a + angka(el.value), 0);
+    const rp = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+    const set = (id, teks) => { const el = document.getElementById(id); if (el) el.textContent = teks; };
+    set('ringkasBelanja', rp(belanja));
+    set('ringkasPajak', rp(pajak));
+    set('ringkasSumber', document.getElementById('sumberPengadaan')?.value === 'siplah' ? 'SIPLah' : 'Non-SIPLah');
+    set('ringkasMetode', document.getElementById('metode')?.value === 'transfer' ? 'Non-tunai / transfer' : 'Tunai');
+  }
+
+  document.addEventListener('input', function (ev) {
+    if (ev.target.classList.contains('nR') || ev.target.classList.contains('nP')) perbaruiRingkasan();
+  });
+  document.addEventListener('change', function (ev) {
+    if (['sumberPengadaan', 'metode'].includes(ev.target.id)) perbaruiRingkasan();
+  });
+
+  tampilkan(1, false);
+})();
+</script>
+
 @endsection

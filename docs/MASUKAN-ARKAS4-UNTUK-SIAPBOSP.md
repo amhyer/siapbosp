@@ -299,9 +299,20 @@ Tambahkan `?format=` pada `pembukuan.bkuCetak`:
 
 Sekaligus: **watermark DRAFT** dipindah jadi komponen bersama (`partials.watermark-draft`) yang dipakai **semua** cetak, bukan hanya BKU.
 
-### P1-7 — Wizard belanja berlabel 3 langkah
+### P1-7 — Wizard belanja berlabel 3 langkah · ✅ sudah diimplementasikan
 
 Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiatan & Rincian → Perhitungan Pajak**, dengan urutan field mengikuti ARKAS (SIPLah dulu, lalu tanggal = bulan pelunasan, NPWP 15/NIK 16, centang tanpa-NPWP, jenis usaha perseorangan). Rute `hitung-pajak` menjadi langkah 3 (bukan halaman lepas). Ini perubahan murni tampilan + validasi; skema DB tetap.
+
+**Yang sudah jadi:**
+- Stepper di puncak form (3 pil berlabel) + panel `role="tabpanel"` per langkah; hanya satu panel tampil.
+- Lampiran bukti (kuitansi/nota) ikut **Langkah 1** karena itu bukti transaksi, bukan dokumen pajak.
+- Tombol `← Kembali` / `Lanjut →` bertipe `type="button"` (bukan submit) dan memakai listener delegasi di JS — sesuai aturan CSP `script-src-attr 'none'` (R-03).
+- Validasi per langkah: langkah tidak bisa ditinggalkan selama field wajib di langkah itu belum valid; pesan muncul di `#wizardPesan` dengan `aria-live="polite"`.
+- Tetap **satu** `<form>` ke `belanja.store`; semua `name=` lama tidak berubah, jadi controller tidak disentuh. `💾 Simpan Belanja` hanya tampil di langkah 3 dan melakukan validasi ketiga langkah sekaligus.
+- Ringkasan sebelum simpan (total belanja, pajak dipungut, sumber, metode bayar).
+- Tanpa JavaScript, perilaku lama kembali utuh lewat `<noscript>`: ketiga panel terbuka dan tombol simpan tampil.
+- Data yang sudah diketik tidak hilang saat mundur/maju karena panel hanya disembunyikan, bukan dibuang.
+- Pagar regresi: `tests/Feature/WizardBelanjaTest.php` (urutan langkah, tombol non-submit, kelengkapan `name=`, lampiran di langkah 1, larangan `on*` inline).
 
 ### P2 — Kecil tapi murah
 
@@ -351,7 +362,7 @@ Lembar gabungan semua panel: [`mockup/00-semua-tampilan.png`](mockup/00-semua-ta
 | **S2** | P0-3 arsip terpadu | sedang (rute baru) | memperbaiki temuan operator paling sering |
 | **S3** | P1-5 tab BKU + badge pajak + P1-6 format cetak | sedang | nilai tampilan tertinggi |
 | **S4** | P1-4 kartu sumber dana | sedang | mengubah halaman depan `rkas.index` |
-| **S5** | P1-7 wizard belanja | sedang–tinggi (form sentral) | butuh test regresi belanja penuh |
+| **S5** | ~~P1-7 wizard belanja~~ ✅ | sedang–tinggi (form sentral) | selesai — lihat `WizardBelanjaTest` |
 | **S6** | P2 sekumpulan kecil | rendah | bisa digabung ke sprint mana pun |
 
 Tiap sprint: `php artisan test`, uji cetak (A4), dan cek `Belum Dianggarkan` pada data nyata.
