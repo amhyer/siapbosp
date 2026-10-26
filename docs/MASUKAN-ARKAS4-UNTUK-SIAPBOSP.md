@@ -366,7 +366,7 @@ watermark semua cetak, tab sumber dana, filter arsip seragam). Yang masih berbed
 |---|---|---|---|
 | Pita tab di **semua** halaman | ada di setiap layar | ada di 3 halaman yang benar-benar menyaring (Kertas Kerja, Pendapatan, Belanja) | sengaja: tab tanpa penyaringan = tab mati |
 | Tombol Tarik/Setor Tunai di lembar BKU | ada | di menu Penerimaan | sengaja: perpindahan antar-kas, bukan tambah transaksi |
-| Tab *Sumber Dana Tambahan* | select sumber + "Unduh dan Perbarui Data" | kartu keterangan + tab dokumen | belum: butuh layanan pusat |
+| Tab *Sumber Dana Tambahan* | select sumber + "Unduh dan Perbarui Data" | kartu keterangan + tab dokumen | belum: rencananya baca `arkas.db` lokal, bukan layanan pusat — menunggu uji di laptop ARKAS, lihat [`UJI-ARKAS-LAPTOP-SUMBER-DANA.md`](UJI-ARKAS-LAPTOP-SUMBER-DANA.md) |
 | Utilitas bawah sidebar | 4 (Tutorial · Pertanyaan Umum · Hubungi Kami · Perbarui Aplikasi) | 2 (Bantuan & Panduan · Perbarui Aplikasi) | belum |
 | Ikon baris ✎ 🗑 🖨 | tiga aksi | Buka/PDF/Excel, tanpa hapus RKAS | sengaja: rute hapus RKAS belum ada |
 | Aktivasi BKU / Tutup BKU wajib internet | ya | tidak (offline) | sengaja — nilai jual SiapBOSP |
