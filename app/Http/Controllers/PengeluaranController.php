@@ -242,7 +242,13 @@ class PengeluaranController extends Controller
 
         $msg = 'Belanja tersimpan. No BKU: '.$t->no_bku;
 
-        return redirect()->route('belanja.index')
+        // Bila form dibuka dari aksi cepat lembar BKU (?kembali=bku), operator
+        // dikembalikan ke BKU dengan baris baru ditandai (kilat kuning).
+        $balik = $r->input('kembali') === 'bku'
+            ? redirect()->route('bku', ['bulan' => $t->tanggal->format('Y-m'), 'baru' => $t->id])
+            : redirect()->route('belanja.index');
+
+        return $balik
             ->with('ok', $msg)
             ->with('warning', $warnings ? implode(' ', $warnings) : null);
     }

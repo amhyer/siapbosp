@@ -108,6 +108,27 @@
     .tbl tfoot td {
         @apply bg-slate-50 font-bold text-slate-800;
     }
+
+    /* Baris yang baru disimpan: kilat kuning sebentar lalu kembali normal
+       (padanan ARKAS 4 saat transaksi baru masuk lembar BKU). */
+    .kilat td {
+        animation: kilat-baris 2.6s ease-out 1;
+    }
+    @keyframes kilat-baris {
+        0%,
+        25% {
+            background-color: #fef3c7;
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .kilat td {
+            animation: none;
+            background-color: #fef3c7;
+        }
+    }
     .num {
         @apply whitespace-nowrap text-right tabular-nums;
     }

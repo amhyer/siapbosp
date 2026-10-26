@@ -77,16 +77,22 @@ class PenerimaanController extends Controller
             $t->details()->create(['rekening_id' => $rid, 'uraian' => $data['keterangan'], 'nilai' => (int) $data['nilai'][$i]]);
         }
 
+        // Bila form dibuka dari aksi cepat lembar BKU (?kembali=bku), operator
+        // dikembalikan ke BKU dengan baris baru ditandai (kilat kuning).
+        $balik = $r->input('kembali') === 'bku'
+            ? redirect()->route('bku', ['bulan' => $t->tanggal->format('Y-m'), 'baru' => $t->id])
+            : back();
+
         // ala ARKAS (konfirmasi penerimaan dana): penerimaan tidak boleh melebihi pagu —
         // di sini peringatan (tidak memblokir) agar sekolah tetap bisa mencatat kroneker.
         $pagu = Allocation::where('tahun', $tahun)->sum('nilai');
         $diterima = KasTransaction::where('tahun', $tahun)->where('type', 'pendapatan')->sum('total');
         if ($pagu > 0 && $diterima > $pagu) {
-            return back()->with('warning', 'Tersimpan, tetapi total penerimaan tahun ini ('.rp($diterima).
+            return $balik->with('warning', 'Tersimpan, tetapi total penerimaan tahun ini ('.rp($diterima).
                 ') sudah MELEWATI pagu ('.rp($pagu).'). Periksa kembali penyaluran dana atau pagu di menu Referensi.');
         }
 
-        return back()->with('ok', 'Pendapatan tersimpan, masuk Kas Bank. No BKU: '.$t->no_bku);
+        return $balik->with('ok', 'Pendapatan tersimpan, masuk Kas Bank. No BKU: '.$t->no_bku);
     }
 
     /**
