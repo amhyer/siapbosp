@@ -350,7 +350,8 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 - Kolom Panduan berisi tiga tautan per baris: **Aturan uraian & proporsi** (`bantuan#rincian`, bagian baru di halaman Bantuan), **Standar harga rekening ini** (`referensi.harga?q=<kode rekening>`), dan **Review & proporsi** (`penganggaran.review`). Semua rute internal — tidak ada ketergantungan internet.
 - Halaman Bantuan dapat dua anchor (`#versi`, `#rincian`) dengan `scroll-margin-top` inline karena kelas `scroll-mt-24` tidak ter-build.
 - **Celah yang ditutup saat verifikasi ulang:** disclaimer dulu hanya ada di `layouts.print`. Padahal LPJ per Tahap dan Buku Pembantu memakai kerangka aplikasi (`.dokumen`), dan halaman apa pun bisa dicetak dengan Ctrl+P — semuanya tercetak tanpa pernyataan apa pun. Kini kerangka aplikasi membawa `<div class="cetak-kaki">` yang `display:none` di layar dan `display:block` di `@media print`, memuat versi, waktu cetak, dan nama sekolah.
-- Pagar regresi: `tests/Feature/P2ArkasParitasTest.php` (7 test) — termasuk bahwa jejak cetak muncul di halaman biasa **dan** halaman dokumen, serta bahwa aturan CSS-nya memang hanya aktif saat cetak.
+- **Verifikasi ulang (2026-10-26):** keempat item dicek satu per satu terhadap kode, bukan hanya terhadap catatan ini. Dua celah ditemukan dan ditutup — (a) disclaimer cetak dulu hanya ada di `layouts.print`, padahal halaman dokumen memakai kerangka aplikasi; (b) pilihan tahun anggaran dipaku 2023 di sisi bawah sehingga sesi tahun arsip (2021) tidak punya opsi terpilih.
+- Pagar regresi: `tests/Feature/P2ArkasParitasTest.php` (8 test) — termasuk jejak cetak di halaman biasa **dan** halaman dokumen, aturan CSS yang hanya aktif saat cetak, serta tahun anggaran di luar rentang bawaan (2031 dan 2021) yang tetap terpilih.
 
 
 ---
