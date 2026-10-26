@@ -132,6 +132,24 @@
     .num {
         @apply whitespace-nowrap text-right tabular-nums;
     }
+
+    /* Jejak cetak di kerangka aplikasi: tersembunyi di layar, tampil di kertas.
+       Melengkapi footer layouts print agar SEMUA halaman yang dicetak (termasuk
+       halaman dokumen seperti LPJ dan Buku Pembantu) menyatakan bahwa dokumen
+       tersebut bukan keluaran resmi ARKAS. */
+    .cetak-kaki {
+        display: none;
+    }
+    @media print {
+        .cetak-kaki {
+            display: block;
+            margin-top: 1rem;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 0.35rem;
+            font-size: 9pt;
+            color: #475569;
+        }
+    }
     .badge {
         @apply inline-flex items-center gap-1 whitespace-nowrap rounded px-2 py-0.5 text-[11px] font-semibold;
     }

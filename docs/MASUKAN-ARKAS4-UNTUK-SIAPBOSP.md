@@ -340,7 +340,7 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 |---|---|---|
 | Badge versi di topbar | meniru "Perbarui Aplikasi" | ✅ `config('app.version')` di topbar → `bantuan#versi` |
 | Tombol tahun anggaran di topbar | ARKAS taruh di Profil; SiapBOSP punya `datasekolah.tahun` yang terkubur | ✅ sudah ada sebelumnya; **rentang tahunnya diperlebar** agar tahun di luar 2023–2028 tetap muncul terpilih |
-| Footer cetak: *"Dicetak dari SiapBOSP — bukan dokumen resmi ARKAS"* | mencegah salah pakai di Dinas | ✅ di `layouts.print`, jadi berlaku untuk **semua** halaman cetak |
+| Footer cetak: *"Dicetak dari SiapBOSP — bukan dokumen resmi ARKAS"* | mencegah salah pakai di Dinas | ✅ di `layouts.print` **dan** jejak cetak `.cetak-kaki` di kerangka aplikasi, jadi berlaku juga untuk halaman dokumen (LPJ, Buku Pembantu) dan halaman biasa yang dicetak |
 | Kolom **Panduan** (tautan Juknis) per baris rincian | dikerjakan sekali di partial | ✅ `partials/_panduan-rincian.blade.php` dipakai tabel rincian Kertas Kerja |
 
 **Yang sudah jadi / catatan:**
@@ -349,7 +349,8 @@ Susun ulang `belanja-form.blade.php` jadi stepper: **Detail Transaksi → Kegiat
 - Footer cetak **ikut tercetak** (tanpa kelas `nonprint`) dan memuat versi, waktu cetak, nama sekolah, dan tahun anggaran.
 - Kolom Panduan berisi tiga tautan per baris: **Aturan uraian & proporsi** (`bantuan#rincian`, bagian baru di halaman Bantuan), **Standar harga rekening ini** (`referensi.harga?q=<kode rekening>`), dan **Review & proporsi** (`penganggaran.review`). Semua rute internal — tidak ada ketergantungan internet.
 - Halaman Bantuan dapat dua anchor (`#versi`, `#rincian`) dengan `scroll-margin-top` inline karena kelas `scroll-mt-24` tidak ter-build.
-- Pagar regresi: `tests/Feature/P2ArkasParitasTest.php` (5 test).
+- **Celah yang ditutup saat verifikasi ulang:** disclaimer dulu hanya ada di `layouts.print`. Padahal LPJ per Tahap dan Buku Pembantu memakai kerangka aplikasi (`.dokumen`), dan halaman apa pun bisa dicetak dengan Ctrl+P — semuanya tercetak tanpa pernyataan apa pun. Kini kerangka aplikasi membawa `<div class="cetak-kaki">` yang `display:none` di layar dan `display:block` di `@media print`, memuat versi, waktu cetak, dan nama sekolah.
+- Pagar regresi: `tests/Feature/P2ArkasParitasTest.php` (7 test) — termasuk bahwa jejak cetak muncul di halaman biasa **dan** halaman dokumen, serta bahwa aturan CSS-nya memang hanya aktif saat cetak.
 
 
 ---

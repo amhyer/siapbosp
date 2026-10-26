@@ -351,6 +351,12 @@
       <footer class="nonprint mt-8 border-t border-slate-200 pt-4 pb-2 text-center text-[11px] text-slate-400">
         SiapBOSP · Sistem Akuntansi Dana BOSP · Selaras ARKAS 4 v4.3.0 &amp; Permendikdasmen No. 8 Tahun 2026 · TA {{ $tahunAktif }}
       </footer>
+      {{-- Jejak cetak (P2): berlaku untuk SEMUA halaman, bukan hanya layouts.print —
+           termasuk halaman dokumen (.dokumen) yang memakai kerangka aplikasi. --}}
+      <div class="cetak-kaki">
+        Dicetak dari <b>SiapBOSP {{ config('app.version', 'v4.3.0') }}</b> — bukan dokumen resmi ARKAS ·
+        {{ now()->format('d/m/Y H:i') }} · {{ $u->school->nama ?? 'Dinas Pendidikan' }}
+      </div>
     </main>
   </div>
 </div>

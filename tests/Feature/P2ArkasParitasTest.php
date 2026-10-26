@@ -133,4 +133,53 @@ class P2ArkasParitasTest extends TestCase
         $this->assertStringContainsString('Uraian maksimal 500 karakter', $html);
         $this->assertStringContainsString('Belum Dianggarkan harus Rp 0', $html);
     }
+
+    /**
+     * Celah yang ditutup: halaman berkerangka aplikasi — termasuk dokumen
+     * `.dokumen` seperti LPJ per Tahap dan Buku Pembantu — dulu tercetak TANPA
+     * pernyataan "bukan dokumen resmi ARKAS", karena disclaimer hanya ada di
+     * `layouts.print`. Kini kerangka aplikasi membawa `.cetak-kaki` sendiri.
+     */
+    public function test_kerangka_aplikasi_juga_mencetak_jejak_bukan_dokumen_resmi(): void
+    {
+        $urls = [
+            'halaman biasa' => route('dashboard'),
+            'halaman dokumen (.dokumen)' => route('pembukuan.bukuPembantu', ['semester' => 2]),
+        ];
+
+        foreach ($urls as $nama => $url) {
+            $html = $this->halaman($url);
+
+            $this->assertStringContainsString('class="cetak-kaki"', $html, $nama.' tidak membawa jejak cetak.');
+            $this->assertStringContainsString('bukan dokumen resmi ARKAS', $html,
+                $nama.' tidak menyatakan bukan dokumen resmi ARKAS.');
+            $this->assertStringContainsString('Dicetak dari <b>SiapBOSP '.config('app.version').'</b>', $html);
+        }
+
+        // Dokumen tetap memakai pembungkus .dokumen, bukan HTML polos.
+        $this->assertStringContainsString('class="dokumen"',
+            $this->halaman(route('pembukuan.bukuPembantu', ['semester' => 2])));
+    }
+
+    /** Jejak cetak itu tidak boleh mengganggu layar: hanya tampil di kertas. */
+    public function test_jejak_cetak_tersembunyi_di_layar_dan_tampil_saat_cetak(): void
+    {
+        $css = '';
+        foreach (glob(public_path('build/assets').DIRECTORY_SEPARATOR.'*.css') ?: [] as $berkas) {
+            $css .= (string) file_get_contents($berkas);
+        }
+        $this->assertNotSame('', $css, 'CSS hasil build tidak ditemukan — jalankan npm run build.');
+
+        $this->assertMatchesRegularExpression('/\.cetak-kaki\{[^}]*display:none/',
+            $css, 'Jejak cetak harus display:none di layar.');
+
+        $ketemu = false;
+        foreach (explode('@media print', $css) as $blok) {
+            if (str_contains($blok, '.cetak-kaki') && str_contains($blok, 'display:block')) {
+                $ketemu = true;
+                break;
+            }
+        }
+        $this->assertTrue($ketemu, 'Aturan .cetak-kaki untuk @media print tidak ada di CSS build.');
+    }
 }
