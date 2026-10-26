@@ -153,6 +153,8 @@ Route::middleware('auth')->group(function () {
     // ===== PANEL SEKOLAH =====
     Route::middleware('role:operator,kepsek')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        // Bantuan & panduan (padanan Tutorial/Pertanyaan Umum di sidebar ARKAS 4).
+        Route::view('/bantuan', 'bantuan')->name('bantuan');
 
         // ---- Hulu Pra-ARKAS: PBD/Rapor Pendidikan -> RKM -> RKT + Standar Harga (SSH/SBU) ----
         Route::get('/perencanaan', [PerencanaanController::class, 'index'])->name('perencanaan.index');
@@ -284,6 +286,7 @@ Route::middleware('auth')->group(function () {
         });
 
         // ===== ARSIP =====
+        Route::get('/arsip', [ArsipController::class, 'index'])->name('arsip.index');
         Route::get('/arsip/rkas', [ArsipController::class, 'rkas'])->name('arsip.rkas');
         Route::get('/arsip/bku', [ArsipController::class, 'bku'])->name('arsip.bku');
         Route::get('/arsip/pajak', [ArsipController::class, 'pajak'])->name('arsip.pajak');

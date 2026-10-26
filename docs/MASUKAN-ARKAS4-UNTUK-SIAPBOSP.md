@@ -10,11 +10,51 @@
 
 1. **SiapBOSP sudah unggul secara cakupan.** 47 item menu vs ±25 layar ARKAS 4. Yang kurang **bukan modul**, tapi **kosakata status**, **gerbang pra-pengajuan**, dan **penyatuan arsip**.
 2. **Tiga masukan P0:** (a) peta kosakata status RKAS agar sama dengan istilah Dinas, (b) checklist pemblokir sebelum "Ajukan", (c) satu halaman Arsip dengan filter *jenis dokumen × sumber dana × tahun* + mode *Akumulasi* vs *per Sumber Dana*.
-3. **Tiga masukan P1 tampilan:** kartu per sumber dana sebagai halaman depan Penganggaran/Penatausahaan, strip tab Jan–Des, dan dropdown **Format + Periode** pada cetak BKU.
+3. **Masukan P1 tampilan:** daftar dokumen per tahun + tab sumber dana di Penganggaran/Penatausahaan, grid 12 kotak bulan pada BKU, dan dropdown **Format + Periode** pada cetak BKU.
 4. **Yang sudah setara dan tidak perlu dikerjakan ulang:** watermark **DRAFT** (`pembukuan/bku-cetak.blade.php`), Aktivasi Kertas Kerja (`RkasController`), Grafik Proporsi, badge "wajib lapor" (`pengeluaran/belanja.blade.php`), Tutup BKU, Buku Pembantu/SPTJM semester, Riwayat Import/Ekspor.
 5. **Jangan tiru 4 hal dari ARKAS 4:** logout otomatis saat jendela ditutup, jendela data 3 tahun, `Tutup BKU` yang **wajib internet**, dan harga satuan yang dikunci server Dinas — SiapBOSP justru menang di situ.
 
 > **Batas bukti:** artikel portal resmi berisi teks + tangkapan layar. **Tangkapan layar tidak dapat saya buka**, jadi detail tata letak di bawah **direkonstruksi dari daftar langkah beranotasi** (posisi tombol, urutan field), bukan dari gambar. Bagian yang murni dugaan ditandai *(dugaan)*.
+
+---
+
+## 0a. ⚠️ Koreksi — bukti tangkapan layar ARKAS 4 asli (21 Okt 2026)
+
+Bagian 1–3 dokumen ini awalnya disusun dari **artikel teks** portal resmi karena tangkapan layarnya
+tidak dapat dibuka di sandbox. Setelah pengguna mengirim **20 tangkapan layar ARKAS 4 v4.3.0** yang asli,
+beberapa kesimpulan ternyata **salah** dan dikoreksi di bawah. Yang berlaku adalah tabel ini.
+
+| Klaim awal (SALAH) | Yang benar (dari tangkapan layar) |
+|---|---|
+| Penganggaran/Penatausahaan/Arsip ada di **top bar** | Ketiganya ada di **sidebar kiri**, tanpa ikon, aktif = biru terang penuh |
+| Top bar berisi navigasi area kerja | Top bar **hanya** logo ARKAS + **nama sekolah berdropdown** (avatar ⓤ) |
+| "Perbarui Aplikasi" di top bar dengan titik merah | Ada di **bawah sidebar**, bersama Tutorial · Pertanyaan Umum · Hubungi Kami |
+| Menu Profil berisi Data Sekolah, Tahun Anggaran, Sumber Dana, dst. | Isinya **hanya dua**: *Data Penanggung Jawab* dan *Keluar* |
+| Penganggaran = **kartu-kartu per sumber dana** | **Tab sumber dana** di atas (BOSP Reguler · BOSP Daerah · BOSP Kinerja · SiLPA BOSP Kinerja · Lainnya · Sumber Dana Tambahan), isinya **daftar dokumen per tahun** |
+| Status: *Draf, Perlu Revisi, Perlu Diajukan Ulang, terkirim…* | Yang terlihat di aplikasi: **Sudah Disahkan** (hijau), **Belum Aktif**, **Nonaktif - Lewat Batas**, **Aktif**, **Sudah Selesai**, **Draf** (biru), **Belum Dibuat** |
+| BKU memakai tab Jan–Des memanjang | BKU memakai **grid 12 kotak bulan (4×3)** dengan tanda ✓ |
+
+Pola penting yang baru terlihat dan wajib ditiru:
+
+1. **Baris per tahun anggaran.** Tiap dokumen tampil sebagai baris berisi nama + chip status +
+   keterangan versi (`Ver. Pergeseran - 29 Sep 2026`) + 3 ikon di kanan (buka/tutup, hapus, cetak).
+   Riwayat **3 tahun** tampil sekaligus dalam satu daftar.
+2. **Aktivasi manual.** Saat belum aktif: chip abu *Belum Aktif* + tombol hitam
+   **Aktivasi Kertas Kerja / Aktivasi BKU** + keterangan kecil *"membutuhkan koneksi internet"*.
+3. **Tenggat aktivasi.** Tahun yang lewat tenggat menampilkan *Nonaktif - Lewat Batas* beserta
+   alasannya ("melewati tenggat 31 Des 2025").
+4. **Modal Data Penanggung Jawab**: pemilih **tahun** + **Periode 1** (Bulan Awal *Januari* – Bulan Akhir
+   *Desember*) + Nama/NIP Kepala Sekolah, Nama/NIP Bendahara, Nama/Email Komite.
+   Keterangan: *"Anda dapat memasukkan data penanggung jawab yang berbeda untuk periode waktu yang berbeda."*
+5. **Arsip**: tiga dropdown sejajar kanan — **Format** (BKUs / RKAS / Semua Format) ×
+   **Sumber dana** × **Tahun** (2018…2021, Semua) — lalu daftar dokumen sah + tombol **Cetak**.
+6. **Sumber Dana Tambahan** punya filter sumber dana sendiri + tombol **Unduh dan Perbarui Data**
+   dengan dialog konfirmasi "Berhasil Perbarui Data".
+
+> **Konsekuensi:** mockup `docs/mockup/01-penganggaran-kartu.png` (panel "kartu per sumber dana")
+> dan `docs/mockup-paritas-arkas4.html` **tidak akurat** untuk bagian itu — lihat catatan di
+> [`mockup/README.md`](mockup/README.md). Struktur yang sudah diimplementasikan di SiapBOSP mengikuti
+> tabel koreksi di atas.
 
 ---
 
@@ -34,23 +74,33 @@
 
 ## 2. Inventaris menu ARKAS 4
 
-Navigasi global hanya **5 elemen** (sangat sedikit dibanding 7 grup SiapBOSP):
+Navigasi global sangat sedikit dibanding 7 grup SiapBOSP — **3 area kerja di sidebar**,
+top bar hanya identitas (lihat §0a untuk koreksi):
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ARKAS 4        Penganggaran   Penatausahaan   Arsip      ⟳ Perbarui Aplikasi │
-│                                                     ● (merah = ada update)   │
-│                                                      Profil ▾  →  Keluar     │
-└──────────────────────────────────────────────────────────────────────────────┘
+│ ▲ARKAS                                              ⓤ UPT SPF SD NEGERI … ▾ │  top bar
+├───────────────┬──────────────────────────────────────────────────────────────┤
+│ Penganggaran  │                                                              │  sidebar
+│ Penatausahaan │   (isi area kerja yang dipilih)                              │
+│ Arsip         │                                                              │
+│ ───────────── │                                                              │
+│ ⓘ Tutorial    │                                                              │
+│ ▤ Pertanyaan… │                                                              │
+│ ◎ Hubungi…    │                                                              │
+│ ↻ Perbarui…   │                                                              │
+└───────────────┴──────────────────────────────────────────────────────────────┘
 ```
+
+Isi dropdown nama sekolah: **Data Penanggung Jawab** dan **Keluar** (hanya dua).
 
 | Area | Isi | Catatan tampilan |
 |---|---|---|
-| **Penganggaran** | Daftar **kartu per sumber dana** (BOSP Reguler, Kinerja, SiLPA Kinerja, BOSP Daerah, Afirmasi/Sumber Dana Tambahan, Lainnya) | Riwayat **3 tahun**; tiap kartu punya status sendiri + 4 ikon aksi |
+| **Penganggaran** | **Tab sumber dana** (BOSP Reguler · BOSP Daerah · BOSP Kinerja · SiLPA BOSP Kinerja · Lainnya · Sumber Dana Tambahan) → **daftar dokumen per tahun** | Riwayat **3 tahun** sekaligus; tiap baris punya chip status + `Ver. …` + ikon buka/hapus/cetak |
 | **Penatausahaan** | Daftar sumber dana → status BKU, **Aktivasi BKU**, 12 tombol bulan | Butuh KK **Disahkan** + dana salur + tahun lalu tertutup |
 | **Arsip** | Filter **jenis dokumen × sumber dana × tahun** | **Hanya** dokumen sah; dua mode: *Akumulasi* / *per Sumber Dana* |
-| **Perbarui Aplikasi** | Indikator versi | Titik merah bila versi lawas |
-| **Profil ▾** | Data sekolah, Penjab, Keluar | Tahun anggaran ikut di sini *(dugaan)* |
+| **Perbarui Aplikasi** | Di **bawah sidebar** (bukan top bar), bersama Tutorial/Pertanyaan Umum/Hubungi Kami | Ikon ↻ + teks, bukan tombol |
+| **Dropdown nama sekolah** | **Data Penanggung Jawab** (modal: tahun + Periode 1 + Kepsek/Bendahara/Komite) dan **Keluar** | Hanya dua item |
 
 ### 2.1 Status per kartu sumber dana (kosakata resmi)
 
@@ -147,8 +197,8 @@ Detail perilaku yang penting ditiru:
 
 | # | Aspek | ARKAS 4 | SiapBOSP sekarang (bukti) | Selisih |
 |---|---|---|---|---|
-| 1 | Navigasi | 5 elemen top bar | **7 grup / 47 item** (`layouts/app.blade.php`) | Terlalu dalam; butuh "pintu masuk" kartu |
-| 2 | Halaman depan Penganggaran | kartu per **sumber dana** + status | daftar KK (`rkas.index`) + `datasekolah.sumber-dana` terpisah | **Belum ada kartu status** |
+| 1 | Navigasi | 3 area kerja di sidebar + top bar identitas | 3 area kerja utama + 3 grup tambahan + utilitas (`layouts/app.blade.php`) | ✅ disamakan |
+| 2 | Halaman depan Penganggaran | tab sumber dana + daftar dokumen **per tahun** | daftar KK (`rkas.index`) + `datasekolah.sumber-dana` terpisah | **Belum ada baris per tahun + tab** |
 | 3 | Status KK | 7 status Dinas | 7 status internal (`RkasHeader::LABEL_STATUS`: draft, diajukan, disetujui, dikirim_dinas, revisi, disahkan, dikunci) | **Kosakata beda**, ada 2 tahap internal (Kepsek) |
 | 4 | Gerbang "Ajukan" | Belum Dianggarkan = Rp 0, Uraian ≤500, harga ≤ batas Dinas | "Belum Dianggarkan" **ditampilkan**; pembatas 500 char & batas harga belum ada | **Belum memblokir** |
 | 5 | Tab bulan KK | 12 tab | tab **Per Tahapan / Per Tahun** + select bulan | beda model, bukan kekurangan |
@@ -205,7 +255,7 @@ Tombol **Ajukan ke Kepsek** otomatis nonaktif (`@disabled`) selama ada blokir. P
 
 **Perbaikan ikutan (penting):** batas uraian ARKAS 4 adalah **500 karakter** dan form SiapBOSP sudah memakainya (`maxlength=500`, `max:500`), tetapi kolom `rkas_details.uraian` masih **VARCHAR(255)** — isian 256–500 karakter lolos validasi lalu terpotong (MySQL longgar) atau gagal simpan (PostgreSQL). Migrasi `2026_10_26_000001_widen_rkas_details_uraian.php` melebarkannya ke 500. Karena setelah itu uraian > 500 tidak mungkin tersimpan, pemeriksaan uraian tidak dijadikan item gerbang.
 
-### P0-3 — Satu halaman Arsip
+### P0-3 — Satu halaman Arsip · ✅ sudah diimplementasikan
 
 **Masalah.** 5 halaman arsip, dan `arsip/bku` bahkan tanpa filter.
 
@@ -216,15 +266,18 @@ Jenis dokumen: [RKAS disahkan ▾]   Sumber dana: [Semua ▾]   Tahun: [2026 ▾
 Tampilan: (•) Akumulasi   ( ) per Sumber Dana        [🖨 Cetak daftar]
 ```
 
-Bobot pekerjaan: sedang. Rute lama (`arsip.rkas`, `arsip.bku`, `arsip.pajak`) tetap hidup sebagai filter-preset agar tautan lama tidak mati.
+**Yang sudah jadi:** `GET /arsip` (`arsip.index`, `ArsipController::index`) — tiga filter sejajar (Format × Sumber dana × Tahun), hanya memuat dokumen sah (RKAS disahkan/dikunci + BKU yang sudah ditutup), tiap baris punya tombol Buka & Cetak. Rute lama (`arsip.rkas`, `arsip.bku`, `arsip.pajak`, impor/ekspor) tetap hidup sebagai filter-preset agar tautan lama tidak mati.
 
-### P1-4 — Kartu per sumber dana sebagai halaman depan
+### P1-4 — Halaman depan Penganggaran (tab sumber dana + baris per tahun) · ✅ sudah diimplementasikan
 
-Ganti `rkas.index` dari tabel menjadi grid kartu (contoh visual: `docs/mockup-paritas-arkas4.html`). Tiap kartu: nama sumber dana, tahun, pagu, terpakai, **status**, dan 4 ikon: 👁 lihat · 🖨 cetak · 🗑 hapus (**nonaktif bila `disahkan`/`dikunci`**) · ⚙ aksi (Ajukan/Revisi/Pergeseran/Perubahan). Riwayat tahun di sisi kanan (dropdown tahun).
+**Yang sudah jadi:** `rkas.index` memakai **tab sumber dana** (`RkasHeader::TAB_SUMBER_DANA`) dan **satu baris per tahun anggaran** dengan riwayat 3 tahun — persis ARKAS 4. Revisi pada tahun yang sama dilipat; seluruh revisi tetap dapat dibuka lewat tombol **Riwayat (n)**. Tahun aktif tanpa dokumen menawarkan **Aktivasi Kertas Kerja**; tahun lampau tanpa dokumen diberi chip *Nonaktif - Lewat Batas*. Tautan lama `?sumber=…` tetap dihormati.
 
-### P1-5 — Strip tab Jan–Des + aksi inline di BKU
+Ikon hapus **tidak** ditambahkan karena belum ada rute hapus RKAS — lebih baik tidak ada tombol daripada tombol yang tidak berfungsi.
 
-- Ganti `<input type="month">` dengan **12 tab** (pertahankan input bulan di kanan sebagai lompat cepat).
+### P1-5 — Grid 12 kotak bulan di BKU · ✅ sudah diimplementasikan (aksi inline belum)
+
+- **Sudah:** grid 12 kotak bulan (4×3) di **atas** tabel BKU sebagai pemilih bulan utama, dengan tanda ✓ untuk bulan
+  yang sudah selesai/tertutup; `<input type="month">` dipertahankan sebagai "Lompat ke bulan".
 - Tambah `+ Tambah Pembelanjaan` **di dalam** lembar BKU (dewasa ini harus pindah menu).
 - Tambah **Tarik Tunai / Setor Tunai** sebagai tombol di lembar (rute `ambil`/`mutasi` sudah ada).
 - **Kilat kuning** pada baris yang baru disimpan (`?baru={id}` + CSS animation).
@@ -268,7 +321,7 @@ Berkas PNG di `docs/mockup/` (digambar manual dengan Pillow, teks & angka identi
 
 | Gambar | Menunjukkan | Terkait |
 |---|---|---|
-| ![Top bar & kartu sumber dana](mockup/01-penganggaran-kartu.png) | Top bar + **kartu per sumber dana** dengan chip status Dinas, ikon hapus nonaktif saat disahkan | P0-1, P1-4 |
+| ![Top bar & kartu sumber dana](mockup/01-penganggaran-kartu.png) | ⚠️ **tidak akurat** (dibuat sebelum ada tangkapan layar). Struktur ARKAS 4 yang benar: tab sumber dana + baris per tahun — lihat §0a | P0-1, P1-4 |
 | ![Kertas kerja & gerbang](mockup/02-kertas-kerja-gerbang.png) | **Gerbang pra-pengajuan**: tombol *Ajukan* nonaktif, 3 pelanggaran disorot, baris baru kilat kuning | P0-2 |
 | ![Lembar BKU](mockup/03-bku.png) | **BKU**: tab Jan–Des, tarik/setor tunai di lembar, badge **wajib lapor** | P1-5 |
 | ![Wizard belanja](mockup/04-wizard-belanja.png) | **Wizard 3 langkah** mengikuti urutan ARKAS | P1-7 |

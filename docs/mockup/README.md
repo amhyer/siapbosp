@@ -13,6 +13,22 @@ dan versi HTML interaktifnya di [`../mockup-paritas-arkas4.html`](../mockup-pari
 | `04-wizard-belanja.png` | Wizard 3 langkah mengikuti urutan ARKAS (SIPLah, tanggal pelunasan, NPWP/NIK) | P1-7 |
 | `05-arsip-cetak.png` | Arsip terpadu (3 filter + 2 mode) dan pratinjau cetak ber-watermark **DRAFT** | P0-3, P1-6 |
 
+## ⚠️ Status keakuratan
+
+Panel **`01-penganggaran-kartu.png`** sudah DIGANTI (commit lanjutan) dengan struktur yang benar; bagian "kartu sumber dana" pada
+`../mockup-paritas-arkas4.html` dibuat **sebelum** ada tangkapan layar ARKAS 4 asli, sehingga
+**tidak akurat** pada versi awal. Keduanya sudah dikoreksi; panel 1 kini menampilkan kerangka
+ARKAS 4 yang benar (topbar identitas, sidebar 3 area kerja, tab sumber dana, daftar per tahun).
+Ringkasnya, struktur yang benar menurut ARKAS 4 v4.3.0:
+
+- sidebar berisi 3 area kerja (Penganggaran · Penatausahaan · Arsip), bukan di top bar;
+- top bar hanya logo + nama sekolah berdropdown (isinya *Data Penanggung Jawab* & *Keluar*);
+- Penganggaran = **tab sumber dana** di atas, isinya **daftar dokumen per tahun** (bukan kartu per sumber dana);
+- BKU = **grid 12 kotak bulan (4×3)**, bukan tab memanjang.
+
+Rincian koreksi ada di §0a `../MASUKAN-ARKAS4-UNTUK-SIAPBOSP.md`. Panel lain (gerbang pra-pengajuan,
+wizard belanja, arsip 3 filter) tetap relevan.
+
 ## Sifat gambar
 
 Digambar **manual dengan Pillow** (bukan AI image generator) supaya teks, angka,

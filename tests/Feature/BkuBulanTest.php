@@ -133,6 +133,33 @@ class BkuBulanTest extends TestCase
         $this->assertSame(13_000_000, (int) KasTransaction::where('tahun', 2025)->where('type', 'pendapatan')->sum('total'));
     }
 
+    /** Grid 12 bulan ala ARKAS 4: pemilih bulan utama, 4 kolom x 3 baris. */
+    public function test_grid_dua_belas_bulan_tampil_di_atas_dengan_status_arkas(): void
+    {
+        $this->kok('2025-03-05', 5_000_000);
+
+        $html = $this->withSession(['tahun' => 2025])
+            ->get(route('bku', ['bulan' => '2025-03']))
+            ->assertOk()
+            ->getContent();
+
+        foreach (['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $nama) {
+            $this->assertStringContainsString($nama, $html, 'Kotak bulan '.$nama.' tidak ada.');
+        }
+
+        // Grid harus muncul sebelum tabel BKU (pemilih utama, bukan pelengkap di bawah).
+        $posGrid = mb_strpos($html, 'pilih bulan');
+        $posTabel = mb_strpos($html, 'Buku Kas Umum</div>');
+        $this->assertNotFalse($posGrid);
+        if ($posTabel !== false) {
+            $this->assertLessThan($posTabel, $posGrid, 'Grid bulan harus berada di atas tabel BKU.');
+        }
+
+        // Bulan yang dipilih ditandai aria-current, dan bulan tertutup diberi tanda centang.
+        $this->assertStringContainsString('aria-current="true"', $html);
+    }
+
     public function test_halaman_bku_panel_kendali_dan_buka_kembali(): void
     {
         $this->kok('2025-03-05', 5_000_000);

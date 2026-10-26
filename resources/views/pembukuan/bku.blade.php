@@ -23,7 +23,7 @@
 @endphp
 <div class="flex flex-wrap justify-between items-center gap-2">
   <form class="flex gap-2 items-center text-sm">
-    <span class="text-slate-500">Bulan:</span>
+    <span class="text-slate-500">Lompat ke bulan:</span>
     <input type="month" name="bulan" value="{{ $bulan }}" class="inp !w-auto" data-kirim-otomatis>
   </form>
   <div class="flex flex-wrap gap-2 items-center">
@@ -123,14 +123,24 @@
   </div>
 </div>
 
-{{-- Grid 12 bulan ala ARKAS: status BKU tiap bulan --}}
-<div class="card">
-  <div class="font-semibold text-slate-700 mb-2 text-sm">🗓️ Status BKU per Bulan {{ $tahun }} <span class="text-xs text-slate-400 font-normal">— wajib ditutup berurutan dari bulan penerimaan dana pertama</span></div>
-  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+{{-- Grid 12 bulan ala ARKAS 4: pemilih bulan utama (4 kolom x 3 baris) --}}
+<div class="card !p-3">
+  <div class="font-semibold text-slate-700 mb-2 text-sm flex flex-wrap items-baseline gap-2">
+    <span>🗓️ Status BKU per Bulan {{ $tahun }} — pilih bulan</span>
+    <span class="text-xs text-slate-400 font-normal">wajib ditutup berurutan dari bulan penerimaan dana pertama</span>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
     @foreach ($bulanGrid as $b)
+    @php
+      $selesai = in_array($b['status'], ['tertutup', 'selesai', 'tanpa-dana'], true);
+      $dipilih = $b['ym'] === $bulan;
+    @endphp
     <a href="{{ route('bku', ['bulan' => $b['ym']]) }}"
-       class="border-2 rounded-lg p-2 text-center block hover:shadow transition {{ $statusWarna[$b['status']] ?? 'bg-white' }} @if($b['now']) ring-2 ring-indigo-400 @endif">
-      <div class="text-xs font-semibold">{{ $b['nama'] }}{{ $b['now'] ? ' • bulan ini' : '' }}</div>
+       aria-current="{{ $dipilih ? 'true' : 'false' }}"
+       class="border-2 rounded-lg px-2 py-2.5 text-center block no-underline transition hover:shadow {{ $statusWarna[$b['status']] ?? 'bg-white' }} @if($dipilih) ring-2 ring-indigo-500 @endif">
+      <div class="text-xs font-semibold">
+        @if($selesai)<span aria-hidden="true">✓</span> @endif{{ $b['nama'] }}{{ $b['now'] ? ' • bulan ini' : '' }}
+      </div>
       <div class="text-[10px] mt-0.5">{{ $statusTeks[$b['status']] ?? $b['status'] }}</div>
       @if ($b['n'])
       <div class="text-[10px] mt-0.5 opacity-80">↑{{ rp($b['masuk']) }} ↓{{ rp($b['keluar']) }}</div>

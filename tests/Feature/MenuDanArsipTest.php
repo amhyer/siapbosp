@@ -44,19 +44,78 @@ class MenuDanArsipTest extends TestCase
         $this->actingAs($this->op);
     }
 
-    public function test_sidebar_tujuh_grup_dan_dashboard_langsung(): void
+    /**
+     * Struktur menu mengikuti ARKAS 4: tiga area kerja utama di sidebar,
+     * Data Sekolah pindah ke dropdown profil di topbar, dan fitur tambahan
+     * SiapBOSP tetap ada di bawah pemisah "Menu Lain".
+     */
+    public function test_sidebar_tiga_area_kerja_arkas_lalu_menu_tambahan(): void
     {
         $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
 
-        foreach (['Data Sekolah', 'Penganggaran', 'Penatausahaan', 'Laporan', 'Arsip', 'Data Referensi', 'Pengaturan'] as $grup) {
-            $this->assertStringContainsString($grup, $html, 'grup menu '.$grup.' tak ada');
-        }
-
         preg_match('#<nav class="navw.*?</nav>#s', $html, $blok);
         $nav = $blok[0] ?? '';
+        $this->assertNotSame('', $nav, 'Blok nav utama tidak ditemukan.');
+
+        // 3 area kerja ARKAS 4 harus berada di blok navw-utama, berurutan.
+        preg_match('#<div class="navw-utama">(.*?)</div>\s*<div class="navw-sep"#s', $nav, $utama);
+        $blokUtama = $utama[1] ?? '';
+        $this->assertNotSame('', $blokUtama, 'Blok navw-utama (3 area kerja ARKAS) tidak ditemukan.');
+
+        $posisi = [];
+        foreach (['Penganggaran', 'Penatausahaan', 'Arsip'] as $grup) {
+            $posisi[$grup] = mb_strpos($blokUtama, $grup);
+            $this->assertNotFalse($posisi[$grup], 'Area kerja '.$grup.' tidak ada di blok utama.');
+        }
+        $this->assertTrue($posisi['Penganggaran'] < $posisi['Penatausahaan'], 'Urutan ARKAS: Penganggaran lalu Penatausahaan.');
+        $this->assertTrue($posisi['Penatausahaan'] < $posisi['Arsip'], 'Urutan ARKAS: Penatausahaan lalu Arsip.');
+
+        // Fitur tambahan tetap ada, di bawah pemisah.
+        foreach (['Laporan', 'Data Referensi', 'Pengaturan'] as $grup) {
+            $this->assertStringContainsString($grup, $nav, 'grup menu '.$grup.' tak ada');
+            $this->assertGreaterThan(mb_strpos($nav, 'navw-sep'), mb_strpos($nav, $grup),
+                $grup.' seharusnya berada setelah pemisah "Menu Lain".');
+        }
+
+        // Dashboard tetap tautan langsung; "Data Sekolah" tidak lagi jadi grup sidebar.
         $this->assertStringContainsString('href="'.route('dashboard').'"', $nav, 'Dashboard bukan tautan langsung.');
         $this->assertStringContainsString('📊 Dashboard', $nav);
         $this->assertStringNotContainsString('Beranda', $nav, 'Induk menu Beranda seharusnya sudah dihapus.');
+        $this->assertStringNotContainsString('Tahun Anggaran', $nav,
+            'Data Sekolah seharusnya pindah ke dropdown profil, bukan sidebar.');
+    }
+
+    /** Dropdown profil di topbar memuat data sekolah + Keluar (pola ARKAS 4). */
+    public function test_dropdown_profil_topbar_memuat_data_sekolah_dan_keluar(): void
+    {
+        $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Data Sekolah', $html);
+        foreach ([
+            route('penandatangan') => 'Data Penanggung Jawab',
+            route('profil.edit') => 'Profil Sekolah',
+            route('datasekolah.tahun') => 'Tahun Anggaran',
+            route('datasekolah.sumber-dana') => 'Sumber Dana',
+            route('datasekolah.sinkronisasi') => 'Status Sinkronisasi ke Pusat',
+        ] as $href => $label) {
+            $this->assertStringContainsString('href="'.$href.'"', $html, $label.' tidak ada di dropdown profil.');
+        }
+        $this->assertStringContainsString('action="'.route('logout').'"', $html, 'Keluar harus ada di dropdown profil.');
+    }
+
+    /** Blok utilitas bawah sidebar (padanan Tutorial & Perbarui Aplikasi ARKAS 4). */
+    public function test_utilitas_bawah_sidebar_dan_halaman_bantuan(): void
+    {
+        $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('navw-util', $html);
+        $this->assertStringContainsString('Bantuan &amp; Panduan', $html);
+        $this->assertStringContainsString('Perbarui Aplikasi', $html);
+
+        $this->withSession(['tahun' => 2025])->get('/bantuan')
+            ->assertOk()
+            ->assertSee('Bantuan &amp; Panduan', false)
+            ->assertSee('Data Penanggung Jawab');
     }
 
     /** Tidak ada lagi dua menu dengan target sama (duplikat) & tak ada tautan mati. */
@@ -122,6 +181,59 @@ class MenuDanArsipTest extends TestCase
             ->assertSee('Buku &amp; Perpustakaan', false)
             ->assertSee('Pemeliharaan Sarpras')
             ->assertSee('Pembayaran Honor Non-ASN');
+    }
+
+    /** Arsip terpadu ala ARKAS 4: 3 filter (format x sumber dana x tahun). */
+    public function test_arsip_terpadu_dengan_tiga_filter_arkas(): void
+    {
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'no_rkas' => 'RKAS/2025/ARSIP', 'sumber_dana' => 'BOS Reguler',
+            'jenis_rkas' => 'murni', 'status' => 'disahkan',
+        ]);
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'sumber_dana' => 'BOS Kinerja', 'jenis_rkas' => 'murni', 'status' => 'disahkan',
+        ]);
+        // Draf tidak boleh masuk arsip.
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'sumber_dana' => 'BOS Reguler', 'jenis_rkas' => 'murni', 'status' => 'draft',
+        ]);
+
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index'))
+            ->assertOk()
+            ->assertSee('Arsip Dokumen Sah')
+            ->assertSee('Semua Format')
+            ->assertSee('Semua sumber dana')
+            ->assertSee('RKAS BOS Reguler 2025')
+            ->assertSee('RKAS BOS Kinerja 2025')
+            ->assertSee('Cetak');
+
+        // Filter sumber dana
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['sumber' => 'BOS Kinerja']))
+            ->assertOk()->assertSee('RKAS BOS Kinerja 2025')->assertDontSee('RKAS BOS Reguler 2025');
+
+        // Filter format: hanya BKU -> dokumen RKAS tidak muncul
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['format' => 'bku']))
+            ->assertOk()->assertDontSee('RKAS BOS Reguler 2025');
+
+        // Filter tahun yang tidak punya dokumen
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['tahun' => '2021']))
+            ->assertOk()->assertSee('Belum ada dokumen sah');
+    }
+
+    public function test_arsip_hanya_memuat_dokumen_sah(): void
+    {
+        RkasHeader::create([
+            'school_id' => $this->sekolah->id, 'tahun' => 2025, 'revisi_ke' => 1,
+            'sumber_dana' => 'BOS Reguler', 'jenis_rkas' => 'murni', 'status' => 'dikirim_dinas',
+        ]);
+
+        $this->withSession(['tahun' => 2025])->get(route('arsip.index'))
+            ->assertOk()
+            ->assertDontSee('RKAS BOS Reguler 2025', false)
+            ->assertSee('Belum ada dokumen sah');
     }
 
     public function test_halaman_arsip_semua_terbuka(): void
