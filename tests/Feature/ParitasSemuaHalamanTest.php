@@ -171,6 +171,12 @@ class ParitasSemuaHalamanTest extends TestCase
                 continue;
             }
 
+            // Unduhan (mis. /dinas/backup → berkas .sql) bukan halaman:
+            // tidak diwajibkan memakai kerangka.
+            if (! str_contains((string) $res->headers->get('Content-Type'), 'text/html')) {
+                continue;
+            }
+
             $isi = (string) $res->getContent();
             foreach (self::TANDA_KERANGKA as $tanda => $nama) {
                 if (! str_contains($isi, $tanda)) {
