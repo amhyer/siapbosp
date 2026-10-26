@@ -98,6 +98,18 @@ class P2ArkasParitasTest extends TestCase
         $this->assertMatchesRegularExpression('/<option value="2031"\s+selected/', $html);
     }
 
+    /**
+     * Sisi lain batas rentang: tahun anggaran lama (arsip) juga harus ada di
+     * pilihan. Dulu lantainya dipaku 2023, jadi sesi 2021 tidak punya opsi
+     * terpilih dan operator melihat tahun yang salah di topbar.
+     */
+    public function test_tahun_anggaran_lama_di_bawah_rentang_bawaan_juga_terpilih(): void
+    {
+        $html = $this->halaman(route('dashboard'), 2021);
+
+        $this->assertMatchesRegularExpression('/<option value="2021"\s+selected/', $html);
+    }
+
     public function test_footer_cetak_menyatakan_bukan_dokumen_resmi_arkas(): void
     {
         $html = $this->halaman(route('bku.cetak', ['bulan' => '2026-02']));

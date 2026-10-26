@@ -308,7 +308,7 @@
             @csrf
             <label for="tahun-anggaran" class="hidden text-slate-500 md:inline">Tahun Anggaran</label>
             <select id="tahun-anggaran" name="tahun" class="inp inp-sm !w-auto" data-kirim-otomatis>
-              @for($y = 2023; $y <= max(2028, (int) $tahunAktif); $y++) <option value="{{ $y }}" @selected($tahunAktif === $y)>{{ $y }}</option> @endfor
+              @for($y = min(2023, (int) $tahunAktif); $y <= max(2028, (int) $tahunAktif); $y++) <option value="{{ $y }}" @selected($tahunAktif === $y)>{{ $y }}</option> @endfor
             </select>
           </form>
           {{-- Dropdown profil ala ARKAS 4: nama sekolah + data sekolah + Keluar --}}
