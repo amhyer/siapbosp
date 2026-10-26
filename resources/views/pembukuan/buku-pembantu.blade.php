@@ -1,10 +1,12 @@
-@extends('layouts.print', ['title' => 'Buku Pembantu Rincian Objek Belanja'])
+@extends('layouts.app', ['title' => 'Buku Pembantu Rincian Objek Belanja'])
+@section('subtitle', 'Buku pembantu rincian objek belanja per semester — kerangka ARKAS 4, isi tetap berformat dokumen saat dicetak')
 @section('content')
 @php
   $namaSem = $semester === 1 ? 'Semester 1 (Januari–Juni)' : 'Semester 2 (Juli–Desember)';
   $bendahara = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'bendahara'));
   $kepsek = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'kepala')) ?: $penandatangan->last();
 @endphp
+<div class="dokumen">
 <style>
   .grp th{background:#dbeafe;text-align:left}
   .sub td{background:#f1f5f9;font-weight:600}
@@ -22,7 +24,7 @@
 </div>
 
 <div class="kop">
-  <h1 style="font-size:1.15rem;margin:0">{{ $sekolah->nama }}</h1>
+  <div style="font-size:1.15rem;font-weight:700">{{ $sekolah->nama }}</div>
   <div style="font-size:.85rem"><b>BUKU PEMBANTU RINCIAN OBJEK BELANJA</b></div>
   <div style="font-size:.8rem">{{ $namaSem }} · Tahun Anggaran {{ $tahun }}</div>
   <div style="font-size:.78rem;color:#64748b">Periode {{ \Carbon\Carbon::parse($awal)->translatedFormat('d F Y') }} s.d. {{ \Carbon\Carbon::parse($akhir)->translatedFormat('d F Y') }}</div>
@@ -84,5 +86,6 @@
     <b>{{ $kepsek?->nama ?? '..................' }}</b><br>
     {{ $kepsek?->nip ? 'NIP. '.$kepsek->nip : '' }}
   </div>
+</div>
 </div>
 @endsection
