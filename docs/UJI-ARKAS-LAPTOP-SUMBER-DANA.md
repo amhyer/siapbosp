@@ -219,17 +219,35 @@ dulu keputusan barunya di dokumen itu sebelum mengoding.
 
 ---
 
-## 8. Kenapa uji ini dijalankan di laptop, bukan di sini
+## 8. Di mana uji ini dijalankan
 
-Sandbox pengembangan tidak punya:
+Uji ini **tidak harus menunggu laptop ARKAS**: selama ada salinan `arkas.db`,
+probe bisa dijalankan langsung dari lingkungan pengembangan. Salinan itu memang
+ada di kerja ini — `launcher-windows/arkas.db` (SQLCipher, 33 MB, tertanggal
+21 Okt 2026, milik NPSN 40313912) — dan probe `agen-arkas/cek-sumber-dana.js`
+dijalankan **read-only** terhadap salinan itu pada 2026-10-27. Hasilnya yang
+tercatat di §6, sehingga Q1–Q3 terjawab tanpa menunggu akses laptop.
 
-- berkas `arkas.db` (data sekolah, tidak boleh keluar dari laptop),
-- aplikasi ARKAS Windows,
-- akses ke layanan pusat Kemendikdasmen.
+Catatan keamanan: salinan itu **tidak** ikut ter-commit —
+`/launcher-windows/*.db*` sudah masuk `.gitignore` (dipastikan dengan
+`git check-ignore`), begitu pula profil Electron/Chromium di sekitarnya.
 
-Tanpa uji ini, parser impor hanya bisa ditulis **defensif** (mencoba beberapa
-kemungkinan nama kolom) dan tesnya mengunci tebakan — persis yang ingin
-dihindari. Satu laporan teks dari laptop nyata menghilangkan seluruh tebakan itu.
+Yang **tetap hanya bisa di laptop ARKAS**:
+
+- **Uji B (§4)**: membandingkan isi laporan dengan tampilan ARKAS dan menekan
+  tombol "Unduh dan Perbarui Data" — lingkungan pengembangan tidak punya
+  aplikasi ARKAS Windows maupun akses ke layanan pusat Kemendikdasmen.
+- **Versi lain**: hasil §6 berasal dari satu salinan (NPSN 40313912, ARKAS
+  4.0/4.3.0, TA 2026). Kalau ada laptop dengan versi ARKAS berbeda, jalankan
+  sekali di sana untuk memastikan skema `ref_sumber_dana` sama.
+- **Memperbarui daftar dari pusat**, untuk membuktikan isi `ref_sumber_dana`
+  memang datang dari layanan pusat lewat tombol unduh, bukan sekadar data
+  lokal sekolah.
+
+Tanpa uji terhadap database nyata, parser impor hanya bisa ditulis **defensif**
+(mencoba beberapa kemungkinan nama kolom) dan tesnya mengunci tebakan — persis
+yang ingin dihindari. Satu laporan teks dari database nyata menghilangkan
+seluruh tebakan itu untuk versi yang diuji.
 
 Referensi terkait: [`IMPOR-ARKAS-EXCEL.md`](IMPOR-ARKAS-EXCEL.md) §1 (skema
 `arkas.db`), [`AUDIT-TARIK-ARKAS.md`](AUDIT-TARIK-ARKAS.md) (risiko kunci
