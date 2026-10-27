@@ -45,6 +45,32 @@ class TarikArkasTest extends TestCase
             ->assertDontSee('Tarik Data ARKAS');
     }
 
+    /** Rute GET khusus (tautan sidebar) membuka halaman yang sama dengan Profil. */
+    public function test_rute_get_sinkron_arkas_membuka_halaman_profil(): void
+    {
+        $this->get('/utility/sinkron-arkas')->assertRedirect('/login');
+
+        $this->actingAs($this->operator)
+            ->get(route('tarik-arkas.sinkron'))
+            ->assertOk()
+            ->assertSee('Token API');
+    }
+
+    /** Tautan sidebar hanya muncul di aplikasi portabel — server pusat tak punya kartunya. */
+    public function test_tautan_sinkron_hanya_muncul_di_aplikasi_portabel(): void
+    {
+        $this->assertFalse(TarikArkasService::tersedia(),
+            'Uji ini mengandaikan server pusat, bukan paket portabel.');
+
+        $html = $this->actingAs($this->operator)
+            ->get('/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString(route('tarik-arkas.sinkron'), $html,
+            'Tautan Sinkron ARKAS tidak boleh ada di sidebar server pusat.');
+    }
+
     /**
      * Kontrak sheet: agen wajib mengekspor semua sheet yang dibaca
      * ArkasImportService. Regresi nyata — agen sempat tidak mengekspor

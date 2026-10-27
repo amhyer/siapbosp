@@ -130,6 +130,9 @@
     ['label'=>'Pengaturan','open'=>request()->is('pengaturan*')||request()->is('utility*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>array_values(array_filter([
       ['Koneksi ARKAS', route('pengaturan.koneksi'), request()->is('pengaturan/koneksi*')],
       ['Impor Database (ARKAS)', route('pengaturan.impor-database'), request()->is('pengaturan/impor-database')],
+      \App\Services\TarikArkasService::tersedia()
+        ? ['Sinkron ARKAS (1-klik)', route('tarik-arkas.sinkron').'#sinkron-arkas', request()->is('utility/sinkron-arkas*')]
+        : null,
       ['Pemetaan Data (HPP)', route('pengaturan.pemetaan'), request()->is('pengaturan/pemetaan')],
       ['Backup Data', route('pengaturan.backup'), request()->is('pengaturan/backup*')],
       ['Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],

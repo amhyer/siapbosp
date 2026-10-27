@@ -3,10 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Services\TarikArkasService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class TarikArkasController extends Controller
 {
+    /**
+     * Halaman GET "Sinkron ARKAS" (tautan sidebar) — membuka Utility → Profil
+     * yang kartu Sinkron ARKAS-nya ditandai id="sinkron-arkas" agar langsung
+     * terlihat di layar.
+     */
+    public function sinkron(): View
+    {
+        return app(ProfilController::class)->edit();
+    }
+
     /** Tombol 1-klik "Sinkron ARKAS" di Utility → Profil Sekolah. */
     public function tarik(Request $r)
     {

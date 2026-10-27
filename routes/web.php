@@ -4,6 +4,7 @@ use App\Http\Controllers\ArsipController;
 use App\Http\Controllers\CekIntegritasController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DataSekolahController;
+use App\Http\Controllers\DiagnosaArkasController;
 use App\Http\Controllers\DinasController;
 use App\Http\Controllers\HapusDataController;
 use App\Http\Controllers\HppController;
@@ -24,6 +25,9 @@ use App\Http\Controllers\RekonsiliasiController;
 use App\Http\Controllers\RkasController;
 use App\Http\Controllers\TarikArkasController;
 use App\Http\Controllers\UnduhAplikasiController;
+use App\Support\Aset;
+use App\Support\TokenApi;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -43,14 +47,14 @@ Route::get('/', function () {
  * semuanya bisa dibaca lewat browser tanpa PHP CLI. Diakses dari luar
  * localhost selalu 404 agar tidak membocorkan detail server.
  */
-Route::get('/_aset', function (Illuminate\Http\Request $request) {
+Route::get('/_aset', function (Request $request) {
     abort_unless(
         in_array($request->ip(), ['127.0.0.1', '::1'], true)
         && in_array($request->getHost(), ['localhost', '127.0.0.1', '::1', '[::1]'], true),
         404
     );
 
-    $laporan = App\Support\Aset::periksa();
+    $laporan = Aset::periksa();
     $commit = null;
     $head = base_path('.git/HEAD');
     if (is_file($head)) {
@@ -109,7 +113,7 @@ Route::get('/_aset', function (Illuminate\Http\Request $request) {
  * `?uji=1` — apakah data benar-benar bisa ditarik (sheet + jumlah baris),
  * tanpa mengimpor apa pun ke database.
  */
-Route::get('/_arkas', [App\Http\Controllers\DiagnosaArkasController::class, 'index'])->name('diagnosa.arkas');
+Route::get('/_arkas', [DiagnosaArkasController::class, 'index'])->name('diagnosa.arkas');
 
 Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -123,7 +127,7 @@ Route::middleware('auth')->group(function () {
     })->name('sesi.tahun');
     Route::get('/referensi', [ReferensiController::class, 'index'])->name('referensi');
     Route::post('/api-token', function () {
-        $hasil = \App\Support\TokenApi::terbitkan(auth()->user());
+        $hasil = TokenApi::terbitkan(auth()->user());
 
         return back()->with([
             'token_baru' => $hasil['token'],
@@ -132,7 +136,7 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('api-token.store');
     Route::post('/api-token/cabut', function () {
-        \App\Support\TokenApi::cabut(auth()->user(), 'dicabut dari menu Profil');
+        TokenApi::cabut(auth()->user(), 'dicabut dari menu Profil');
 
         return back()->with('ok', 'Token API dicabut. Agen/perangkat yang memakainya tidak bisa mengakses lagi.');
     })->middleware('throttle:10,1')->name('api-token.cabut');
@@ -274,6 +278,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/utility/profil', [ProfilController::class, 'edit'])->name('profil.edit');
         Route::put('/utility/profil', [ProfilController::class, 'update'])->name('profil.update');
+        Route::get('/utility/sinkron-arkas', [TarikArkasController::class, 'sinkron'])->name('tarik-arkas.sinkron');
         Route::post('/utility/tarik-arkas', [TarikArkasController::class, 'tarik'])->name('tarik-arkas.tarik');
         Route::get('/utility/penandatangan', [PenandatanganController::class, 'index'])->name('penandatangan');
         Route::post('/utility/penandatangan', [PenandatanganController::class, 'store'])->name('penandatangan.store');

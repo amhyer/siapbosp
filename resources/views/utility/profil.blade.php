@@ -124,7 +124,7 @@
     </div>
 
     @if($tarik)
-    <div class="card border-l-4 border-indigo-600">
+    <div class="card border-l-4 border-indigo-600 scroll-mt-24" id="sinkron-arkas">
         <div class="font-semibold text-indigo-700">🔄 Sinkronisasi ARKAS</div>
         <div class="text-xs text-slate-500 mt-1">
             NPSN ARKAS: {{ $tarik['npsn'] ?? '—' }} · 
