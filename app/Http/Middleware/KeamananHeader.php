@@ -56,7 +56,10 @@ class KeamananHeader
             }
         }
 
-        $headers->set('Content-Security-Policy', implode('; ', [
+        // Jaring pengaman terakhir: apa pun asal alamatnya (mis. `public/hot`
+        // sisa versi lama, atau kode yang lupa memakai Aset::hotAsal()), header
+        // tidak boleh memuat sumber yang dibuang peramban.
+        $headers->set('Content-Security-Policy', self::sumberSah(implode('; ', [
             "default-src 'self'",
             "base-uri 'self'",
             "object-src 'none'",
@@ -69,12 +72,43 @@ class KeamananHeader
             "font-src 'self' data: https://fonts.bunny.net https://fonts.gstatic.com",
             "connect-src {$connectSrc}",
             "frame-src 'self'",
-        ]));
+        ])));
 
         if ($request->isSecure() && ! $headers->has('Strict-Transport-Security')) {
             $headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
         return $response;
+    }
+
+    /**
+     * Buang sumber CSP yang tidak sah bagi peramban.
+     *
+     * Grammar CSP (`host-source` → `host-part`) TIDAK mengenal literal IPv6
+     * ber-kurung seperti `http://[::1]:5173`. Chromium membuang token semacam
+     * itu saat mem-parse ("contains an invalid source … It will be ignored")
+     * sehingga direktifnya tidak pernah cocok — aset dev server diblokir
+     * walaupun alamatnya tercetak di header.
+     *
+     * Loopback IPv6 tetap didukung lewat ejaan `localhost` (OS yang
+     * menerjemahkannya ke ::1); sisa token ber-kurung lain dibuang agar tidak
+     * lagi memunculkan peringatan palsu di konsol.
+     */
+    public static function sumberSah(string $csp): string
+    {
+        $csp = str_replace(['[::1]', '[::]', '[0.0.0.0]'], 'localhost', $csp);
+
+        $direktif = [];
+        foreach (explode(';', $csp) as $bagian) {
+            $token = preg_split('/\s+/', trim($bagian), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $nama = array_shift($token);
+            if ($nama === null) {
+                continue;
+            }
+            $token = array_filter($token, fn (string $t): bool => ! str_contains($t, '['));
+            $direktif[] = trim($nama.' '.implode(' ', $token));
+        }
+
+        return implode('; ', $direktif);
     }
 }
