@@ -28,6 +28,19 @@ agen-arkas/gui/dist/
 /extract_agent.php
 /extract_agent2.php
 /test_tarik.php
+# Runtime lokal di launcher-windows: salinan database ARKAS (data sekolah)
+# dan profil Chromium milik agen. Boleh ada di disk, TIDAK boleh ke repo.
+/launcher-windows/*.db*
+/launcher-windows/akun-sekolah.conf
+/launcher-windows/.updaterId
+/launcher-windows/config-update.yml
+/launcher-windows/DIPS
+/launcher-windows/Local State
+/launcher-windows/Network
+/launcher-windows/Local Storage
+/launcher-windows/Preferences
+/launcher-windows/SharedStorage
+/launcher-windows/Cookies
 *.zip
 # Aset hasil `npm run build` DIKOMIT: laptop bendahara tidak punya Node.js,
 # dan halaman yang dibuka tanpa public/build tampil tanpa CSS sama sekali.
