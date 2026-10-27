@@ -214,6 +214,86 @@ final class Aset
         return true;
     }
 
+    /**
+     * Alamat dev server yang AMAN dipakai di CSP dan oleh `@vite`.
+     *
+     * Literal IPv6 ber-kurung (`http://[::1]:5173`) BUKAN host-source yang sah
+     * menurut grammar CSP: `host-part` tidak mengenal kurung siku maupun titik
+     * dua, sehingga Chromium membuangnya saat mem-parse
+     * ("contains an invalid source … It will be ignored"). Akibatnya
+     * `script-src`/`style-src` yang memuatnya TETAP memblokir aset dev server —
+     * mengizinkan `[::1]` di header tidak berefek apa pun.
+     *
+     * Jalan keluarnya ejaan `localhost`: OS menerjemahkannya ke ::1, dan
+     * sumber itu sah bagi peramban.
+     */
+    public static function hotUrlNormal(): ?string
+    {
+        $url = self::hotUrl();
+        if ($url === null) {
+            return null;
+        }
+
+        $bagian = parse_url($url);
+        $host = strtolower(trim((string) ($bagian['host'] ?? ''), '[]'));
+
+        // Hanya host loopback/wildcard yang perlu dieja ulang.
+        if (! in_array($host, ['::1', '::', '0.0.0.0'], true)) {
+            return $url;
+        }
+
+        $skema = strtolower((string) ($bagian['scheme'] ?? 'http'));
+        $port = $bagian['port'] ?? ($skema === 'https' ? 443 : 80);
+
+        return $skema.'://localhost:'.$port;
+    }
+
+    /**
+     * Arahkan `@vite` ke alamat yang sudah dinormalkan.
+     *
+     * Laravel membaca `public/hot` sendiri, jadi normalisasi di `Aset` saja
+     * tidak mengubah apa yang dicetak `@vite`. Berkas hot sementara ditulis di
+     * `storage/framework` (bukan public) lalu `Vite::useHotFile()` diarahkan ke
+     * situ — `public/hot` milik Vite tidak diubah, jadi `npm run dev` tetap
+     * berjalan seperti biasa.
+     *
+     * @return bool true bila pengalihan dipasang
+     */
+    public static function arahkanVite(): bool
+    {
+        $asli = self::hotUrl();
+        $normal = self::hotUrlNormal();
+
+        if ($asli === null || $normal === null || $asli === $normal) {
+            return false;
+        }
+
+        $berkas = storage_path('framework'.DIRECTORY_SEPARATOR.'vite-hot');
+
+        try {
+            $isi = is_file($berkas) ? trim((string) @file_get_contents($berkas)) : '';
+            if ($isi !== $normal) {
+                @file_put_contents($berkas, $normal);
+            }
+            if (trim((string) @file_get_contents($berkas)) !== $normal) {
+                return false; // tidak bisa menulis: biarkan @vite apa adanya
+            }
+
+            \Illuminate\Support\Facades\Vite::useHotFile($berkas);
+        } catch (\Throwable $e) {
+            Log::warning('Aset: gagal mengarahkan @vite ke '.$normal.' — '.$e->getMessage());
+
+            return false;
+        }
+
+        Log::warning(
+            'Aset: public/hot memakai host yang tidak sah untuk CSP ('.$asli
+            .') — literal IPv6 ber-kurung diabaikan peramban. @vite diarahkan ke '.$normal.'.'
+        );
+
+        return true;
+    }
+
     /** Alamat asal dev server (untuk CSP) atau null bila tidak aktif. */
     public static function hotAsal(): ?string
     {
@@ -221,7 +301,7 @@ final class Aset
             return null;
         }
 
-        $bagian = parse_url((string) self::hotUrl());
+        $bagian = parse_url((string) self::hotUrlNormal());
         $host = $bagian['host'] ?? 'localhost';
         $skema = strtolower($bagian['scheme'] ?? 'http');
         $port = $bagian['port'] ?? ($skema === 'https' ? 443 : 80);
@@ -453,6 +533,7 @@ final class Aset
             'direktori' => self::dir(),
             'hot_berkas' => $url !== null,
             'hot_url' => $url,
+            'hot_url_normal' => self::hotUrlNormal(),
             'hot_hidup' => $url !== null && self::hotHidup(),
             'vite_terbukti' => $url === null || ! self::hotHidup() ? null : self::viteMenjawab($url),
             'manifest' => self::berkasManifest(),

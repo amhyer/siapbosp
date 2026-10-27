@@ -25,6 +25,9 @@ class AsetHalamanTest extends TestCase
         Aset::pakaiDirektori(null);
         Aset::pakaiPenguji(null);
         Aset::pakaiPengujiHttp(null);
+        // arahkanVite() memindahkan hot file Laravel Vite; kembalikan ke bawaan
+        // agar tes lain tidak mewarisi alamat dev server dari tes ini.
+        \Illuminate\Support\Facades\Vite::useHotFile(public_path('hot'));
         foreach ($this->tmp as $dir) {
             $this->hapusDir($dir);
         }
@@ -119,6 +122,62 @@ class AsetHalamanTest extends TestCase
             'connect-src harus mengizinkan WebSocket HMR.');
         $this->assertStringContainsString("'self'", $csp);
         $this->assertStringNotContainsString("'unsafe-inline'", $this->direktif($csp, 'script-src'));
+    }
+
+    /**
+     * Laporan lapangan: CSP sudah memuat `http://[::1]:5173`, tetapi peramban
+     * TETAP memblokir aset dev server. Sebabnya literal IPv6 ber-kurung bukan
+     * host-source yang sah menurut grammar CSP — Chromium membuangnya saat
+     * mem-parse ("contains an invalid source … It will be ignored"), sehingga
+     * `script-src`/`style-src` tidak pernah cocok dengan http://[::1]:5173.
+     */
+    public function test_hot_beralamat_ipv6_dinormalkan_ke_localhost(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://[::1]:5173');
+
+        $this->assertSame('http://localhost:5173', Aset::hotUrlNormal(),
+            'Literal IPv6 harus dieja ulang menjadi localhost agar sah bagi CSP.');
+        $this->assertSame('http://localhost:5173', Aset::hotAsal());
+
+        $csp = $this->csp();
+        $this->assertStringContainsString('http://localhost:5173', $csp);
+        $this->assertStringNotContainsString('[::1]', $csp,
+            'Literal IPv6 di CSP diabaikan peramban — jangan dicetak sama sekali.');
+        $this->assertStringContainsString('ws://localhost:5173', $csp,
+            'connect-src butuh ejaan yang sama untuk WebSocket HMR.');
+    }
+
+    /** Alamat yang sudah hostname biasa tidak boleh diubah. */
+    public function test_hot_beralamat_localhost_tidak_diubah(): void
+    {
+        $dir = $this->dirPublik();
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame('http://127.0.0.1:5173', Aset::hotUrlNormal());
+        $this->assertStringNotContainsString('localhost', (string) Aset::hotUrlNormal());
+    }
+
+    /**
+     * `@vite` membaca `public/hot` sendiri; normalisasi di Aset saja tidak
+     * mengubah alamat yang dicetak. `arahkanVite()` menulis hot file sementara
+     * dan mengarahkan Vite ke situ, sehingga HTML memakai localhost.
+     */
+    public function test_vite_mencetak_alamat_localhost_bukan_ipv6(): void
+    {
+        $dir = $this->dirPublik();
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://[::1]:5173');
+
+        $this->assertTrue(Aset::arahkanVite(), 'Pengalihan @vite seharusnya terpasang.');
+
+        $html = (string) $this->get('/login')->assertOk()->getContent();
+        $this->assertStringContainsString('http://localhost:5173/@vite/client', $html);
+        $this->assertStringNotContainsString('[::1]', $html,
+            'HTML tidak boleh memuat literal IPv6 yang akan diblokir CSP.');
     }
 
     /**

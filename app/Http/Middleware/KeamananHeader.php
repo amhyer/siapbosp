@@ -24,6 +24,13 @@ class KeamananHeader
     {
         $nonce = rtrim(base64_encode(random_bytes(18)), '=');
         $request->attributes->set('csp_nonce', $nonce);
+
+        // Beri tahu Vite nonce yang sama, supaya tag/script inline yang dicetak
+        // @vite ikut sah menurut `script-src` (laporan pelanggarannya berbunyi
+        // "Executing inline script violates … nonce is required").
+        if (method_exists(\Illuminate\Support\Facades\Vite::getFacadeRoot(), 'useCspNonce')) {
+            \Illuminate\Support\Facades\Vite::useCspNonce($nonce);
+        }
         $response = $next($request);
 
         $headers = $response->headers;

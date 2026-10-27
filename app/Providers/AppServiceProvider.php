@@ -63,6 +63,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->daftarkanKemampuan();
+        // Literal IPv6 ber-kurung (http://[::1]:5173) dibuang peramban saat
+        // mem-parse CSP, jadi aset dev server tetap diblokir. Arahkan @vite ke
+        // ejaan `localhost` supaya sumbernya sah sekaligus cocok dengan CSP.
+        \App\Support\Aset::arahkanVite();
         $this->pasangBundelCa();
         $this->pasangPembatasLaju();
         $this->periksaKonfigurasiProduksi();

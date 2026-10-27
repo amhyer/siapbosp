@@ -31,6 +31,10 @@ class CekAset extends Command
         if ($laporan['hot_berkas']) {
             $this->line('  public/hot      : ada ('.($laporan['hot_url'] ?? 'tanpa URL').')');
             $this->line('  Server Vite     : '.($laporan['hot_hidup'] ? 'hidup — aset diambil dari dev server' : 'TIDAK menjawab — berkas hot akan dihapus otomatis'));
+            $this->line('  Alamat untuk CSP: '.($laporan['hot_url_normal'] ?? '—')
+                .(($laporan['hot_url'] ?? null) !== ($laporan['hot_url_normal'] ?? null)
+                    ? ' (dinormalkan dari '.$laporan['hot_url'].' — literal IPv6 diabaikan peramban)'
+                    : ''));
             $this->line('  Bukti Vite      : '.match ($laporan['vite_terbukti'] ?? null) {
                 true => '/@vite/client menjawab — benar server Vite',
                 false => 'TIDAK terbukti — port itu dipakai proses lain (CSS dev akan 404)',

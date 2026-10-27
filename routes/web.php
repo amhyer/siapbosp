@@ -78,6 +78,11 @@ Route::get('/_aset', function (Request $request) {
         'public/hot (dev server)' => $laporan['hot_berkas']
             ? ($laporan['hot_url'] ?? '?').($laporan['hot_hidup'] ? ' — HIDUP' : ' — BASI (diabaikan)')
             : 'tidak ada',
+        'Alamat dev utk CSP' => $laporan['hot_url'] === null
+            ? '—'
+            : ($laporan['hot_url'] === ($laporan['hot_url_normal'] ?? null)
+                ? $laporan['hot_url_normal']
+                : $laporan['hot_url'].' → dinormalkan menjadi '.$laporan['hot_url_normal']),
         'Bukti Vite (/@vite/client)' => match ($laporan['vite_terbukti'] ?? null) {
             true => 'menjawab — Vite sah',
             false => 'TIDAK menjawab sebagai Vite (port dipakai proses lain?)',
