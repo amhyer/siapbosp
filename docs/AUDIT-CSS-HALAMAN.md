@@ -69,7 +69,7 @@ sama sekali. Urutan penyebab yang terbukti, dari tersering:
    mem-parse (`The source list … contains an invalid source: '[::1]' … It will
    be ignored`), sehingga `script-src`/`style-src` tetap memblokir aset dev
    server walaupun alamatnya "sudah diizinkan" di header. Sejak 2026-10-27
-   `Aset::hotUrlNormal()` mengeja ulang `[::1]`/`::`/`0.0.0.0` menjadi
+   `Aset::hotUrlNormal()` mengeja ulang `[::1]`/`::` menjadi
    `localhost`, `Aset::arahkanVite()` mengarahkan `@vite` ke alamat yang sama,
    dan CSP memakai alamat itu (`script-src`, `style-src`, `connect-src`,
    termasuk `ws://`). Periksa lewat baris **Alamat untuk CSP** di `/_aset`
@@ -79,7 +79,12 @@ sama sekali. Urutan penyebab yang terbukti, dari tersering:
    `http://127.0.0.1:5173` sejak awal — sah bagi CSP tanpa normalisasi apa pun.
    `KeamananHeader::sumberSah()` menjadi jaring pengaman terakhir: token CSP
    yang masih memuat `[` dibuang sebelum header dikirim, agar peringatan
-   "invalid source" tidak pernah muncul lagi.
+   "invalid source" tidak pernah muncul lagi. `0.0.0.0` sengaja **tidak**
+   dinormalkan — sebagai host-source ia sah, dan mode LAN
+   (`npm run dev -- --host 0.0.0.0`) akan rusak bila diganti `localhost`.
+   Tes `test_alamat_vite_dan_csp_selalu_sepakat` menjaga agar origin yang
+   dicetak `@vite` selalu sama dengan yang diizinkan CSP, untuk ketiga bentuk
+   alamat sekaligus.
 5. **Port 5173 dipakai proses lain.** `public/hot` masih menunjuk
    `http://localhost:5173`, koneksi TCP berhasil (jadi tampak "hidup"), tetapi
    yang menjawab adalah aplikasi lain → `@vite` mengeluarkan alamat CSS yang
@@ -88,6 +93,12 @@ sama sekali. Urutan penyebab yang terbukti, dari tersering:
    memuat penanda Vite; bila tidak, berkas hot dibuang dan aset build dipakai.
    Cek dengan `php artisan siapbos:cek-aset` (baris **Bukti Vite**) atau
    `http://127.0.0.1:8000/_aset`.
+
+**Bila gejala tetap muncul setelah memperbarui kode**, hampir pasti yang
+berjalan adalah kode lama. Pastikan: server dijalankan ulang
+(`Jalankan-Ulang-Server.bat`), `npm run dev` dihentikan dan distart lagi
+(`vite.config.js` hanya dibaca saat start), dan baris **Versi kode (commit)**
+pada `http://127.0.0.1:8000/_aset` menunjukkan commit terbaru.
 
 Perbaikan satu klik — `launcher-windows\Perbaiki-Tampilan.bat`:
 mencari folder yang benar-benar dilayani di port 8000 (dari `php.exe` proses
