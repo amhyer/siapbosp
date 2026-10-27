@@ -34,6 +34,74 @@
 {{-- Tab sumber dana: partial bersama, bentuknya sama dengan halaman lain. --}}
 @include('partials._tab-sumber-dana', ['rute' => route('rkas.index'), 'aktif' => $tabAktif])
 
+{{-- ===== Sumber Dana Tambahan: chip nama sumber + Tarik/Perbarui Data ARKAS ===== --}}
+@if($tabAktif === 'tambahan')
+<div class="card border-l-4 border-violet-500">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="min-w-0">
+      <div class="font-semibold text-violet-800 text-sm">
+        🌟 Sumber Dana Tambahan <span class="badge bg-violet-100 text-violet-700">ARKAS 4.2.16+</span>
+      </div>
+      <p class="text-[11.5px] text-slate-500 mt-1">
+        Daftar sumber dana tambahan sekolah dibaca dari <code>ref_sumber_dana</code> di ARKAS
+        (tanpa layanan pusat). Pilih nama sumbernya untuk menyaring dokumen — kegiatan khusus
+        memakai kode 06.33.x (Penguatan akses) &amp; 03.34.x (Penguatan mutu).
+      </p>
+    </div>
+    <div class="shrink-0">
+      @if($bisaTarik)
+        <form method="post" action="{{ route('tarik-arkas.tarik') }}"
+              data-tombol-sibuk="⏳ Sinkronisasi… (30-60 dtk)"
+              data-konfirmasi="Pastikan ARKAS Desktop sudah ditutup. Tarik daftar sumber dana terbaru?">
+          @csrf
+          <input type="hidden" name="tahun" value="{{ session('tahun', now()->year) }}">
+          <button class="btn2 btn btn-sm">🔄 {{ $daftarTambahan->isEmpty() ? 'Tarik Data ARKAS' : 'Perbarui dari ARKAS' }}</button>
+        </form>
+      @else
+        <a href="{{ route('impor-arkas.form') }}" class="btn2 btn btn-sm">📥 Perbarui via Impor ARKAS</a>
+      @endif
+    </div>
+  </div>
+
+  @if($daftarTambahan->isEmpty())
+    <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
+      ⚠️ Daftar sumber dana tambahan <b>belum ada</b> di aplikasi ini.
+      @if($bisaTarik)
+        Klik <b>Tarik Data ARKAS</b> untuk membacanya dari <code>arkas.db</code> di laptop ini
+        (ARKAS harus tertutup lebih dulu).
+      @else
+        Daftar ini hanya bisa ditarik di aplikasi portabel di laptop sekolah lewat tombol
+        <b>Tarik Data ARKAS</b>; di server pusat, perbarui lewat unggah Excel di
+        <a href="{{ route('impor-arkas.form') }}" class="underline">halaman Impor ARKAS</a>.
+      @endif
+    </div>
+  @else
+    <div class="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Saring per nama sumber dana">
+      <a href="{{ route('rkas.index', ['tab' => 'tambahan']) }}"
+         aria-pressed="{{ $sumberDipilih === null ? 'true' : 'false' }}"
+         class="rounded-full border px-3 py-1 text-[12px] font-semibold no-underline transition
+                {{ $sumberDipilih === null
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700' }}">
+        Semua
+      </a>
+      @foreach($daftarTambahan as $s)
+        @php $aktifChip = $sumberDipilih === $s->nama_sumber_dana; @endphp
+        <a href="{{ route('rkas.index', array_filter(['tab' => 'tambahan', 'sumber_nama' => $aktifChip ? null : $s->nama_sumber_dana])) }}"
+           aria-pressed="{{ $aktifChip ? 'true' : 'false' }}"
+           title="{{ $s->kode ? 'Kode '.$s->kode : $s->nama_sumber_dana }}"
+           class="rounded-full border px-3 py-1 text-[12px] font-semibold no-underline transition
+                  {{ $aktifChip
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700' }}">
+          {{ $s->nama_sumber_dana }}
+        </a>
+      @endforeach
+    </div>
+  @endif
+</div>
+@endif
+
 <div class="card">
   {{-- ===== Satu baris per tahun anggaran ===== --}}
   <div class="space-y-3">
@@ -128,14 +196,5 @@
     <button class="btn2 btn whitespace-nowrap">Unggah &amp; Buat Revisi</button>
   </form>
 </div>
-
-@if($tabAktif === 'tambahan')
-<div class="card border-l-4 border-violet-500">
-  <p class="text-xs text-violet-800">
-    🌟 <b>Sumber Dana Tambahan</b> (ARKAS 4.2.16+) — dokumen BOSP Afirmasi dan sumber dana tambahan lain
-    ditampilkan di tab ini. Gunakan kode kegiatan khusus 06.33.x (Penguatan akses) &amp; 03.34.x (Penguatan mutu).
-  </p>
-</div>
-@endif
 
 @endsection

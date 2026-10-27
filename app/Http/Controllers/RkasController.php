@@ -10,6 +10,7 @@ use App\Models\Rekening;
 use App\Models\RkasDetail;
 use App\Models\RkasHeader;
 use App\Models\StandarHarga;
+use App\Models\SumberDanaSekolah;
 use App\Models\User;
 use App\Notifications\InfoNotif;
 use App\Services\Aktivitas;
@@ -18,6 +19,7 @@ use App\Services\EmailNotif;
 use App\Services\JuknisBosp2026Service;
 use App\Services\PraAjukanRkasService;
 use App\Services\RkasExportService;
+use App\Services\TarikArkasService;
 use Illuminate\Http\Request;
 
 class RkasController extends Controller
@@ -43,17 +45,50 @@ class RkasController extends Controller
         }
         $daftarSumber = $tabs[$tabAktif]['sumber'];
 
+        // Tab "Sumber Dana Tambahan" punya filter nama sumbernya sendiri (ala
+        // ARKAS 4): daftar nama datang dari sumber_dana_sekolah (diimpor dari
+        // ref_sumber_dana lewat Tarik/Impor ARKAS). Pilihan ?sumber_nama= hanya
+        // diterima bila ada di daftar itu.
+        $daftarTambahan = collect();
+        $sumberDipilih = null;
+        $saringSumber = $daftarSumber;
+        if ($tabAktif === 'tambahan') {
+            $daftarTambahan = SumberDanaSekolah::where('school_id', $sekolah->id)
+                ->where('is_sumber_dana_tambahan', true)
+                ->orderBy('nama_sumber_dana')
+                ->get();
+            $saringSumber = $daftarTambahan->pluck('nama_sumber_dana')
+                ->merge($daftarSumber)->unique()->values()->all();
+            $minta = (string) $r->query('sumber_nama', '');
+            if ($minta !== '' && in_array($minta, $saringSumber, true)) {
+                $sumberDipilih = $minta;
+                $saringSumber = [$minta];
+            }
+        }
+
+        // Kecocokan sumber dana pada header dokumen. Tab lain cukup memakai
+        // `sumber_dana` di header; tab tambahan ikut mengecek baris detail,
+        // karena impor ARKAS menaruh nama sumber per kegiatan di detail sementara
+        // header bisa masih memakai nama default.
+        $saringTab = function ($q) use ($saringSumber, $tabAktif): void {
+            $q->where(function ($w) use ($saringSumber, $tabAktif) {
+                $w->whereIn('sumber_dana', $saringSumber);
+                if ($tabAktif === 'tambahan') {
+                    $w->orWhereHas('details', fn ($d) => $d->whereIn('sumber_dana', $saringSumber));
+                }
+            });
+        };
+
         // ARKAS 4 menampilkan riwayat 3 tahun sekaligus dalam satu daftar.
         $rentangTahun = [$tahun, $tahun - 1, $tahun - 2];
 
-        $headers = RkasHeader::with('details')
+        $headersQuery = RkasHeader::with('details')
             ->where('school_id', $sekolah->id)
             ->whereIn('tahun', $rentangTahun)
-            ->whereIn('sumber_dana', $daftarSumber)
             ->orderByDesc('revisi_ke')
-            ->orderByDesc('id')
-            ->get()
-            ->groupBy('tahun');
+            ->orderByDesc('id');
+        $saringTab($headersQuery);
+        $headers = $headersQuery->get()->groupBy('tahun');
 
         $dokumen = [];
         foreach ($rentangTahun as $th) {
@@ -77,10 +112,10 @@ class RkasController extends Controller
         $itemsTahunAktif = $headers->get($tahun) ?? collect();
         $aktifTerakhir = $itemsTahunAktif->first(fn ($x) => $x->status !== 'draft') ?? $itemsTahunAktif->first();
 
-        $adaTahunLalu = RkasHeader::where('school_id', $sekolah->id)
-            ->where('tahun', $tahun - 1)
-            ->whereIn('sumber_dana', $daftarSumber)
-            ->exists();
+        $adaTahunLaluQuery = RkasHeader::where('school_id', $sekolah->id)
+            ->where('tahun', $tahun - 1);
+        $saringTab($adaTahunLaluQuery);
+        $adaTahunLalu = $adaTahunLaluQuery->exists();
 
         return view('rkas.index', [
             'tahun' => $tahun,
@@ -93,6 +128,9 @@ class RkasController extends Controller
             'pagu' => $pagu,
             'adaTahunLalu' => $adaTahunLalu,
             'aktifTerakhir' => $aktifTerakhir,
+            'daftarTambahan' => $daftarTambahan,
+            'sumberDipilih' => $sumberDipilih,
+            'bisaTarik' => TarikArkasService::tersedia(),
         ]);
     }
 

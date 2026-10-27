@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\UnduhAplikasiController;
 use App\Models\ActivityLog;
 use App\Models\Allocation;
 use App\Models\ArkasKode;
@@ -19,6 +20,7 @@ use App\Models\RkasHeader;
 use App\Models\Satuan;
 use App\Models\School;
 use App\Models\Stage;
+use App\Models\SumberDanaSekolah;
 use App\Models\TutupBuku;
 use App\Models\Uraian;
 use App\Models\User;
@@ -74,7 +76,7 @@ class ArkasImportService
     public static function bolehTetapkanPagu(): bool
     {
         return in_array(auth()->user()?->role, ['superadmin', 'dinas'], true)
-            || \App\Http\Controllers\UnduhAplikasiController::isPortable();
+            || UnduhAplikasiController::isPortable();
     }
 
     public static function import(string $path, int $schoolId, int $userId, ?int $tahun = null): array
@@ -86,8 +88,8 @@ class ArkasImportService
 
         $lap = [
             'tahun' => null, 'npsn' => null,
-            'dibuat' => ['rkas' => 0, 'transaksi' => 0, 'pajak_terima' => 0, 'pajak_setor' => 0, 'penjab' => 0, 'alokasi' => 0],
-            'diperbarui' => ['rkas' => 0, 'transaksi' => 0, 'pajak_terima' => 0, 'pajak_setor' => 0, 'profil' => 0, 'alokasi' => 0],
+            'dibuat' => ['rkas' => 0, 'transaksi' => 0, 'pajak_terima' => 0, 'pajak_setor' => 0, 'penjab' => 0, 'alokasi' => 0, 'sumber_dana' => 0],
+            'diperbarui' => ['rkas' => 0, 'transaksi' => 0, 'pajak_terima' => 0, 'pajak_setor' => 0, 'profil' => 0, 'alokasi' => 0, 'sumber_dana' => 0],
             'digabung' => ['transaksi' => 0],
             'dilewati' => ['rkas' => 0, 'transaksi' => 0, 'pajak' => 0],
             'alasan_lewat' => [],
@@ -161,6 +163,7 @@ class ArkasImportService
             [$rapbsKeg, $periodeKeg, $volTahap, $refList] = self::petaKegiatan($wb);
             self::imporKodes($sekolah, $tahun, $refList, $lap);
             self::imporNotas($wb, $sekolah, $tahun, $lap);
+            self::imporSumberDana($wb, $sekolah, $lap);
 
             // ---- 3. RAPBS → RKAS ----
             self::imporRkas($wb, $sekolah, $userId, $tahun, $rekeningMap, $lap, $rapbsKeg, $volTahap);
@@ -316,6 +319,49 @@ class ArkasImportService
             }
             $lap['dibuat']['nota'] = KasNota::where('school_id', $sekolah->id)->where('tahun', $tahun)->count();
         } catch (\RuntimeException) {
+        }
+    }
+
+    /**
+     * Daftar sumber dana ARKAS (sheet `Ref_Sumber_Dana`) → `sumber_dana_sekolah`.
+     *
+     * Dibaca apa adanya dari master `ref_sumber_dana` di arkas.db — Q1 pada
+     * docs/UJI-ARKAS-LAPTOP-SUMBER-DANA.md terbukti "ya" (sumber non-standar
+     * ikut ada di tabel itu). Defensif pada nama kolom: sheet bisa tidak ada
+     * atau berbeda antar versi ARKAS; baris tanpa nama dilewati dan kolom yang
+     * tidak dikenal diabaikan. Tidak ada yang dihapus (aturan impor idempoten).
+     */
+    protected static function imporSumberDana($wb, School $sekolah, array &$lap): void
+    {
+        try {
+            $rows = self::sheetAssoc($wb, 'Ref_Sumber_Dana', ['id_ref_sumber_dana', 'nama_sumber_dana']);
+        } catch (\RuntimeException) {
+            // Sheet tidak ada / header tak dikenal — daftar lama tetap dipakai.
+            return;
+        }
+
+        foreach ($rows as $r) {
+            $nama = trim((string) ($r['nama_sumber_dana'] ?? ''));
+            if ($nama === '') {
+                continue;
+            }
+
+            $id = trim((string) ($r['id_ref_sumber_dana'] ?? ''));
+            $kunci = ['school_id' => $sekolah->id, 'nama_sumber_dana' => $nama];
+            if ($id !== '') {
+                $kunci = ['school_id' => $sekolah->id, 'id_ref_sumber_dana' => $id];
+            }
+
+            $baris = SumberDanaSekolah::withoutGlobalScope('school')->updateOrCreate($kunci, [
+                'nama_sumber_dana' => $nama,
+                'kode' => trim((string) ($r['kode'] ?? '')) ?: null,
+                'alias' => trim((string) ($r['alias'] ?? '')) ?: null,
+                'is_sumber_dana_tambahan' => in_array(
+                    mb_strtolower(trim((string) ($r['is_sumber_dana_tambahan'] ?? ''))),
+                    ['1', 'true', 'y', 'yes'], true),
+            ]);
+
+            $lap[$baris->wasRecentlyCreated ? 'dibuat' : 'diperbarui']['sumber_dana']++;
         }
     }
 

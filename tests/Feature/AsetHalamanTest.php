@@ -20,10 +20,27 @@ class AsetHalamanTest extends TestCase
     /** @var list<string> direktori publik sementara yang harus dibersihkan */
     private array $tmp = [];
 
+    /** Isi `public/hot` sungguhan saat tes mulai — dipulihkan bila ada tes yang menghapusnya. */
+    private ?string $hotAsli = null;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $hot = public_path('hot');
+        $this->hotAsli = is_file($hot) ? (string) file_get_contents($hot) : null;
+    }
+
     protected function tearDown(): void
     {
         Aset::pakaiDirektori(null);
         Aset::pakaiPenguji(null);
+        // Tes yang memalsukan server dev mati memicu buangHotBasi() pada
+        // `public/hot` sungguhan — pulihkan agar sesi `npm run dev` yang
+        // sedang berjalan tidak kehilangan file hot-nya.
+        if ($this->hotAsli !== null && ! is_file(public_path('hot'))) {
+            file_put_contents(public_path('hot'), $this->hotAsli);
+        }
         foreach ($this->tmp as $dir) {
             $this->hapusDir($dir);
         }
@@ -79,7 +96,7 @@ class AsetHalamanTest extends TestCase
 
     private function csp(): string
     {
-        $tanggapan = (new KeamananHeader())->handle(
+        $tanggapan = (new KeamananHeader)->handle(
             Request::create('/login'),
             fn (): Response => new Response('ok')
         );
@@ -196,6 +213,11 @@ class AsetHalamanTest extends TestCase
     public function test_aset_build_ikut_repository(): void
     {
         Aset::pakaiDirektori(null);
+        // Probe dev server dipalsukan mati supaya hasil build = sumber default
+        // terlepas dari apakah `npm run dev` sedang berjalan di mesin ini
+        // (tanpa ini tes gagal saat server dev hidup — perilaku HOT memang
+        // benar, hanya bukan yang diuji di sini).
+        $this->anggapServerDev(false);
 
         $this->assertFileExists(Aset::berkasManifest(),
             'public/build/manifest.json tidak ada — halaman akan tampil polos di mesin tanpa Node.js. '

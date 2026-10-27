@@ -5,8 +5,9 @@
 // Isi: 1 sekolah (NPSN 90000001), tahun 2025, mencakup kasus uji
 // idempoten, isolasi, tutup buku, NPSN asing, rekening tak dikenal, pajak.
 
-require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__.'/../../vendor/autoload.php';
 
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -19,7 +20,7 @@ function sheet(Spreadsheet $wb, string $nama, array $header, array $rows): void
     $s->fromArray($rows, null, 'A3');
 }
 
-$wb = new Spreadsheet();
+$wb = new Spreadsheet;
 $wb->removeSheetByIndex(0);
 
 sheet($wb, 'Sekolah',
@@ -44,6 +45,14 @@ sheet($wb, 'Salur',
 sheet($wb, 'Ref_Rekening',
     ['kode_rekening', 'rekening'],
     [['9.9.99.99.99.9999', 'Kode Asing Contoh'], ['5.1.02.01.01.0001', 'Honor Pengelola']]);
+
+sheet($wb, 'Ref_Sumber_Dana',
+    ['id_ref_sumber_dana', 'kode', 'nama_sumber_dana', 'alias', 'is_sumber_dana_tambahan', 'is_afirmasi'],
+    [
+        [1, '4.3.1.01.', 'BOS Reguler', '', 0, 0],
+        [5, '4.3.1.05.', 'Lainnya', '', 0, 0],
+        [1005, '4.3.1.1005', 'Banpem Keterampilan Menulis pada Sekolah Dasar', 'Banpem Keterampilan Menulis', 1, 0],
+    ]);
 
 sheet($wb, 'Aktivasi_BKU',
     ['tanggal_aktivasi', 'saldo_awal_bank', 'saldo_awal_tunai', 'soft_delete'],
@@ -91,14 +100,14 @@ sheet($wb, 'Pajak_NTPN',
     ['id_kas_nota', 'ntpn', 'soft_delete'],
     [['NOTA-1', '1234567890123456', 0]]);
 
-$out = __DIR__ . '/arkas-mini.xlsx';
+$out = __DIR__.'/arkas-mini.xlsx';
 (new Xlsx($wb))->save($out);
 echo "Fixture ditulis: $out\n";
 
 // Varian NPSN asing untuk uji penolakan.
-$wb2 = \PhpOffice\PhpSpreadsheet\IOFactory::load($out);
+$wb2 = IOFactory::load($out);
 $sek = $wb2->getSheetByName('Sekolah');
 $sek->setCellValue('C3', '00000000');
-$out2 = __DIR__ . '/arkas-asing.xlsx';
+$out2 = __DIR__.'/arkas-asing.xlsx';
 (new Xlsx($wb2))->save($out2);
 echo "Fixture ditulis: $out2\n";
