@@ -78,6 +78,11 @@ Route::get('/_aset', function (Request $request) {
         'public/hot (dev server)' => $laporan['hot_berkas']
             ? ($laporan['hot_url'] ?? '?').($laporan['hot_hidup'] ? ' — HIDUP' : ' — BASI (diabaikan)')
             : 'tidak ada',
+        'Bukti Vite (/@vite/client)' => match ($laporan['vite_terbukti'] ?? null) {
+            true => 'menjawab — Vite sah',
+            false => 'TIDAK menjawab sebagai Vite (port dipakai proses lain?)',
+            default => 'tidak diperiksa',
+        },
         'public/tailwind.js' => $laporan['tailwind_js'] ? 'ada' : 'TIDAK ADA',
     ];
 

@@ -29,6 +29,7 @@ tertangani sendiri:
 | `public/hot` basi (sisa `npm run dev` yang sudah ditutup) | `@vite` mengeluarkan alamat `http://localhost:5173/…` yang mati → CSS 404, halaman polos | koneksi ke dev server diuji (≤0,2 s); bila tidak menjawab, `public/hot` dihapus dan aplikasi memakai build/darurat |
 | `manifest.json` menunjuk berkas yang hilang (build terpotong, ZIP tak lengkap) | tetap `@vite` → CSS 404, halaman polos | setiap berkas rujukan manifest diverifikasi; bila ada yang hilang → jalur darurat |
 | `npm run dev` hidup, CSP hanya `'self'` | aset dev (port 5173) **diblokir CSP** → halaman polos | origin dev server + WebSocket HMR ditambahkan ke `script-src`/`style-src`/`connect-src` selama `hot` hidup |
+| Port 5173 terbuka oleh **proses lain** (bukan Vite) | uji TCP lolos → `@vite` dipakai → CSS dev 404 → halaman polos | `GET {hot}/@vite/client` diverifikasi memuat penanda Vite; bila bukan, hot dibuang dan aset build dipakai (bila pemeriksaan tak bisa dilakukan, dev server tetap dipakai) |
 | `manifest.json` rusak/hilang padahal berkas CSS ada | `@vite` gagal atau menunjuk aset yang tidak ada | jalur build memakai `<link>` langsung ke `build/assets/*.css` (glob), manifest hanya dipakai untuk laporan/paket |
 | server lama masih menahan port 8000 (kode lama tetap dilayani) | halaman polos walau berkas sudah diperbarui | `launcher-windows\Jalankan-Ulang-Server.bat` mematikan listener port lalu menyalakan server baru |
 
@@ -59,6 +60,14 @@ sama sekali. Urutan penyebab yang terbukti, dari tersering:
    `@vite` bila `public/build/manifest.json` ada.
 3. `public/hot` basi menunjuk dev server yang sudah mati (kode lama), atau
    manifest menunjuk berkas yang tidak ada (sudah ditangani `Aset`).
+4. **Port 5173 dipakai proses lain.** `public/hot` masih menunjuk
+   `http://localhost:5173`, koneksi TCP berhasil (jadi tampak "hidup"), tetapi
+   yang menjawab adalah aplikasi lain → `@vite` mengeluarkan alamat CSS yang
+   dijawab 404. Sejak pemeriksaan dua tahap, `Aset::hotHidup()` juga meminta
+   `GET {hot}/@vite/client` dan hanya memakai dev server bila balasannya
+   memuat penanda Vite; bila tidak, berkas hot dibuang dan aset build dipakai.
+   Cek dengan `php artisan siapbos:cek-aset` (baris **Bukti Vite**) atau
+   `http://127.0.0.1:8000/_aset`.
 
 Perbaikan satu klik — `launcher-windows\Perbaiki-Tampilan.bat`:
 mencari folder yang benar-benar dilayani di port 8000 (dari `php.exe` proses
@@ -68,14 +77,20 @@ menyalakan ulang server, lalu **memverifikasi** CSS terunduh (HTTP 200 +
 ukuran > 10 kB) sebelum membuka browser. Nama berkas aset dibaca dari
 `manifest.json`, bukan ditulis di skrip.
 
-Perbaikan manual tanpa git/Node — cukup tiga berkas di folder yang dilayani
-(`<folder aplikasi>\public\build\`):
+Perbaikan manual tanpa git/Node — cukup salin seluruh isi `public/build/` dari
+folder repo yang sudah diperbarui, atau unduh tiga berkas berikut dari `main`.
+**Nama berkas CSS/JS ber-hash dan berubah setiap `npm run build`** — jangan
+menyalin nama dari dokumen ini; baca dulu `manifest.json`:
 
 | Berkas | Sumber |
 |---|---|
 | `manifest.json` | `https://raw.githubusercontent.com/amhyer/siapbosp/main/public/build/manifest.json` |
-| `assets/app-BWZe9esl.css` | `.../main/public/build/assets/app-BWZe9esl.css` |
-| `assets/app-BBzzTR7w.js` | `.../main/public/build/assets/app-BBzzTR7w.js` |
+| CSS | `https://raw.githubusercontent.com/amhyer/siapbosp/main/public/build/` + nilai `file` untuk `resources/css/app.css` di manifest itu |
+| JS | `.../main/public/build/` + nilai `file` untuk `resources/js/app.js` di manifest itu |
+
+Contoh: bila manifest memuat `"file": "assets/app-<hash>.css"`, alamatnya
+`.../main/public/build/assets/app-<hash>.css`. Hash bisa berbeda dari berkas yang
+sudah ada di komputer Anda — yang benar adalah yang tertulis di manifest.
 
 Setelah itu hapus `public\hot` (bila ada) dan jalankan ulang server. Kode lama
 sekalipun akan memuat CSS karena `manifest.json` sudah ada.
@@ -192,7 +207,7 @@ Empat tes statis (tanpa browser, tanpa database) mengunci hasil di atas:
 
 | Pemeriksaan | Cara | Hasil |
 |---|---|---|
-| Build aset | `npm ci` lalu `npm run build` (vite 8.3.4, tailwindcss 4.3.3) | sukses; `app-BWZe9esl.css` 100.62 kB (gzip 18.48 kB), `app-BBzzTR7w.js` 1.45 kB, `manifest.json` 0.33 kB |
+| Build aset | `npm ci` lalu `npm run build` (vite 8.3.4, tailwindcss 4.3.3) | sukses; CSS ±100 kB (gzip ±18 kB) dengan nama ber-hash di `manifest.json`, JS 1.45 kB, `manifest.json` 0.33 kB |
 | Sintaks PHP | `php -l` (php-wasm PHP 8.5.10) pada `tests/Feature/CssHalamanTest.php` | tanpa galat |
 | Logika tes 1–4 | harness PHP di luar PHPUnit (vendor tidak terpasang) | tes 1: 0 pelanggaran; tes 2: 4 syarat terpenuhi; tes 3: 31 kelas komponen, 0 hilang; tes 4: 0 kelas cetak tanpa definisi |
 | Diff kelas vs CSS build | skrip Python (577 token unik) | 549 punya aturan, 28 terklasifikasi seperti §2 |
