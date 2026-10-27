@@ -22,6 +22,12 @@ node_modules/
 agen-arkas/dist/
 agen-arkas/dist-portable/
 agen-arkas/gui/dist/
+# Agen Tarik ARKAS portabel (berisi node.exe ~93MB) & script debug lokal
+/agen/
+/check_zip.php
+/extract_agent.php
+/extract_agent2.php
+/test_tarik.php
 *.zip
 # Aset hasil `npm run build` DIKOMIT: laptop bendahara tidak punya Node.js,
 # dan halaman yang dibuka tanpa public/build tampil tanpa CSS sama sekali.
