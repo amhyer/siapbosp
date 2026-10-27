@@ -31,7 +31,7 @@
       </div>
 
       <div class="sm:col-span-2 border-t border-slate-100 pt-3 font-semibold text-slate-700 text-xs uppercase tracking-wider">
-        📋 Parameter Aktivasi Kertas Kerja ARKAS 4 (Data Dapodik &amp; Komite Sekolah)
+        📋 Parameter Aktivasi Kertas Kerja ARKAS 4 (Data Dapodik & Komite Sekolah)
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600">Jumlah Peserta Didik Cut-Off Dapodik</label>
@@ -84,7 +84,7 @@
           🔒 Pagu anggaran ditetapkan Dinas melalui <b>Alokasi</b>; formulir ini hanya memperbarui identitas sekolah.
         </div>
       @endif
-      <div class="sm:col-span-2"><button class="btn">💾 Simpan Profil &amp; Parameter ARKAS 4</button></div>
+      <div class="sm:col-span-2"><button class="btn">💾 Simpan Profil & Parameter ARKAS 4</button></div>
     </form>
   </div>
 
@@ -124,45 +124,56 @@
     </div>
 
     @if($tarik)
-    <div class="card border-sky-200 !bg-sky-50/50">
-      <h3 class="font-semibold text-slate-700 mb-1 text-sm">⚡ Tarik Data ARKAS — 1 Klik</h3>
-      <p class="text-xs text-slate-600 mb-2">Ambil data langsung dari aplikasi <b>ARKAS desktop</b> yang terpasang di laptop ini, lalu perbarui ke SiapBOSP. Aman diulang kapan saja — data kembar digabung, tak jadi dobel, tak ada yang terhapus.</p>
-      @if(! $tarik['db_ada'])
-        <div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">⚠️ Database ARKAS belum ditemukan di laptop ini. Buka aplikasi ARKAS sekali (unduh data sekolah di ARKAS), tutup lagi, lalu muat ulang halaman ini.
-          <div class="text-[11px] text-slate-500 mt-1">Dicari di: <code class="bg-slate-100 px-1 rounded">{{ $tarik['path_db'] }}</code></div></div>
-      @elseif($tarik['npsn'] && $tarik['npsn'] !== (string) $sekolah->npsn)
-        <div class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2 mb-2">🚫 Database ARKAS di laptop ini milik NPSN <b>{{ $tarik['npsn'] }}</b>, bukan NPSN sekolah ini (<b>{{ $sekolah->npsn }}</b>) — tarik ditolak agar data tidak tertukar. Samaikan NPSN di Profil bila memang sekolah yang benar.</div>
-      @else
-        <div class="text-xs text-slate-600 mb-2">✅ Database ARKAS ditemukan{{ $tarik['npsn'] ? ' — NPSN '.$tarik['npsn'].' ' : ' ' }}di laptop ini, siap ditarik.<br><span class="text-slate-400">Tutup aplikasi ARKAS dulu bila database-nya terkunci. Hasil tarik dicek di <b>Pembukuan → BKU</b>.</span></div>
-        <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="flex flex-wrap items-end gap-2" data-tombol-sibuk="⏳ Menarik data… (sampai 5 menit)">
-          @csrf
-          <div>
-            <label class="text-[11px] font-semibold text-slate-600" for="tahun-tarik">Tahun anggaran</label>
-            <select id="tahun-tarik" name="tahun" class="inp mt-1 !w-auto">
-              @for($y = 2022; $y <= 2028; $y++)
-                <option value="{{ $y }}" @selected(((int) session('tahun', now()->year)) === $y)>{{ $y }}</option>
-              @endfor
-            </select>
-          </div>
-          <button class="btn">⬇️ Tarik Data Sekarang</button>
-        </form>
-      @endif
-      @if(session('tarik_laporan'))
-        @php($lap = session('tarik_laporan'))
-        <div class="mt-3 bg-white border border-emerald-200 rounded-lg p-2 text-[12px] text-slate-700">
-          <div class="font-semibold text-emerald-700 mb-1">✅ Data ARKAS {{ $lap['tahun'] }} berhasil ditarik{{ ! empty($lap['npsn_arkas']) ? ' (NPSN '.$lap['npsn_arkas'].')' : '' }}</div>
-          <ul class="list-disc pl-4 space-y-0.5">
-            <li>Transaksi kas: <b>+{{ $lap['dibuat']['transaksi'] }}</b> baru, ~{{ $lap['diperbarui']['transaksi'] }} diperbarui{{ isset($lap['digabung']['transaksi']) ? ', '.$lap['digabung']['transaksi'].' digabung' : '' }} — dilewati {{ $lap['dilewati']['transaksi'] }}</li>
-            <li>RKAS: <b>+{{ $lap['dibuat']['rkas'] }}</b> baru, ~{{ $lap['diperbarui']['rkas'] }} diperbarui — dilewati {{ $lap['dilewati']['rkas'] }}</li>
-            <li>Pajak: diterima <b>+{{ $lap['dibuat']['pajak_terima'] }}</b>, disetor <b>+{{ $lap['dibuat']['pajak_setor'] }}</b> — dilewati {{ $lap['dilewati']['pajak'] }}</li>
-          </ul>
-          @if(! empty($lap['peringatan']))
-            <ul class="mt-1 list-disc pl-4 text-amber-700 space-y-0.5">@foreach($lap['peringatan'] as $p)<li>{{ $p }}</li>@endforeach</ul>
-          @endif
+    <div class="card border-l-4 border-indigo-600">
+        <div class="font-semibold text-indigo-700">🔄 Sinkronisasi ARKAS</div>
+        <div class="text-xs text-slate-500 mt-1">
+            NPSN ARKAS: {{ $tarik['npsn'] ?? '—' }} · 
+            DB: {{ $tarik['db_ada'] ? 'Ditemukan' : 'Tidak ditemukan' }} · 
+            ARKAS: {{ ($tarik['arkas_berjalan'] ?? false) ? 'Berjalan' : 'Tertutup' }}
         </div>
-      @endif
+        
+        @if(! $tarik['db_ada'])
+            <div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
+                ⚠️ Database ARKAS belum ditemukan di laptop ini. 
+                Buka aplikasi ARKAS sekali (unduh data sekolah di ARKAS), tutup lagi, lalu muat ulang halaman ini.
+                <div class="text-[11px] text-slate-500 mt-1">
+                    Dicari di: <code class="bg-slate-100 px-1 rounded">{{ $tarik['path_db'] }}</code>
+                </div>
+            </div>
+        @elseif(($tarik['npsn'] ?? null) && $tarik['npsn'] !== (string) $sekolah->npsn)
+            <div class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                🚫 Database ARKAS di laptop ini milik NPSN <b>{{ $tarik['npsn'] }}</b>, 
+                bukan NPSN sekolah ini (<b>{{ $sekolah->npsn }}</b>) — 
+                sinkron ditolak agar data tidak tertukar. 
+                Samaikan NPSN di Profil bila memang sekolah yang benar.
+            </div>
+        @elseif($tarik['arkas_berjalan'] ?? false)
+            <div class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                ⚠️ ARKAS Desktop sedang berjalan. 
+                Tutup dulu aplikasi ARKAS, lalu coba lagi.
+            </div>
+        @else
+            <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="mt-3" data-tombol-sibuk="⏳ Sinkronisasi… (30-60 dtk)" data-konfirmasi="Pastikan ARKAS Desktop sudah ditutup. Lanjutkan sinkronisasi?">
+                @csrf
+                <input type="hidden" name="tahun" value="{{ session('tahun', now()->year) }}">
+                <button class="btn text-sm">
+                    🔄 Sinkron ARKAS Sekarang
+                </button>
+            </form>
+            
+            <div class="text-[10px] text-slate-400 mt-2">
+                ⚠️ Pastikan ARKAS Desktop <b>tertutup</b> sebelum klik. Proses ~30-60 detik tergantung ukuran DB.
+            </div>
+        @endif
+
+        @if(session('ok') && str_contains(session('ok'), 'Sinkron ARKAS'))
+            <div class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[12px] text-emerald-800">
+                <div class="font-semibold text-emerald-700 mb-1">✅ Sinkron ARKAS selesai</div>
+                <div class="text-emerald-700">{{ str_replace('Sinkron ARKAS selesai: ', '', session('ok')) }}</div>
+            </div>
+        @endif
     </div>
-    @endif
+@endif
 
     <div class="card">
       <h3 class="font-semibold text-slate-700 mb-1 text-sm">🔑 Token API (Integrasi)</h3>

@@ -45,7 +45,6 @@ class TarikArkasTest extends TestCase
             ->assertDontSee('Tarik Data ARKAS');
     }
 
-
     /**
      * Kontrak sheet: agen wajib mengekspor semua sheet yang dibaca
      * ArkasImportService. Regresi nyata — agen sempat tidak mengekspor
@@ -130,7 +129,7 @@ class TarikArkasTest extends TestCase
             ->from('/utility/profil')
             ->post('/utility/tarik-arkas', ['tahun' => 2025])
             ->assertRedirect('/utility/profil')
-            ->assertSessionHas('error', 'Tarik ARKAS hanya tersedia di aplikasi portabel di laptop sekolah. Di server pusat, pakai unggah Excel manual di halaman Impor ARKAS.');
+            ->assertSessionHas('error', 'Sinkron ARKAS hanya tersedia di aplikasi portabel di laptop sekolah. Di server pusat, pakai unggah Excel manual di halaman Impor ARKAS.');
     }
 
     public function test_kepsek_boleh_membuka_profil_muka_tarik(): void

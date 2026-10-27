@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\UnduhAplikasiController;
 use App\Models\School;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
  * Jembatan tombol "Tarik Data ARKAS" (1 klik) di dalam aplikasi portabel
@@ -100,7 +101,70 @@ class TarikArkasService
             'db_ada' => self::dbAda(),
             'path_db' => self::pathDb(),
             'npsn' => is_array($info) ? ($info['npsnFile'] ?? null) : null,
+            'arkas_berjalan' => self::isArkasRunning(),
         ];
+    }
+
+    /** Cek apakah ARKAS Desktop (arkas.exe) sedang berjalan di Windows. */
+    public static function isArkasRunning(): bool
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return false;
+        }
+        $output = [];
+        @exec('tasklist /FI "IMAGENAME eq arkas.exe" /FO CSV 2>nul', $output);
+
+        // Output: header + 1 baris per proses. Lebih dari 1 baris = ada proses.
+        return count($output) > 1;
+    }
+
+    /**
+     * Operasi lengkap "Sinkron ARKAS" (1 klik):
+     * 1. Cek ARKAS Desktop tidak berjalan
+     * 2. Ekspor DB ARKAS → Excel via agen
+     * 3. Import ke SiapBOSP via ArkasImportService
+     *
+     * @return array{sukses:bool, ringkasan:string, npsn:?string, tahun:int}
+     */
+    public static function tarikLengkap(int $schoolId, int $userId, int $tahun): array
+    {
+        // 1. Cek ARKAS Desktop tidak berjalan
+        if (self::isArkasRunning()) {
+            throw new \RuntimeException('ARKAS Desktop sedang berjalan. Tutup dulu aplikasi ARKAS, lalu coba lagi.');
+        }
+
+        // 2. Ekspor DB ARKAS → Excel via agen
+        $berkas = self::eksporDb($tahun);
+        $keluar = $berkas['path'];
+
+        try {
+            // 3. Validasi NPSN sebelum import
+            $sekolah = School::find($schoolId);
+            if ($sekolah && $sekolah->npsn && ! empty($berkas['npsn'])
+                && (string) $sekolah->npsn !== (string) $berkas['npsn']) {
+                throw new \RuntimeException('Database ARKAS di laptop ini milik NPSN '.$berkas['npsn']
+                    .', tetapi profil sekolah Anda NPSN '.$sekolah->npsn.'.'
+                    .' Betulkan Profil sekolah dulu, atau pakai unggah Excel manual di halaman Impor ARKAS.');
+            }
+
+            // 4. Import ke SiapBOSP via ArkasImportService
+            $lap = ArkasImportService::import($keluar, $schoolId, $userId, $tahun);
+
+            // 5. Ringkasan user-friendly
+            $rkak = $lap['rkak_count'] ?? 0;
+            $detail = $lap['detail_count'] ?? 0;
+            $realisasi = $lap['realisasi_count'] ?? 0;
+            $ringkasan = "{$rkak} RKAK, {$detail} detail, {$realisasi} realisasi";
+
+            return [
+                'sukses' => true,
+                'ringkasan' => $ringkasan,
+                'npsn' => $berkas['npsn'] ?? null,
+                'tahun' => $tahun,
+            ];
+        } finally {
+            @unlink($keluar);
+        }
     }
 
     /** Tarik data ARKAS (1 klik): bangun Excel via agen, lalu impor ke sekolah. */
@@ -143,7 +207,6 @@ class TarikArkasService
 
         return $hasil;
     }
-
 
     /** Ukuran berkas agen (null = tidak ada) — untuk diagnosa. */
     public static function berkasAgen(): array
@@ -210,7 +273,7 @@ class TarikArkasService
             $kb = is_file($path) ? (int) round(filesize($path) / 1024) : 0;
             $sheets = [];
             try {
-                $buku = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+                $buku = IOFactory::load($path);
                 foreach ($buku->getSheetNames() as $nama) {
                     $sheets[$nama] = $buku->getSheetByName($nama)?->getHighestDataRow() ?? 0;
                 }
