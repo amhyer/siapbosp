@@ -9,8 +9,9 @@
 // Jaminan keamanan:
 //   - database dibuka `readonly: true` (tidak ada INSERT/UPDATE/DELETE);
 //   - skrip ini TIDAK menyalin/mengunggah arkas.db ke mana pun;
-//   - laporan hanya berisi nama sumber dana + jumlah baris, bukan nominal
-//     transaksi, bukan nama orang tua/siswa.
+//   - laporan hanya berisi nama sumber dana + jumlah baris; kolom bernilai
+//     uang dicetak sebagai [nominal] (bukan nominal transaksi), bukan nama
+//     orang tua/siswa.
 //
 // Pakai:
 //   node cek-sumber-dana.js                        (cari arkas.db di lokasi standar)
@@ -68,12 +69,32 @@ const sel = (v) => {
   return String(v).replace(/\r?\n/g, ' ').trim();
 };
 
-/** Cetak tabel apa adanya: header + baris, dipisah " | ". */
+// Kolom bernilai uang TIDAK boleh masuk laporan (klaim keamanan di
+// docs/UJI-ARKAS-LAPTOP-SUMBER-DANA.md §3): yang dibagikan hanya nama sumber
+// dana + jumlah baris. Nama kolom tetap dicetak, nilainya diganti [nominal].
+// Daftar eksplisit — bukan pola "jumlah*" — supaya kolom hitungan seperti
+// `jumlah_tahap_pelaporan` tetap terbaca apa adanya.
+const NOMINAL = new Set([
+  'jumlah', 'nilai', 'nominal', 'total', 'saldo', 'harga', 'biaya',
+  'pagu', 'rupiah', 'uang', 'amount', 'value',
+]);
+
+/** Salin baris dengan nilai tiap kolom nominal diganti "[nominal]". */
+const redaksi = (kolom, r) => {
+  const hasil = {};
+  kolom.forEach((k) => {
+    hasil[k] = NOMINAL.has(String(k).toLowerCase()) ? '[nominal]' : r[k];
+  });
+  return hasil;
+};
+
+/** Cetak tabel: header + baris dipisah " | "; nilai kolom nominal sudah direduksi. */
 function dumpTabel(db, nama, hasil) {
   const info = aman(() => db.prepare(`PRAGMA table_info(${nama})`).all(), []);
   const jumlah = aman(() => db.prepare(`SELECT COUNT(*) c FROM ${nama}`).get().c || 0, 0);
   const kolom = info.map((k) => k.name);
-  const rows = aman(() => db.prepare(`SELECT * FROM ${nama} LIMIT ${MAX_BARIS}`).all(), []);
+  const rows = aman(() => db.prepare(`SELECT * FROM ${nama} LIMIT ${MAX_BARIS}`).all(), [])
+    .map((r) => redaksi(kolom, r));
 
   t(`\n### Tabel: ${nama}`);
   t(`Kolom (${kolom.length}): ${kolom.join(', ')}`);

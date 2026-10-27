@@ -65,13 +65,17 @@ Hasil: **`hasil-sumber-dana.txt`** (dan `.json`). Isinya:
 
 1. versi ARKAS + tahun aktif + NPSN (untuk memastikan laptop yang benar);
 2. **semua tabel yang namanya mengandung "sumber"** + skema kolom + isinya —
-   ini yang menjawab Q1 dan Q2;
+   ini yang menjawab Q1 dan Q2; kolom bernilai uang dicetak `[nominal]`
+   (nama kolomnya tetap terlihat, nilainya tidak);
 3. sumber dana yang dipakai di `anggaran` dan `kas_umum` **per tahun** — Q3;
 4. sumber dana/ID yang dipakai tetapi **tidak ada** di `ref_sumber_dana`;
 5. ringkasan "kesimpulan awal" di bagian akhir.
 
-> Skrip **tidak** menampilkan nominal transaksi, nama penerima, atau data siswa.
-> Tetap: periksa dulu isi `.txt` sebelum membagikannya ke siapa pun.
+> Skrip **tidak** menampilkan nominal transaksi, nama penerima, atau data
+> siswa: setiap kolom bernilai uang (`jumlah`, `nilai`, `saldo`, …) diganti
+> `[nominal]` baik di `.txt` maupun `.json`, sehingga isinya memang hanya nama
+> sumber dana + jumlah baris. Tetap: periksa dulu isi `.txt` sebelum
+> membagikannya ke siapa pun.
 
 ### Cara B — tanpa Node.js, pakai paket portabel SiapBOSP
 
@@ -139,9 +143,16 @@ nama penandatangan, dan data PTK. Yang dibutuhkan hanya laporan teks.
 
 | Tanggal | NPSN | Versi ARKAS | Baris `ref_sumber_dana` | Tabel "sumber" lain | Kesimpulan |
 |---|---|---|---|---|---|
-| _(belum diuji)_ | | | | | |
+| 2026-10-27 | 40313912 | ARKAS 4.0 (4.3.0), tahun aktif 2026 | 11 baris · 21 kolom — termasuk id 1005 "Banpem Keterampilan Menulis pada Sekolah Dasar" (`is_sumber_dana_tambahan=1`, `is_filtered_by_instansi_id=1`, `mekanisme_pengesahan=1`) | `anggaran_sumber_dana` (2), `ref_sumber_dana_bentuk_pendidikan` (0), `ref_sumber_dana_sekolah` (1: id 1005 / 2026) | **Q1 = ya**, **Q2 = 21 kolom**, **Q3 = ya** — id 1005 dipakai di `anggaran` 2026 (2 baris), `kas_umum` 2026 baru id 1; pemakaian tanpa master: **0 nama, 0 id** |
 
-Setelah baris ini terisi, keputusan desain yang menunggu:
+_Sumber: salinan `arkas.db` (SQLCipher) tanggal 21 Okt 2026; probe
+`agen-arkas/cek-sumber-dana.js` dijalankan read-only pada 2026-10-27, laporan
+`.txt`/`.json` tanpa kolom nominal._
+
+Cabang yang dipilih: **Q1 = ya** dan **Q3 = ya** → importer membaca
+`Ref_Sumber_Dana` apa adanya ke tabel `sumber_dana_sekolah` (baris id 1005 ikut
+terbawa lewat `ref_sumber_dana_sekolah`), dan tab ke-6 **menyaring per nama
+sumber**. Pilihan lain tetap tercatat bila uji di laptop/versi ARKAS berbeda:
 
 - **Q1 = ya** → importer membaca `Ref_Sumber_Dana` apa adanya ke tabel
   `sumber_dana_sekolah` (per sekolah), tab ke-6 menyaring per nama.
