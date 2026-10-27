@@ -24,6 +24,7 @@ class AsetHalamanTest extends TestCase
     {
         Aset::pakaiDirektori(null);
         Aset::pakaiPenguji(null);
+        Aset::pakaiPengujiHttp(null);
         foreach ($this->tmp as $dir) {
             $this->hapusDir($dir);
         }
@@ -57,9 +58,12 @@ class AsetHalamanTest extends TestCase
      * Ganti penguji koneksi dev server supaya tes tidak bergantung pada soket
      * nyata (port bisa saja dipakai proses lain di mesin CI).
      */
-    private function anggapServerDev(bool $hidup): void
+    private function anggapServerDev(bool $hidup, ?bool $vite = null): void
     {
         Aset::pakaiPenguji(fn (string $url): bool => $hidup);
+        // Sejak ada tahap kedua, "port terbuka" saja tidak cukup: pemeriksaan
+        // HTTP juga harus dijawab. Bawaannya dianggap Vite yang sah.
+        Aset::pakaiPengujiHttp(fn (string $url): ?bool => $vite ?? $hidup);
     }
 
     /** Buat manifest tiruan; $berkasAda = berkas keluaran yang benar-benar ditulis. */
@@ -115,6 +119,49 @@ class AsetHalamanTest extends TestCase
             'connect-src harus mengizinkan WebSocket HMR.');
         $this->assertStringContainsString("'self'", $csp);
         $this->assertStringNotContainsString("'unsafe-inline'", $this->direktif($csp, 'script-src'));
+    }
+
+    /**
+     * Port dev server terbuka tetapi yang menjawab BUKAN Vite (mis. sisa
+     * `npm run dev` proyek lain yang menahan port 5173). Dulu `Aset` hanya
+     * menguji koneksi TCP, sehingga `@vite` tetap dipakai dan CSS-nya 404 —
+     * halaman tampil polos TOTAL tanpa penjelasan.
+     */
+    public function test_port_dev_dipakai_aplikasi_lain_bukan_vite(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        // TCP menjawab, tetapi /@vite/client tidak memuat penanda Vite.
+        $this->anggapServerDev(true, false);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame(Aset::BUILD, Aset::sumber(),
+            'Port yang menjawab tetapi bukan Vite harus diabaikan; pakai aset build.');
+        $this->assertFalse(Aset::viteAktif(), '@vite tidak boleh dipakai bila Vite tidak terbukti.');
+        $this->assertFileDoesNotExist($dir.DIRECTORY_SEPARATOR.'hot',
+            'Berkas hot yang menunjuk proses asing harus dibuang agar tidak dipakai lagi.');
+        $this->assertSame(false, Aset::viteMenjawab('http://127.0.0.1:5173'));
+
+        // CSP juga tidak boleh membuka origin asing itu.
+        $this->assertStringNotContainsString('127.0.0.1:5173', $this->csp(),
+            'Origin proses asing tidak boleh dimasukkan ke CSP.');
+    }
+
+    /**
+     * Lingkungan tanpa `allow_url_fopen` tidak bisa membuktikan Vite. Jangan
+     * sampai dev server yang sah ikut dimatikan hanya karena pemeriksaan
+     * tambahan tidak bisa dijalankan.
+     */
+    public function test_bila_vite_tak_bisa_diperiksa_dev_server_tetap_dipakai(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        $this->anggapServerDev(true, null);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame(Aset::HOT, Aset::sumber(),
+            'Pemeriksaan yang tidak bisa dilakukan tidak boleh mematikan dev server.');
+        $this->assertTrue(Aset::viteAktif());
     }
 
     public function test_tanpa_hot_csp_tidak_membuka_origin_asing(): void
@@ -346,6 +393,24 @@ class AsetHalamanTest extends TestCase
         $this->assertMatchesRegularExpression('/build\/assets|raw\.githubusercontent/', $isi);
 
         $this->assertStringContainsString('Perbaiki-Tampilan.ps1', (string) file_get_contents($bat));
+    }
+
+    /**
+     * Dokumen audit sempat menyebut nama berkas CSS ber-hash yang sudah basi
+     * (`app-BWZe9esl.css`) pada tabel "perbaikan manual"; pembaca yang
+     * mengunduhnya akan mendapat 404 dan halaman tetap polos. Nama ber-hash
+     * hanya boleh hidup di manifest, bukan di dokumen.
+     */
+    public function test_dokumen_tidak_menulis_nama_berkas_aset_yang_sudah_basi(): void
+    {
+        $isi = (string) file_get_contents(base_path('docs/AUDIT-CSS-HALAMAN.md'));
+
+        preg_match_all('/assets\/app-[A-Za-z0-9_-]+\.(?:css|js)/', $isi, $cocok);
+        foreach (array_unique($cocok[0]) as $sebutan) {
+            $berkas = base_path('public/build/'.str_replace('assets/', 'assets/', $sebutan));
+            $this->assertFileExists($berkas,
+                'Dokumen menyebut '.$sebutan.' yang tidak ada di build — hash basi menyesatkan pembaca.');
+        }
     }
 
     /** Nilai satu direktif CSP tanpa tertukar dengan direktif berawalan sama. */

@@ -31,6 +31,11 @@ class CekAset extends Command
         if ($laporan['hot_berkas']) {
             $this->line('  public/hot      : ada ('.($laporan['hot_url'] ?? 'tanpa URL').')');
             $this->line('  Server Vite     : '.($laporan['hot_hidup'] ? 'hidup — aset diambil dari dev server' : 'TIDAK menjawab — berkas hot akan dihapus otomatis'));
+            $this->line('  Bukti Vite      : '.match ($laporan['vite_terbukti'] ?? null) {
+                true => '/@vite/client menjawab — benar server Vite',
+                false => 'TIDAK terbukti — port itu dipakai proses lain (CSS dev akan 404)',
+                default => 'tidak diperiksa (allow_url_fopen mati / tanpa hot)',
+            });
         } else {
             $this->line('  public/hot      : tidak ada (bagus untuk produksi)');
         }

@@ -40,20 +40,33 @@ final class Aset
     /** Batas waktu pemeriksaan server Vite (detik). */
     private const TIMEOUT_PROBE = 0.2;
 
+    /** Batas waktu permintaan HTTP bukti Vite (detik). */
+    private const TIMEOUT_VITE = 0.4;
+
+    /** Penanda yang hanya dikirim server Vite pada `/@vite/client`. */
+    private const PENANDA_VITE = 'vite';
+
     /** Direktori publik yang dipakai; null = public_path(). */
     private static ?string $dir = null;
 
     /** Hasil deteksi per permintaan (hindari probe berulang). */
     private static ?string $sumber = null;
 
+    /** Hasil pemeriksaan "yang menjawab benar Vite?" per permintaan. */
+    private static ?bool $viteTerbukti = null;
+
     /** Penguji koneksi alternatif (dipakai tes agar tidak bergantung soket nyata). */
     private static ?\Closure $penguji = null;
+
+    /** Penguji HTTP alternatif: fn(string $url): ?bool (true/false/null = tak bisa diperiksa). */
+    private static ?\Closure $pengujiHttp = null;
 
     /** Override direktori (dipakai tes; null mengembalikan ke public_path()). */
     public static function pakaiDirektori(?string $dir): void
     {
         self::$dir = $dir;
         self::$sumber = null;
+        self::$viteTerbukti = null;
     }
 
     /** Ganti penguji koneksi dev server; null mengembalikan penguji TCP bawaan. */
@@ -61,6 +74,20 @@ final class Aset
     {
         self::$penguji = $penguji === null ? null : \Closure::fromCallable($penguji);
         self::$sumber = null;
+        self::$viteTerbukti = null;
+    }
+
+    /**
+     * Ganti pemeriksa HTTP "apakah ini benar Vite" (dipakai tes).
+     *
+     * Callback menerima URL dev server dan mengembalikan true (Vite), false
+     * (ada yang menjawab tetapi bukan Vite), atau null (tidak bisa diperiksa).
+     */
+    public static function pakaiPengujiHttp(?callable $penguji): void
+    {
+        self::$pengujiHttp = $penguji === null ? null : \Closure::fromCallable($penguji);
+        self::$sumber = null;
+        self::$viteTerbukti = null;
     }
 
     public static function dir(): string
@@ -91,7 +118,20 @@ final class Aset
         return $url === '' ? null : rtrim($url, '/');
     }
 
-    /** Apakah server Vite di alamat `hot` benar-benar menerima koneksi. */
+    /**
+     * Apakah server Vite di alamat `hot` benar-benar bisa dipakai.
+     *
+     * Dua tahap, karena port terbuka saja TIDAK cukup:
+     *   1. koneksi TCP (murah, menyaring server yang sudah mati);
+     *   2. bukti HTTP: `GET {hot}/@vite/client` harus menjawab dengan penanda
+     *      Vite.
+     *
+     * Tahap 2 menutup kasus yang dulu tetap membuat halaman polos: port 5173
+     * dipakai proses LAIN (sisa `npm run dev` proyek lain, atau aplikasi lain).
+     * Koneksi TCP berhasil, jadi `public/hot` dianggap sah dan `@vite`
+     * mengeluarkan `http://localhost:5173/resources/css/app.css` — yang
+     * dijawab 404 oleh proses itu. Hasilnya halaman tanpa CSS sama sekali.
+     */
     public static function hotHidup(): bool
     {
         $url = self::hotUrl();
@@ -99,15 +139,59 @@ final class Aset
             return false;
         }
 
-        if (self::$penguji !== null) {
-            return (bool) (self::$penguji)($url);
+        $tcp = self::$penguji !== null
+            ? (bool) (self::$penguji)($url)
+            : self::probeTcp($url);
+
+        if (! $tcp) {
+            return false;
         }
 
-        return self::probeTcp($url);
+        // null = tidak bisa diperiksa (mis. allow_url_fopen mati): percayai TCP
+        // agar lingkungan yang sah tidak ikut kehilangan dev server.
+        return self::viteMenjawab($url) ?? true;
+    }
+
+    /**
+     * Bukti bahwa yang menjawab di alamat dev server benar-benar Vite.
+     *
+     * true  = Vite menjawab (`/@vite/client` memuat penanda Vite)
+     * false = ada yang menjawab, tetapi bukan Vite
+     * null  = tidak bisa diperiksa di lingkungan ini
+     */
+    public static function viteMenjawab(string $url): ?bool
+    {
+        if (self::$viteTerbukti !== null) {
+            return self::$viteTerbukti;
+        }
+
+        if (self::$pengujiHttp !== null) {
+            return self::$viteTerbukti = (self::$pengujiHttp)($url);
+        }
+
+        $terbuka = ini_get('allow_url_fopen');
+        if (in_array(strtolower((string) $terbuka), ['', '0', 'off', 'false', 'no'], true)) {
+            return null;
+        }
+
+        $konteks = stream_context_create(['http' => [
+            'method' => 'GET',
+            'timeout' => self::TIMEOUT_VITE,
+            'ignore_errors' => true, // tetap baca isi balasan 404 milik proses lain
+            'header' => "Connection: close\r\n",
+        ]]);
+
+        $isi = @file_get_contents(rtrim($url, '/').'/@vite/client', false, $konteks);
+        if ($isi === false) {
+            // TCP menjawab tetapi HTTP gagal: bukan server HTTP yang sehat.
+            return self::$viteTerbukti = false;
+        }
+
+        return self::$viteTerbukti = str_contains(mb_strtolower($isi), self::PENANDA_VITE);
     }
 
     /** Uji koneksi TCP singkat ke alamat dev server. */
-    private static function probeTcp(string $url): bool
+    protected static function probeTcp(string $url): bool
     {
         $bagian = parse_url($url);
         $host = $bagian['host'] ?? null;
@@ -370,6 +454,7 @@ final class Aset
             'hot_berkas' => $url !== null,
             'hot_url' => $url,
             'hot_hidup' => $url !== null && self::hotHidup(),
+            'vite_terbukti' => $url === null || ! self::hotHidup() ? null : self::viteMenjawab($url),
             'manifest' => self::berkasManifest(),
             'manifest_ada' => is_file(self::berkasManifest()),
             'build_lengkap' => self::buildLengkap(),
