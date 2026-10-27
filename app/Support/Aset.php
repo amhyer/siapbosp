@@ -225,7 +225,8 @@ final class Aset
      * mengizinkan `[::1]` di header tidak berefek apa pun.
      *
      * Jalan keluarnya ejaan `localhost`: OS menerjemahkannya ke ::1, dan
-     * sumber itu sah bagi peramban.
+     * sumber itu sah bagi peramban. Host lain (termasuk `0.0.0.0` untuk mode
+     * LAN) dibiarkan apa adanya.
      */
     public static function hotUrlNormal(): ?string
     {
@@ -237,8 +238,12 @@ final class Aset
         $bagian = parse_url($url);
         $host = strtolower(trim((string) ($bagian['host'] ?? ''), '[]'));
 
-        // Hanya host loopback/wildcard yang perlu dieja ulang.
-        if (! in_array($host, ['::1', '::', '0.0.0.0'], true)) {
+        // Hanya literal IPv6 yang perlu dieja ulang. `0.0.0.0` sengaja TIDAK
+        // disentuh: sebagai host-source ia sah bagi CSP, dan menggantinya
+        // dengan localhost akan merusak akses LAN (mode `--host 0.0.0.0`),
+        // karena peramban di komputer lain akan mencari dev server di
+        // mesinnya sendiri.
+        if (! in_array($host, ['::1', '::'], true)) {
             return $url;
         }
 

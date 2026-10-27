@@ -141,6 +141,65 @@ class AsetHalamanTest extends TestCase
     }
 
     /**
+     * Invarian yang mencegah seluruh kelas bug ini terulang: origin yang
+     * DICETAK `@vite` di HTML harus muncul di CSP, dan CSP tidak boleh memuat
+     * sumber yang akan diabaikan peramban. Kalau kelak normalisasi diterapkan
+     * di satu sisi saja, tes ini gagal.
+     */
+    public function test_alamat_vite_dan_csp_selalu_sepakat(): void
+    {
+        foreach (['http://[::1]:5173', 'http://127.0.0.1:5173', 'http://localhost:5173'] as $hot) {
+            $dir = $this->dirPublik();
+            $this->anggapServerDev(true, true);
+            file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', $hot);
+            // Setiap putaran mulai dari keadaan bersih: @vite memakai hot file
+            // yang dipasang putaran sebelumnya bila tidak dikembalikan.
+            \Illuminate\Support\Facades\Vite::useHotFile($dir.DIRECTORY_SEPARATOR.'hot');
+            Aset::arahkanVite();
+
+            $tanggapan = $this->get('/login')->assertOk();
+            $html = (string) $tanggapan->getContent();
+            $csp = (string) $tanggapan->headers->get('Content-Security-Policy');
+
+            // Origin yang benar-benar diminta peramban.
+            $this->assertSame(1, preg_match('#(https?://[^/]+)/@vite/client#', $html, $cocok),
+                'HTML tidak memuat @vite/client untuk hot='.$hot);
+            $origin = $cocok[1];
+
+            $this->assertStringContainsString($origin, $this->direktif($csp, 'script-src'),
+                'script-src harus memuat origin yang dicetak @vite (hot='.$hot.').');
+            $this->assertStringContainsString($origin, $this->direktif($csp, 'style-src'),
+                'style-src harus memuat origin yang sama.');
+            $this->assertStringContainsString(
+                preg_replace('#^http#', 'ws', $origin),
+                $this->direktif($csp, 'connect-src'),
+                'connect-src butuh WebSocket HMR dari origin yang sama.'
+            );
+            $this->assertStringNotContainsString('[', $csp,
+                'CSP memuat literal IPv6 yang akan diabaikan peramban (hot='.$hot.').');
+
+            $this->hapusDir($dir);
+            $this->tmp = array_values(array_diff($this->tmp, [$dir]));
+            Aset::pakaiDirektori(null);
+        }
+    }
+
+    /**
+     * Mode LAN (`npm run dev -- --host 0.0.0.0`) tidak boleh ikut dinormalkan:
+     * `0.0.0.0` sah bagi CSP, dan menggantinya dengan localhost membuat
+     * peramban di komputer lain mencari dev server di mesinnya sendiri.
+     */
+    public function test_mode_lan_tidak_dinormalkan(): void
+    {
+        $dir = $this->dirPublik();
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://0.0.0.0:5173');
+
+        $this->assertSame('http://0.0.0.0:5173', Aset::hotUrlNormal());
+        $this->assertFalse(Aset::arahkanVite(), 'Tidak ada yang perlu dialihkan untuk mode LAN.');
+    }
+
+    /**
      * Jaring pengaman: apa pun isi `public/hot`, header CSP tidak boleh memuat
      * literal IPv6 ber-kurung — peramban membuangnya dan aset tetap diblokir.
      */
