@@ -29,7 +29,7 @@ tertangani sendiri:
 | `public/hot` basi (sisa `npm run dev` yang sudah ditutup) | `@vite` mengeluarkan alamat `http://localhost:5173/…` yang mati → CSS 404, halaman polos | koneksi ke dev server diuji (≤0,2 s); bila tidak menjawab, `public/hot` dihapus dan aplikasi memakai build/darurat |
 | `manifest.json` menunjuk berkas yang hilang (build terpotong, ZIP tak lengkap) | tetap `@vite` → CSS 404, halaman polos | setiap berkas rujukan manifest diverifikasi; bila ada yang hilang → jalur darurat |
 | `npm run dev` hidup, CSP hanya `'self'` | aset dev (port 5173) **diblokir CSP** → halaman polos | origin dev server + WebSocket HMR ditambahkan ke `script-src`/`style-src`/`connect-src` selama `hot` hidup |
-| `public/hot` berisi `http://[::1]:5173` (loopback IPv6) | literal IPv6 ber-kurung dibuang peramban saat mem-parse CSP → aset dev diblokir walau "diizinkan" | alamat dinormalkan ke `localhost` untuk `@vite` maupun CSP (termasuk `ws://`); baris **Alamat untuk CSP** melaporkannya |
+| `public/hot` berisi `http://[::1]:5173` (loopback IPv6) | literal IPv6 ber-kurung dibuang peramban saat mem-parse CSP → aset dev diblokir walau "diizinkan" | tiga lapis: `vite.config.js` mengikat `127.0.0.1` (akar), `Aset` menormalkan `[::1]`→`localhost` untuk `@vite` & CSP, dan `KeamananHeader::sumberSah()` membuang token ber-kurung sebelum header dikirim |
 | Tag/script inline cetakan `@vite` tanpa nonce | `script-src` menolak, halaman kehilangan aset dev | `KeamananHeader` memanggil `Vite::useCspNonce()` dengan nonce yang sama |
 | Port 5173 terbuka oleh **proses lain** (bukan Vite) | uji TCP lolos → `@vite` dipakai → CSS dev 404 → halaman polos | `GET {hot}/@vite/client` diverifikasi memuat penanda Vite; bila bukan, hot dibuang dan aset build dipakai (bila pemeriksaan tak bisa dilakukan, dev server tetap dipakai) |
 | `manifest.json` rusak/hilang padahal berkas CSS ada | `@vite` gagal atau menunjuk aset yang tidak ada | jalur build memakai `<link>` langsung ke `build/assets/*.css` (glob), manifest hanya dipakai untuk laporan/paket |
@@ -74,6 +74,12 @@ sama sekali. Urutan penyebab yang terbukti, dari tersering:
    dan CSP memakai alamat itu (`script-src`, `style-src`, `connect-src`,
    termasuk `ws://`). Periksa lewat baris **Alamat untuk CSP** di `/_aset`
    atau `php artisan siapbos:cek-aset`.
+   **Akar masalahnya ditutup juga di sisi Vite:** `vite.config.js` kini memuat
+   `server.host: '127.0.0.1'`, sehingga `public/hot` berisi
+   `http://127.0.0.1:5173` sejak awal — sah bagi CSP tanpa normalisasi apa pun.
+   `KeamananHeader::sumberSah()` menjadi jaring pengaman terakhir: token CSP
+   yang masih memuat `[` dibuang sebelum header dikirim, agar peringatan
+   "invalid source" tidak pernah muncul lagi.
 5. **Port 5173 dipakai proses lain.** `public/hot` masih menunjuk
    `http://localhost:5173`, koneksi TCP berhasil (jadi tampak "hidup"), tetapi
    yang menjawab adalah aplikasi lain → `@vite` mengeluarkan alamat CSS yang

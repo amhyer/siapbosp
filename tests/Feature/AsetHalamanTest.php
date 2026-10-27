@@ -125,6 +125,65 @@ class AsetHalamanTest extends TestCase
     }
 
     /**
+     * Akar masalahnya di sisi Vite: tanpa `server.host`, `public/hot` berisi
+     * `http://[::1]:5173` (Windows menyelesaikan `localhost` ke ::1 lebih dulu).
+     */
+    public function test_konfigurasi_vite_mengikat_ipv4(): void
+    {
+        $isi = (string) file_get_contents(base_path('vite.config.js'));
+
+        $this->assertMatchesRegularExpression(
+            "/host:\s*'127\.0\.0\.1'/",
+            $isi,
+            "vite.config.js harus mengikat 127.0.0.1; tanpa itu public/hot berisi [::1] "
+            .'yang tidak sah menurut CSP.'
+        );
+    }
+
+    /**
+     * Jaring pengaman: apa pun isi `public/hot`, header CSP tidak boleh memuat
+     * literal IPv6 ber-kurung — peramban membuangnya dan aset tetap diblokir.
+     */
+    public function test_header_csp_tidak_pernah_memuat_literal_ipv6(): void
+    {
+        // Kasus terburuk: Aset tidak dipakai sama sekali, sumber ditulis langsung.
+        $csp = KeamananHeader::sumberSah(
+            "default-src 'self'; script-src 'self' http://[::1]:5173; "
+            ."style-src 'self' http://[::1]:5173; connect-src 'self' http://[::1]:5173 ws://[::1]:5173"
+        );
+
+        $this->assertStringNotContainsString('[', $csp, 'Header CSP masih memuat literal IPv6.');
+        $this->assertStringContainsString('http://localhost:5173', $csp);
+        $this->assertStringContainsString('ws://localhost:5173', $csp);
+        $this->assertStringContainsString("default-src 'self'", $csp);
+
+        // IPv6 non-loopback tidak punya padanan localhost: dibuang, bukan diteruskan.
+        $lain = KeamananHeader::sumberSah("img-src 'self' http://[2001:db8::1]:8080");
+        $this->assertStringNotContainsString('[', $lain);
+        $this->assertStringNotContainsString('2001:db8', $lain);
+    }
+
+    /**
+     * Nonce pada atribut `<script>` harus sama dengan nonce di header; bila
+     * berbeda, skrip inline di halaman ditolak `script-src`.
+     */
+    public function test_nonce_atribut_sama_dengan_header_csp(): void
+    {
+        $this->anggapServerDev(false); // apa pun jalurnya, nonce harus konsisten
+        $tanggapan = $this->get('/login')->assertOk();
+        $html = (string) $tanggapan->getContent();
+        $csp = (string) $tanggapan->headers->get('Content-Security-Policy');
+
+        $this->assertSame(1, preg_match("/'nonce-([^']+)'/", $csp, $dariHeader),
+            'Header CSP harus memuat nonce.');
+        $this->assertSame(1, preg_match('/<script nonce="([^"]+)">/', $html, $dariHtml),
+            'Skrip inline halaman harus memakai atribut nonce.');
+
+        $this->assertSame($dariHeader[1], $dariHtml[1],
+            'Nonce pada atribut harus sama dengan nonce di header, kalau tidak skrip inline diblokir.');
+    }
+
+    /**
      * Laporan lapangan: CSP sudah memuat `http://[::1]:5173`, tetapi peramban
      * TETAP memblokir aset dev server. Sebabnya literal IPv6 ber-kurung bukan
      * host-source yang sah menurut grammar CSP — Chromium membuangnya saat
