@@ -38,7 +38,7 @@
   @endif
   @if($terkunci && (!$lpj || $lpj->status === 'ditolak'))
     <form method="post" action="{{ route('laporan.lpj.kumpulkan', $stageId) }}" data-konfirmasi="Kirim LPJ tahap ini ke Dinas untuk ditinjau?">@csrf
-      <button style="background:#1a56db;color:#fff;font-weight:700;border-color:#1a56db">{{ $lpj ? '🔄 Kirim Ulang LPJ ke Dinas' : '📨 Kirim LPJ ke Dinas' }}</button>
+      <button style="background:#0b5fef;color:#fff;font-weight:700;border-color:#0b5fef">{{ $lpj ? '🔄 Kirim Ulang LPJ ke Dinas' : '📨 Kirim LPJ ke Dinas' }}</button>
     </form>
   @endif
 </div>

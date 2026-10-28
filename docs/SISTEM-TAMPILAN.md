@@ -27,7 +27,7 @@ Karena itu palet ARKAS dipasang sebagai **pemetaan token** di blok `@theme`:
 
 ```css
 @theme {
-    --color-indigo-600: #1a56db;  /* biru ARKAS, bukan indigo */
+    --color-indigo-600: #0b5fef;  /* biru ARKAS, bukan indigo */
     --color-indigo-700: #1e429f;
     …
     --radius-lg: 6px;
@@ -44,7 +44,7 @@ menyentuh view. Tidak ada `indigo` yang ditulis manual sebagai hex di view mana 
 
 | Hal | Sebelum | Sesudah (ARKAS 4) |
 |---|---|---|
-| Warna utama | indigo `#4f46e5` | biru ARKAS `#1a56db` |
+| Warna utama | indigo `#4f46e5` | biru ARKAS `#0b5fef` |
 | Hover tombol | `#4338ca` | `#1e429f` |
 | Latar chip | `#e0e7ff` | `#dbeafe` |
 | Garis fokus input | `#c7d2fe` | `#dbeafe` |
@@ -53,7 +53,7 @@ menyentuh view. Tidak ada `indigo` yang ditulis manual sebagai hex di view mana 
 | Sudut chip | kapsul (`rounded-full`) | 4 px (`rounded`) |
 | Bayangan kartu/tombol | `shadow-sm` / custom | **tanpa bayangan**, hanya garis 1 px |
 | Padding sel tabel | `.625rem .75rem`, teks 13 px | `.5rem .625rem`, teks 12,5 px |
-| `theme-color` + `manifest.webmanifest` | `#4f46e5` | `#1a56db` |
+| `theme-color` + `manifest.webmanifest` | `#4f46e5` | `#0b5fef` |
 
 Warna grafik ikut diselaraskan di `dashboard`, `dinas/dashboard`, dan `laporan/tahap`
 (kuningan/garis grafik serta tombol kirim LPJ yang ditulis inline).

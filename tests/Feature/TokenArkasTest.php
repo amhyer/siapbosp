@@ -67,10 +67,14 @@ class TokenArkasTest extends TestCase
         }
     }
 
-    public function test_bayangan_kartu_memakai_elevation_01_arkas(): void
+    /** elevation-01 ARKAS tersedia sebagai token, tetapi kartu sengaja tetap rata. */
+    public function test_token_elevation_tersedia_tanpa_mengubah_kartu_rata(): void
     {
-        $this->assertStringContainsString('--arkas-shadow-card: 0px 1px 1px rgba(0, 0, 0, 0.08)', $this->css);
-        $this->assertStringContainsString('box-shadow: var(--arkas-shadow-card);', $this->css);
+        $this->assertStringContainsString(
+            '--arkas-shadow-card: 0px 1px 1px rgba(0, 0, 0, 0.08)',
+            $this->css
+        );
+        $this->assertStringNotContainsString('box-shadow: var(--arkas-shadow-card);', $this->css);
     }
 
     /** Palet indigo/slate bawaan Tailwind tidak boleh muncul lagi sebagai nilai token. */

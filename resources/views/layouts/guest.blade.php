@@ -6,7 +6,7 @@
 <meta name="description" content="Masuk ke SiapBOSP — Sistem Akuntansi Dana BOSP.">
 <link rel="icon" href="/favicon.ico">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#1a56db">
+<meta name="theme-color" content="#0b5fef">
 <link rel="apple-touch-icon" href="/icons/icon.svg">
 @use('App\Support\Aset')
 <title>{{ $title ?? 'Masuk' }} — SiapBOSP</title>

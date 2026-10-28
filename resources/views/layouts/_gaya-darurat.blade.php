@@ -31,7 +31,7 @@
     transition: border-color .15s, box-shadow .15s;
   }
   .inp::placeholder { color: #94a3b8; }
-  .inp:focus { border-color: #1a56db; outline: none; box-shadow: 0 0 0 2px #dbeafe; }
+  .inp:focus { border-color: #0b5fef; outline: none; box-shadow: 0 0 0 2px #dbeafe; }
   .inp-sm { padding: .375rem .625rem; font-size: 13px; }
   select.inp { padding-right: 2rem; }
   label.lbl { display: block; margin-bottom: .25rem; font-size: .75rem; font-weight: 600; color: #475569; }
@@ -43,7 +43,7 @@
     font-size: 13px; font-weight: 600; line-height: 1.25; text-decoration: none; cursor: pointer;
     transition: background-color .15s, border-color .15s, color .15s;
   }
-  .btn { background: #1a56db; color: #fff; }
+  .btn { background: #0b5fef; color: #fff; }
   .btn:hover { background: #1e429f; }
   .btn:active { background: #1e3a8a; }
   .btn:focus-visible { outline: 2px solid #93c5fd; outline-offset: 1px; }
@@ -106,7 +106,7 @@
     text-decoration: none; transition: background-color .15s, color .15s;
   }
   .navw a:hover, .navw .menu-btn:hover { background: rgb(255 255 255 / .1); color: #fff; text-decoration: none; }
-  .navw a.on { background: #1a56db; font-weight: 600; color: #fff; }
+  .navw a.on { background: #0b5fef; font-weight: 600; color: #fff; }
   .navw .menu-btn { font-weight: 600; color: #e2e8f0; }
   .navw .chev { margin-left: auto; font-size: 11px; color: #64748b; transition: transform .2s; transform: rotate(-90deg); }
   .navw .grp.open .chev { transform: rotate(0deg); }

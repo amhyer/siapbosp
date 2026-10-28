@@ -94,10 +94,10 @@
   const LBL=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   const fmtUang=v=>'Rp '+(v>=1000000?(v/1000000).toLocaleString('id-ID')+' jt':(v/1000).toLocaleString('id-ID')+' rb');
   new Chart(document.getElementById('chTrenWil'),{type:'line',
-    data:{labels:LBL,datasets:[{data:@json(array_values($trenBulanan)),borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.18)',fill:true,tension:.35,pointRadius:3,pointHoverRadius:6}]},
+    data:{labels:LBL,datasets:[{data:@json(array_values($trenBulanan)),borderColor:'#0b5fef',backgroundColor:'rgba(26,86,219,.18)',fill:true,tension:.35,pointRadius:3,pointHoverRadius:6}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtUang(c.parsed.y)}}},scales:{y:{ticks:{callback:fmtUang}}}}});
   new Chart(document.getElementById('chKomposisiWil'),{type:'doughnut',
-    data:{labels:@json($komposisiKomponen->pluck('nama')),datasets:[{data:@json($komposisiKomponen->pluck('jumlah')),backgroundColor:['#1a56db','#059669','#d97706','#dc2626','#0891b2','#7c3aed','#db2777','#65a30d','#9333ea']}]},
+    data:{labels:@json($komposisiKomponen->pluck('nama')),datasets:[{data:@json($komposisiKomponen->pluck('jumlah')),backgroundColor:['#0b5fef','#059669','#d97706','#dc2626','#0891b2','#7c3aed','#db2777','#65a30d','#9333ea']}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmtUang(c.parsed)}}}}});
 })();
 </script>
