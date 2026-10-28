@@ -57,10 +57,11 @@ class RapbsCetakTest extends TestCase
         $buku = Rekening::firstOrCreate(['kode' => '5.1.02.03.05.0001'], ['nama' => 'Buku Teks', 'tipe' => 'belanja']);
 
         RkasDetail::create(['rkas_header_id' => $this->header->id, 'rekening_id' => $honor->id,
-            'kode_kegiatan' => '07.12.01.', 'uraian' => 'Honor Guru Kelas', 'volume' => 3,
-            'satuan' => 'orang / bulan', 'harga_satuan' => 2_000_000, 'jumlah' => 6_000_000]);
+            'kode_kegiatan' => '07.12.01.', 'uraian' => 'Honor Guru Kelas', 'banyak' => 3,
+            'satuan' => 'orang / bulan', 'harga_satuan' => 2_000_000, 'jumlah' => 6_000_000,
+            'bulan_volumes' => json_encode(['3' => 3])]);
         RkasDetail::create(['rkas_header_id' => $this->header->id, 'rekening_id' => $buku->id,
-            'kode_kegiatan' => '05.02.03.', 'uraian' => 'Buku Teks Utama', 'volume' => 80,
+            'kode_kegiatan' => '05.02.03.', 'uraian' => 'Buku Teks Utama', 'banyak' => 80,
             'satuan' => 'exemplar', 'harga_satuan' => 50_000, 'jumlah' => 4_000_000]);
     }
 
@@ -103,9 +104,10 @@ class RapbsCetakTest extends TestCase
     {
         $html = $this->cetak()->getContent();
 
-        // Ringkasan bertingkat dari kode kegiatan '07.12.01.'
+        // Ringkasan bertingkat dari kode kegiatan '07.12.01.' (sel kode ber-atribut,
+        // jadi dicocokkan lewat isi sel + penutupnya).
         foreach (['07.', '07.12.', '07.12.01.'] as $kode) {
-            $this->assertStringContainsString('>'.$kode.'</td>', $html, 'Baris ringkasan hilang: '.$kode);
+            $this->assertStringContainsString($kode.'</td>', $html, 'Baris ringkasan hilang: '.$kode);
         }
         // Rincian: rekening, uraian, volume, satuan, tarif.
         $this->assertStringContainsString('5.1.02.02.01.0013', $html);
@@ -144,5 +146,35 @@ class RapbsCetakTest extends TestCase
             ->get(route('laporan-arkas.rkas-tahap'))
             ->assertOk()
             ->assertSee(route('laporan-arkas.rapbs-cetak'), false);
+    }
+
+    /** Varian per Bulan: judul, bulan terpilih, angka bulan itu, ttd 3 kolom. */
+    public function test_rapbs_bulan_memakai_angka_bulan_dan_tiga_kolom_ttd(): void
+    {
+        $r = $this->withSession(['tahun' => 2026])
+            ->get(route('laporan-arkas.rapbs-cetak', ['format' => 'bulan', 'bulan' => 3]))
+            ->assertOk();
+
+        $r->assertSee('RINCIAN KERTAS KERJA PERBULAN')
+            ->assertSee('Bulan : Maret 2026')
+            // Hanya rincian dengan volume bulan Maret yang menghasilkan angka.
+            ->assertSee('Rencana belanja Maret 2026 : <b>Rp. 6.000.000</b>', false)
+            // Tanda tangan 3 kolom seperti ARKAS.
+            ->assertSee('Komite Sekolah')
+            ->assertSee('Bendahara Sekolah')
+            ->assertSee('grid-template-columns:1fr 1fr 1fr', false)
+            // Kaki halaman memakai kata "perBulan".
+            ->assertSee('content: "Kertas Kerja perBulan - NPSN : 40305555, Nama Sekolah : ', false);
+    }
+
+    /** Varian per Tahap tidak memakai judul/ttd varian bulan. */
+    public function test_rapbs_tahap_tidak_memakai_blok_bulan(): void
+    {
+        $html = $this->cetak()->getContent();
+
+        $this->assertStringContainsString('KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS) PER TAHAP', $html);
+        $this->assertStringNotContainsString('RINCIAN KERTAS KERJA PERBULAN', $html);
+        $this->assertStringNotContainsString('Komite Sekolah', $html, 'ARKAS tidak menandatangani varian per Tahap.');
+        $this->assertStringNotContainsString('Kertas Kerja perBulan', $html);
     }
 }

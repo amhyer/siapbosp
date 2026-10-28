@@ -49,19 +49,23 @@ Selisih yang tersisa (disengaja):
   `periode_volume` bila ada, jika tidak dibagi rata. ARKAS memakai rencana
   per tahap dari basis datanya sendiri.
 
-## 2. RAPBS per Bulan — **belum dibuat** (data tidak ada)
+## 2. RAPBS per Bulan — **dibuat** (`?format=bulan`)
 
-Susunan ARKAS: `RINCIAN KERTAS KERJA PERBULAN` / `TAHUN ANGGARAN : 2026`,
+Literal ARKAS: `RINCIAN KERTAS KERJA PERBULAN`, `TAHUN ANGGARAN : 2026`,
 identitas + `Bulan : Maret 2026` + `Sumber Dana`, blok penerimaan, blok belanja
-dengan kolom `Volume | Satuan | Tarif Harga | Jumlah` **per bulan itu**, baris
+dengan kolom `Volume | Satuan | Tarif Harga | Jumlah` untuk **bulan itu**, baris
 `Jumlah`, lalu tanda tangan **3 kolom**: `Komite Sekolah | Kepala Sekolah |
 Bendahara Sekolah` dengan `Kec. Makasar, 25 Juni 2026` di atas kolom kanan.
-Kaki halaman: `Kertas Kerja perBulan - NPSN : …`.
+Kaki halaman: `Kertas Kerja perBulan - NPSN : … Halaman X dari Y`.
 
-Sebab belum dibuat: `rkas_details` SiapBOSP menyimpan `periode_volume` yang
-dipakai sebagai **volume per tahap**, bukan rencana per bulan. Mencetak angka
-bulanan dari data itu akan mengarang pembagian bulan. Perlu kolom rencana
-per bulan lebih dulu (mis. `rkas_details.volume_bulan` JSON 12 nilai).
+Status SiapBOSP: **dibuat** lewat rute yang sama dengan `?format=bulan&bulan=N`.
+
+Catatan penting soal angka: `RkasDetail::nominalPerBulan()` dipakai apa adanya —
+`bulan_volumes` bila ada, jika tidak fallback ke `periode_volume`, jika tidak ada
+juga seluruh `banyak` ditaruh di Januari. Artinya dokumen bulanan **hanya
+seakurat data rencana bulanan** yang tersimpan; ARKAS memakai rencana bulanan
+dari basis datanya sendiri. Tanggal tanda tangan memakai tanggal cetak
+(`now()`), sama seperti sampel ARKAS (dokumen Maret, ttd 25 Juni 2026).
 
 ## 3. RKA Unit Kerja — **belum dibuat**
 
@@ -128,8 +132,8 @@ rekapitulasi per rekening per semester (konsep SiapBOSP sendiri, dipertahankan).
 
 | Dokumen ARKAS | di SiapBOSP | Catatan |
 |---|---|---|
-| Kertas Kerja RAPBS per Tahap | **ada (baru)** | uji: `RapbsCetakTest` |
-| Kertas Kerja RAPBS per Bulan | belum | butuh rencana volume per bulan |
+| Kertas Kerja RAPBS per Tahap | **ada (baru)** | rute baku, uji `RapbsCetakTest` |
+| Kertas Kerja RAPBS per Bulan | **ada (baru)** | `?format=bulan`; uji `RapbsCetakTest` |
 | RKA Unit Kerja (triwulan) | belum | butuh rencana triwulan |
 | DPA / RKAS Unit Kerja | belum | butuh lokasi kegiatan + target kinerja |
 | RPD K7 (8 standar) | belum | butuh pemetaan sub-program |

@@ -255,19 +255,22 @@ class LaporanArkasController extends Controller
     // ==================== 2b. Kertas Kerja RAPBS per Tahap ====================
 
     /**
-     * RAPBS per Tahap — "KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH
-     * (RKAS) PER TAHAP", bentuk mengikuti rapbs-tahap-output.pdf ARKAS 4.3.1:
-     * blok A. PENERIMAAN per sumber dana, blok B. BELANJA berbentuk pohon
-     * (program → kegiatan → sub-kegiatan → rincian) dengan volume/satuan/tarif
-     * dan pembagian per tahap, ditutup baris Jumlah.
+     * Kertas Kerja RAPBS — dua varian cetak ARKAS 4.3.1:
      *
-     * Varian "per Bulan" milik ARKAS belum bisa dicetak: rkas_details hanya
-     * menyimpan volume per tahap (`periode_volume`), bukan rencana per bulan,
-     * jadi angka bulanan akan mengarang. Lihat docs/ARKAS-CETAK-RAPBS-RKA-DPA-RPD.md.
+     *  - per Tahap (baku): "KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH
+     *    (RKAS) PER TAHAP" — blok A. PENERIMAAN + pohon belanja dengan kolom
+     *    per tahap, ditutup Jumlah; tanpa tanda tangan (sama seperti ARKAS).
+     *  - per Bulan (?format=bulan): "RINCIAN KERTAS KERJA PERBULAN" — angka
+     *    kolom Jumlah = rencana bulan terpilih, ditutup tanda tangan 3 kolom
+     *    (Komite Sekolah / Kepala Sekolah / Bendahara Sekolah).
+     *
+     * Angka bulanan memakai RkasDetail::nominalPerBulan() — sumber yang sama
+     * dengan Kertas Kerja ARKAS 4 (bulan_volumes, fallback periode_volume).
      */
     public function rapbsCetak(Request $r)
     {
-        [$sid, $tahun] = $this->ctx($r);
+        [$sid, $tahun, $bulan] = $this->ctx($r);
+        $format = $r->query('format') === 'bulan' ? 'bulan' : 'tahap';
         $kop = $this->kop($sid, $tahun);
         $kodeNama = ArkasKode::peta($sid, $tahun);
         $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
@@ -286,16 +289,19 @@ class LaporanArkasController extends Controller
 
         // B. Belanja: pohon program/kegiatan/sub-kegiatan + baris rincian.
         $baris = [];
-        $ringkas = []; // prefix kode kegiatan => indeks baris ringkasan
+        $ringkas = [];
         $total = 0;
         $totalTahap = array_fill(1, $nTahap, 0);
+        $totalBulan = 0;
 
         foreach ($kop['rkas']?->details()->with('rekening')->orderBy('kode_kegiatan')->orderBy('id')->get() ?? [] as $d) {
             $keg = preg_replace('/\s+/', '', (string) $d->kode_kegiatan);
             $seg = $keg === '' ? [] : array_values(array_filter(explode('.', trim($keg, '.'))));
             $jumlah = (int) $d->jumlah;
+            $nilaiBulan = (int) ($d->nominalPerBulan()[$bulan] ?? 0);
 
-            // Pembagian per tahap sama dengan layar Rincian RKAS per Tahap.
+            // Pembagian per tahap: proporsi periode_volume, jika tidak ada dibagi rata
+            // (aturan yang sama dengan layar Rincian RKAS per Tahap).
             $vol = json_decode((string) ($d->periode_volume ?? '[]'), true);
             $vol = is_array($vol) ? array_map('floatval', $vol) : [];
             $totVol = array_sum($vol);
@@ -312,35 +318,46 @@ class LaporanArkasController extends Controller
                 $tipe = ['program', 'kegiatan', 'sub'][$i] ?? 'sub';
                 if (! isset($ringkas[$prefix])) {
                     $ringkas[$prefix] = count($baris);
-                    $nama = (string) ($kodeNama[$prefix.'.'] ?? ($kodeNama[$prefix] ?? ''));
-                    $baris[] = ['tipe' => $tipe, 'kode' => $prefix.'.', 'uraian' => $nama,
+                    $baris[] = ['tipe' => $tipe, 'kode' => $prefix.'.',
+                        'uraian' => (string) ($kodeNama[$prefix.'.'] ?? ($kodeNama[$prefix] ?? '')),
                         'rek' => '', 'volume' => null, 'satuan' => '', 'tarif' => null,
-                        'jumlah' => 0, 'tahap' => array_fill(1, $nTahap, 0)];
+                        'jumlah' => 0, 'bulan' => 0, 'tahap' => array_fill(1, $nTahap, 0)];
                 }
                 $baris[$ringkas[$prefix]]['jumlah'] += $jumlah;
+                $baris[$ringkas[$prefix]]['bulan'] += $nilaiBulan;
                 foreach ($tahapNilai as $i2 => $v) {
                     $baris[$ringkas[$prefix]]['tahap'][$i2] += $v;
                 }
             }
 
             $baris[] = ['tipe' => 'rincian', 'kode' => '', 'uraian' => (string) $d->uraian,
-                'rek' => (string) ($d->rekening->kode ?? '—'), 'volume' => $d->volume ?? $d->banyak,
+                'rek' => (string) ($d->rekening->kode ?? '—'), 'volume' => $d->banyak,
                 'satuan' => (string) $d->satuan, 'tarif' => (int) $d->harga_satuan,
-                'jumlah' => $jumlah, 'tahap' => $tahapNilai];
+                'jumlah' => $jumlah, 'bulan' => $nilaiBulan, 'tahap' => $tahapNilai];
 
             $total += $jumlah;
+            $totalBulan += $nilaiBulan;
             foreach ($tahapNilai as $i2 => $v) {
                 $totalTahap[$i2] += $v;
             }
         }
 
         $labelTahap = $tahaps->pluck('nama')->implode(' dan ');
+        $namaBulanTeks = self::BULAN[$bulan];
+        $penandatangan = Penandatangan::orderBy('id')->get();
+        $sekolah = $r->user()->school;
 
         return view('laporan-arkas.rapbs-cetak', [
-            'baris' => $baris, 'penerimaan' => $penerimaan, 'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
-            'total' => $total, 'totalTahap' => $totalTahap, 'nTahap' => $nTahap,
-            'kop' => $kop, 'sekolah' => $r->user()->school, 'tahun' => $tahun,
+            'format' => $format, 'baris' => $baris, 'penerimaan' => $penerimaan,
+            'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
+            'total' => $total, 'totalTahap' => $totalTahap, 'totalBulan' => $totalBulan, 'nTahap' => $nTahap,
+            'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun, 'bulan' => $bulan,
+            'namaBulan' => self::BULAN, 'labelBulan' => $namaBulanTeks,
             'labelTahap' => $labelTahap !== '' ? $labelTahap : ('I s/d '.$nTahap),
+            'penandatangan' => $penandatangan,
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
         ]);
     }
 
