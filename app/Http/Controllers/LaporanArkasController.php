@@ -495,6 +495,115 @@ class LaporanArkasController extends Controller
         ]);
     }
 
+    // ==================== 2d. RPD K7 (Rekapitulasi Realisasi Penggunaan Dana) ====================
+
+    /**
+     * Dua belas kolom SUB PROGRAM lembar RPD K7, urut seperti rpd-k7-output.pdf
+     * (ARKAS 4.3.1). Nomor kolom = segmen ke-2 kode kegiatan ARKAS.
+     */
+    private const SUB_PROGRAM_RPD = [
+        1 => 'Pembiayaan Penerimaan Peserta Didik Baru',
+        2 => 'Pembiayaan Pengembangan Perpustakaan',
+        3 => 'Pembiayaan Kegiatan Pembelajaran dan Ekstrakurikuler',
+        4 => 'Kegiatan Pembiayaan Asesmen/Evaluasi Pembelajaran dan Ekstrakurikuler',
+        5 => 'Pembiayaan Administrasi Kegiatan Sekolah',
+        6 => 'Pembiayaan Pengembangan Profesi Guru dan Tenaga Kependidikan',
+        7 => 'Pembiayaan Langganan Daya dan/atau Jasa',
+        8 => 'Pembiayaan Pemeliharaan Sarana dan Prasarana Sekolah',
+        9 => 'Penyediaan Alat Multi Media Pembelajaran',
+        10 => 'Pembiayaan Penyelenggaraan Bursa Kerja Khusus, Praktik Kerja Industri atau Praktik Kerja Lapangan di Dalam Negeri, Pemantauan Kebekerjaan, Pemagangan Guru, dan Lembaga Sertifikasi Profesi Pihak Pertama',
+        11 => 'Pembiayaan Penyelenggaraan Kegiatan Uji Komp Keahlian, Sertifikasi Kompetensi Keahlian, dan Uji Komp Kemampuan Bhs Inggris Berstandar Internasional dan Bhs Asing Lainnya bagi Kelas Akhir SMK atau SMALB',
+        12 => 'Pembiayaan untuk Pembayaran Honor',
+    ];
+
+    /** Baris 8 standar (dipakai bila master kode kegiatan belum terimpor). */
+    private const STANDAR_RPD = [
+        1 => 'Pengembangan Standar Isi',
+        2 => 'Pengembangan Standar Proses',
+        3 => 'Pengembangan pendidik dan tenaga kependidikan',
+        4 => 'Pengembangan sarana dan prasarana sekolah',
+        5 => 'Pengembangan standar pengelolaan',
+        6 => 'Pengembangan standar pembiayaan',
+        7 => 'Pengembangan dan implementasi sistem penilaian',
+    ];
+
+    /**
+     * RPD K7 — Rekapitulasi Realisasi Penggunaan Dana BOSP, bentuk mengikuti
+     * rpd-k7-output.pdf ARKAS 4.3.1:
+     *   matriks 8 standar (baris) × 12 sub program (kolom) berisi **realisasi**
+     *   belanja tahun berjalan, baris JUMLAH, lalu 4 baris saldo, lalu tanda
+     *   tangan 2 kolom (Menyetujui/Kepala Sekolah & Bendahara).
+     *
+     * Kode kegiatan ARKAS berbentuk `SS.SP.KK.` (SS = standar, SP = sub program,
+     * KK = kegiatan), jadi sel matriks = jumlah realisasi dengan prefix `SS.SP.`.
+     * Nama standar diambil dari master `arkas_kodes` (level 1); bila master belum
+     * ada, dipakai daftar baku yang sama dengan sample ARKAS.
+     */
+    public function rpdK7(Request $r)
+    {
+        [$sid, $tahun] = $this->ctx($r);
+        $kop = $this->kop($sid, $tahun);
+        $sekolah = $r->user()->school;
+
+        $standar = ArkasKode::where('school_id', $sid)->where('tahun', $tahun)->where('level', 1)
+            ->orderBy('kode')->get()
+            ->map(fn ($k) => ['kode' => rtrim((string) $k->kode, '.'), 'nama' => (string) $k->uraian])
+            ->values()->all();
+        if ($standar === []) {
+            $standar = collect(self::STANDAR_RPD)
+                ->map(fn ($nama, $no) => ['kode' => sprintf('%02d', (int) $no), 'nama' => $nama])->values()->all();
+        }
+
+        // Realisasi per sel: prefix standar + sub program.
+        $sel = [];
+        $raw = DB::table('kas_details as d')
+            ->join('kas_transactions as t', 't.id', '=', 'd.kas_transaction_id')
+            ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
+            ->whereNotNull('d.kode_kegiatan')
+            ->get(['d.kode_kegiatan', 'd.nilai']);
+        foreach ($raw as $x) {
+            $seg = array_values(array_filter(explode('.', trim((string) $x->kode_kegiatan, '.'))));
+            if (count($seg) < 2) {
+                continue;
+            }
+            $kunci = (int) $seg[0].'|'.(int) $seg[1];
+            $sel[$kunci] = ($sel[$kunci] ?? 0) + (int) $x->nilai;
+        }
+
+        $totalKolom = array_fill_keys(array_keys(self::SUB_PROGRAM_RPD), 0);
+        $baris = [];
+        foreach ($standar as $st) {
+            $nilai = [];
+            foreach (array_keys(self::SUB_PROGRAM_RPD) as $sp) {
+                $v = (int) ($sel[(int) $st['kode'].'|'.$sp] ?? 0);
+                $nilai[$sp] = $v;
+                $totalKolom[$sp] += $v;
+            }
+            $baris[] = ['kode' => $st['kode'], 'nama' => $st['nama'], 'nilai' => $nilai, 'total' => array_sum($nilai)];
+        }
+
+        $penggunaan = array_sum($totalKolom);
+        $penerimaan = (int) KasTransaction::withoutGlobalScope('school')
+            ->where('school_id', $sid)->where('tahun', $tahun)->where('type', 'pendapatan')->sum('total');
+        $ledger = KasService::ledger($sid, $tahun);
+        $saldoAwal = (int) ($ledger['saldoAwalTahun'] ?? 0);
+
+        $tgl = now()->translatedFormat('d F Y');
+
+        return view('laporan-arkas.rpd-k7-cetak', [
+            'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
+            'subProgram' => self::SUB_PROGRAM_RPD, 'baris' => $baris,
+            'totalKolom' => $totalKolom, 'jumlah' => $penggunaan,
+            'saldoAwal' => $saldoAwal, 'penerimaan' => $penerimaan,
+            'saldoAkhir' => $saldoAwal + $penerimaan - $penggunaan,
+            'periodeTeks' => '01 Januari '.$tahun.' s/d 31 Desember '.$tahun,
+            'penandatangan' => Penandatangan::orderBy('id')->get(),
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => $tgl,
+        ]);
+    }
+
     // ==================== 3. Realisasi Anggaran (per bulan) ====================
 
     /** Baris Realisasi Anggaran per rekening: anggaran, realisasi per bulan, komponen, %. */

@@ -224,6 +224,9 @@ Route::middleware('auth')->group(function () {
         // RKA / DPA (RKAS) Unit Kerja: per Triwulan atau per Tahap.
         Route::get('/laporan-arkas/rka-unit', [LaporanArkasController::class, 'rkaUnit'])
             ->name('laporan-arkas.rka-unit');
+        // RPD K7: Rekapitulasi Realisasi Penggunaan Dana BOSP (8 standar x sub program).
+        Route::get('/laporan-arkas/rpd-k7', [LaporanArkasController::class, 'rpdK7'])
+            ->name('laporan-arkas.rpd-k7');
         Route::get('/laporan-arkas/daftar-kas-umum', [LaporanArkasController::class, 'kasUmum'])->name('laporan-arkas.kas-umum');
         Route::get('/laporan-arkas/daftar-nota', [LaporanArkasController::class, 'nota'])->name('laporan-arkas.nota');
         Route::get('/laporan-arkas/penutupan-kas', [LaporanArkasController::class, 'penutupanKas'])->name('laporan-arkas.penutupan-kas');
