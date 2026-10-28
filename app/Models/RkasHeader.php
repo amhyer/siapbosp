@@ -58,15 +58,23 @@ class RkasHeader extends Model
      * lalu dipetakan ke tab di bawah ini agar pengguna ARKAS menemukan letak
      * dokumennya tanpa belajar istilah baru.
      *
+     * Dua ejaan diterima untuk sumber dana yang sama: ARKAS Desktop 4.3.1
+     * menamai baris `ref_sumber_dana` dengan "BOS …" (mis. `4.3.1.01. BOS
+     * Reguler`), sedangkan layar ARKAS dan dokumen sekolah memakai "BOSP …".
+     * Alias "BOS Daerah", "SiLPA BOS Kinerja", dan "BOS Afirmasi" diambil
+     * langsung dari `ref_sumber_dana` paket ARKAS 4.3.1 (lihat
+     * docs/ARKAS-4.3.1-RUJUKAN.md) supaya impor berkas ARKAS tetap terpetakan
+     * ke tab yang benar walau nama sumber dananya memakai ejaan "BOS".
+     *
      * @var array<string,array{label:string,sumber:array<int,string>}>
      */
     public const TAB_SUMBER_DANA = [
         'reguler' => ['label' => 'BOSP Reguler', 'sumber' => ['BOS Reguler', 'BOSP Reguler']],
-        'daerah' => ['label' => 'BOSP Daerah', 'sumber' => ['BOSP Daerah']],
+        'daerah' => ['label' => 'BOSP Daerah', 'sumber' => ['BOS Daerah', 'BOSP Daerah']],
         'kinerja' => ['label' => 'BOSP Kinerja', 'sumber' => ['BOS Kinerja', 'BOSP Kinerja']],
-        'silpa_kinerja' => ['label' => 'SiLPA BOSP Kinerja', 'sumber' => ['SiLPA BOSP Kinerja', 'SILPA']],
+        'silpa_kinerja' => ['label' => 'SiLPA BOSP Kinerja', 'sumber' => ['SiLPA BOS Kinerja', 'SiLPA BOSP Kinerja', 'SILPA']],
         'lainnya' => ['label' => 'Lainnya', 'sumber' => ['Sumber Dana Lainnya', 'Lainnya']],
-        'tambahan' => ['label' => 'Sumber Dana Tambahan', 'sumber' => ['BOSP Afirmasi', 'Afirmasi']],
+        'tambahan' => ['label' => 'Sumber Dana Tambahan', 'sumber' => ['BOS Afirmasi', 'BOSP Afirmasi', 'Afirmasi']],
     ];
 
     /**
@@ -139,11 +147,20 @@ class RkasHeader extends Model
         }
 
         // Cocokkan longgar (mis. "BOS Reguler " atau "BOSP Reguler 2026").
+        // Alias TERPANJANG dicoba lebih dulu supaya nama spesifik menang atas
+        // alias umum: "SiLPA BOS Afirmasi" harus jatuh ke Sumber Dana Tambahan
+        // (alias "BOS Afirmasi"), bukan ke SiLPA Kinerja hanya karena memuat
+        // kata "SiLPA". Urutan pita tab tetap mengikuti TAB_SUMBER_DANA.
+        $alias = [];
         foreach (self::TAB_SUMBER_DANA as $kunci => $tab) {
             foreach ($tab['sumber'] as $nilai) {
-                if (str_contains($cari, mb_strtolower($nilai))) {
-                    return $kunci;
-                }
+                $alias[] = [mb_strtolower($nilai), $kunci];
+            }
+        }
+        usort($alias, fn ($a, $b) => mb_strlen($b[0]) <=> mb_strlen($a[0]));
+        foreach ($alias as [$nilai, $kunci]) {
+            if (str_contains($cari, $nilai)) {
+                return $kunci;
             }
         }
 

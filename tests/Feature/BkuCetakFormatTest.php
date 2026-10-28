@@ -120,7 +120,7 @@ class BkuCetakFormatTest extends TestCase
             ->assertDontSee('10-01-2026');
 
         // Saldo akhir Februari: 10jt (Jan) - 1jt + 5jt
-        $r->assertSee('Saldo Buku Kas Umum : <b>Rp 14.000.000</b>', false);
+        $r->assertSee('Saldo Buku Kas Umum : <b>Rp. 14.000.000</b>', false);
     }
 
     public function test_halaman_cetak_menyediakan_pemilih_format_dan_periode(): void
@@ -155,8 +155,8 @@ class BkuCetakFormatTest extends TestCase
             ->assertSee('Format : <b>Tahunan</b>', false);
 
         // 10jt - 1jt + 5jt - 2jt; blok penutup harus menjumlah ke angka yang sama
-        $r->assertSee('Saldo Buku Kas Umum : <b>Rp 12.000.000</b>', false);
-        $r->assertSee('Jumlah : <b>Rp 12.000.000</b>', false);
+        $r->assertSee('Saldo Buku Kas Umum : <b>Rp. 12.000.000</b>', false);
+        $r->assertSee('Jumlah : <b>Rp. 12.000.000</b>', false);
         // Tanda tangan ikut akhir rentang, bukan bulan acuan.
         $r->assertSee('31 Desember 2026');
     }
@@ -171,7 +171,7 @@ class BkuCetakFormatTest extends TestCase
             ->assertSee('20-02-2026')
             ->assertDontSee('15-03-2026');
 
-        $r->assertSee('Saldo Buku Kas Umum : <b>Rp 14.000.000</b>', false);
+        $r->assertSee('Saldo Buku Kas Umum : <b>Rp. 14.000.000</b>', false);
     }
 
     public function test_format_tahapan_hanya_mencetak_baris_tahap_terpilih(): void
@@ -187,10 +187,10 @@ class BkuCetakFormatTest extends TestCase
 
         // Baris terakhir tahap 1 di 05-02: 10jt - 1jt. Pencairan tahap 2 (20 Feb)
         // terjadi sesudahnya, jadi tidak boleh masuk penutup.
-        $r->assertSee('Saldo Buku Kas Umum : <b>Rp 9.000.000</b>', false);
+        $r->assertSee('Saldo Buku Kas Umum : <b>Rp. 9.000.000</b>', false);
         // Penutup memakai snapshot baris terakhir tahap 1, bukan posisi 31 Desember:
         // tanpa snapshot, blok ini akan menjumlah ke 14jt sementara saldo 9jt.
-        $r->assertSee('Jumlah : <b>Rp 9.000.000</b>', false);
+        $r->assertSee('Jumlah : <b>Rp. 9.000.000</b>', false);
 
         // Tahap 2 memuat barisnya sendiri.
         $this->cetak(['bulan' => '2026-03', 'format' => 'tahapan', 'tahap' => $this->tahap2->id])
