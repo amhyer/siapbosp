@@ -3,6 +3,8 @@
 @include('laporan-arkas._header', ['judul' => 'Rincian Rencana Kegiatan Dan Anggaran Sekolah (RKAS) Per Tahap'])
 <div class="flex flex-wrap items-center gap-2 mb-3">
   <a href="{{ route('laporan-arkas.rapbs-cetak') }}" class="btn2 btn" data-cetak="Kertas Kerja RAPBS per Tahap">🖨️ Cetak Kertas Kerja RAPBS (per Tahap)</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['format' => 'triwulan']) }}" class="btn2 btn" data-cetak="RKA Unit Kerja per Triwulan">🖨️ Cetak RKA Unit Kerja (per Triwulan)</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'dpa', 'format' => 'tahap']) }}" class="btn2 btn" data-cetak="DPA Unit Kerja per Tahap">🖨️ Cetak DPA (RKAS) Unit Kerja (per Tahap)</a>
   <span class="text-[12px] text-slate-500">Format cetak ARKAS: penerimaan per sumber dana + pohon belanja per tahap.</span>
 </div>
 <div class="card overflow-x-auto">

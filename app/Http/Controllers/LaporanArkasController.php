@@ -361,6 +361,140 @@ class LaporanArkasController extends Controller
         ]);
     }
 
+    // ==================== 2c. RKA / DPA Unit Kerja ====================
+
+    /**
+     * Nama akun standar BOSP yang dipakai lembar RKA/DPA Unit Kerja ARKAS.
+     * Diambil apa adanya dari rka-unit-output.pdf & rka-unit-tahap-output.pdf
+     * (termasuk salah ketik "Rincian Anggran" yang memang begitu di ARKAS).
+     * ARKAS hanya mencetak sampai 4 segmen kode rekening, tidak sampai rincian.
+     */
+    private const AKUN_RKA = [
+        '5' => 'BELANJA',
+        '5.1' => 'BELANJA OPERASI',
+        '5.1.02' => 'BELANJA BARANG DAN JASA',
+        '5.1.02.01' => 'BELANJA BARANG',
+        '5.1.02.02' => 'BELANJA JASA',
+        '5.1.02.03' => 'BELANJA PEMELIHARAAN',
+        '5.1.02.04' => 'BELANJA PERJALANAN DINAS',
+        '5.2' => 'BELANJA MODAL',
+        '5.2.02' => 'BELANJA MODAL PERALATAN DAN MESIN',
+        '5.2.05' => 'BELANJA MODAL ASET TETAP LAINNYA',
+    ];
+
+    /**
+     * Lembar RKA Unit Kerja / DPA (RKAS) Unit Kerja — dua sumbu pilihan:
+     *
+     *  - `varian=rka` (baku): judul "LEMBAR KERTAS KERJA / UNIT KERJA".
+     *  - `varian=dpa`: judul "LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)
+     *    / UNIT KERJA" — isi tabel sama seperti rka-unit-tahap-output.pdf.
+     *  - `format=triwulan` (baku): bagian kedua "Rencana Pelaksanaan Anggaran /
+     *    Unit Kerja per Triwulan" (kolom I–IV).
+     *  - `format=tahap`: bagian kedua "… per Tahap" (kolom Tahap I, II, …).
+     *
+     * Angka: bagian pertama = subtotal per akun (prefix kode rekening sampai 4
+     * segmen, aturan yang sama dengan ARKAS). Bagian kedua = rencana per periode
+     * dari RkasDetail::nominalPerBulan() (triwulan = 3 bulan, tahap = 6 bulan),
+     * sedangkan pendapatan mengikuti tahap pencairan pada Allocation.
+     */
+    public function rkaUnit(Request $r)
+    {
+        [$sid, $tahun] = $this->ctx($r);
+        $format = $r->query('format') === 'tahap' ? 'tahap' : 'triwulan';
+        $varian = $r->query('varian') === 'dpa' ? 'dpa' : 'rka';
+        $kop = $this->kop($sid, $tahun);
+        $sekolah = $r->user()->school;
+        $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
+
+        $details = $kop['rkas']?->details()->with('rekening')->get() ?? collect();
+
+        // Bagian 1 — subtotal per akun sampai 4 segmen kode rekening.
+        $nilaiAkun = array_fill_keys(array_keys(self::AKUN_RKA), 0);
+        foreach ($details as $d) {
+            $seg = explode('.', trim((string) ($d->rekening->kode ?? '')));
+            for ($n = 1; $n <= 4; $n++) {
+                if (count($seg) < $n) {
+                    break;
+                }
+                $prefix = implode('.', array_slice($seg, 0, $n));
+                if (array_key_exists($prefix, $nilaiAkun)) {
+                    $nilaiAkun[$prefix] += (int) $d->jumlah;
+                }
+            }
+        }
+        $totalBelanja = (int) $details->sum('jumlah');
+
+        $penerimaan = (int) Allocation::where('school_id', $sid)->where('tahun', $tahun)->sum('nilai');
+
+        // Bagian 2 — rencana per periode.
+        $nPeriode = $format === 'tahap' ? max(1, min(4, $tahaps->count() ?: 2)) : 4;
+        $panjangPeriode = $format === 'tahap' ? intdiv(12, $nPeriode) : 3;
+
+        $operasi = array_fill(1, $nPeriode, 0);
+        $modal = array_fill(1, $nPeriode, 0);
+        foreach ($details as $d) {
+            $kode = trim((string) ($d->rekening->kode ?? ''));
+            if (! str_starts_with($kode, '5.1') && ! str_starts_with($kode, '5.2')) {
+                continue;
+            }
+            $bulanan = $d->nominalPerBulan();
+            for ($p = 1; $p <= $nPeriode; $p++) {
+                $nilai = 0;
+                for ($m = ($p - 1) * $panjangPeriode + 1; $m <= $p * $panjangPeriode; $m++) {
+                    $nilai += (int) ($bulanan[$m] ?? 0);
+                }
+                if (str_starts_with($kode, '5.2')) {
+                    $modal[$p] += $nilai;
+                } else {
+                    $operasi[$p] += $nilai;
+                }
+            }
+        }
+
+        // Pendapatan: ikut tahap pencairan (Tahap 1 → triwulan I, Tahap 2 →
+        // triwulan III). Alokasi tanpa tahap dibagi rata ke semua periode.
+        $pendapatan = array_fill(1, $nPeriode, 0);
+        foreach (Allocation::where('school_id', $sid)->where('tahun', $tahun)->with('stage')->get() as $a) {
+            $nilai = (int) $a->nilai;
+            $urutan = (int) ($a->stage->urutan ?? 0);
+            if ($urutan >= 1) {
+                $p = $format === 'tahap' ? min($nPeriode, $urutan) : min($nPeriode, ($urutan - 1) * 2 + 1);
+                $pendapatan[$p] += $nilai;
+
+                continue;
+            }
+            $bagi = intdiv($nilai, $nPeriode);
+            for ($p = 1; $p <= $nPeriode; $p++) {
+                $pendapatan[$p] += $p === $nPeriode ? $nilai - $bagi * ($nPeriode - 1) : $bagi;
+            }
+        }
+
+        $barisPeriode = [
+            ['no' => '1', 'uraian' => 'Pendapatan', 'nilai' => $pendapatan, 'total' => array_sum($pendapatan), 'tebal' => true],
+            ['no' => '2.1', 'uraian' => 'Belanja Operasi', 'nilai' => $operasi, 'total' => array_sum($operasi), 'tebal' => true],
+            ['no' => '2.2', 'uraian' => 'Belanja Modal', 'nilai' => $modal, 'total' => array_sum($modal), 'tebal' => true],
+            ['no' => '3.1', 'uraian' => 'Penerimaan Pembiayaan', 'nilai' => array_fill(1, $nPeriode, 0), 'total' => 0, 'tebal' => false],
+            ['no' => '4.1', 'uraian' => 'Pengeluaran Pembiayaan', 'nilai' => array_fill(1, $nPeriode, 0), 'total' => 0, 'tebal' => false],
+        ];
+
+        $kepsek = Penandatangan::where('jabatan', 'like', '%kepala%')->orderBy('id')->first()
+            ?? Penandatangan::orderBy('id')->first();
+
+        return view('laporan-arkas.rka-unit-cetak', [
+            'varian' => $varian, 'format' => $format,
+            'sekolah' => $sekolah, 'tahun' => $tahun, 'kop' => $kop,
+            'akun' => self::AKUN_RKA, 'nilaiAkun' => $nilaiAkun,
+            'penerimaan' => $penerimaan, 'totalBelanja' => $totalBelanja,
+            'defisit' => $penerimaan - $totalBelanja,
+            'barisPeriode' => $barisPeriode, 'nPeriode' => $nPeriode,
+            'labelPeriode' => $format === 'tahap' ? 'Tahap' : 'Triwulan',
+            'tahaps' => $tahaps, 'kepsek' => $kepsek,
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
     // ==================== 3. Realisasi Anggaran (per bulan) ====================
 
     /** Baris Realisasi Anggaran per rekening: anggaran, realisasi per bulan, komponen, %. */
