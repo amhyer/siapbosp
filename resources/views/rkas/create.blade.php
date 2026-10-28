@@ -150,6 +150,13 @@
   </td>
   <td>
     <input name="uraian[]" maxlength="500" class="inp uraianInp" required placeholder="uraian barang/jasa">
+    {{-- Opsional: hanya dipakai lembar RKA/DPA Unit Kerja 2.2 (Lokasi Kegiatan &
+         Target Kinerja Kuantitatif). Dikosongkan = memakai nama sekolah dan
+         volume + satuan rincian saat dicetak. --}}
+    <div class="mt-1 grid grid-cols-2 gap-1">
+      <input name="lokasi[]" maxlength="120" class="inp text-xs lokasiInp" placeholder="lokasi kegiatan (opsional)">
+      <input name="target[]" maxlength="120" class="inp text-xs targetInp" placeholder="target kinerja (opsional)">
+    </div>
     <input type="hidden" name="sumber[]" class="sumberRow" value="{{ $sumber }}">
   </td>
   <td><input name="satuan[]" class="inp satInp" value="paket" style="width:76px"></td>
@@ -191,6 +198,8 @@ function tambahBaris(init){
     if(init.rekening_id) tr.querySelector('.rekSel').value = String(init.rekening_id);
     if(init.standar_harga_id) tr.querySelector('.sshSel').value = String(init.standar_harga_id);
     tr.querySelector('.uraianInp').value = init.uraian || '';
+    if(init.lokasi_kegiatan) tr.querySelector('.lokasiInp').value = init.lokasi_kegiatan;
+    if(init.target_kinerja) tr.querySelector('.targetInp').value = init.target_kinerja;
     tr.querySelector('.satInp').value = init.satuan || 'paket';
     tr.querySelector('.qty').value = init.banyak || 1;
     tr.querySelector('.hrg').value = init.harga || 0;

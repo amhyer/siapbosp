@@ -443,12 +443,19 @@ class LaporanArkasController extends Controller
     {
         [$sid, $tahun] = $this->ctx($r);
         $format = $r->query('format') === 'tahap' ? 'tahap' : 'triwulan';
-        $varian = $r->query('varian') === 'dpa' ? 'dpa' : 'rka';
+        $varian = in_array($r->query('varian'), ['dpa', 'rka22', 'dpa22'], true)
+            ? (string) $r->query('varian') : 'rka';
         $kop = $this->kop($sid, $tahun);
         $sekolah = $r->user()->school;
         $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
 
         $details = $kop['rkas']?->details()->with('rekening')->get() ?? collect();
+
+        // Varian 2.2: "Rincian Anggaran Belanja Langsung Berdasarkan Program dan
+        // Kegiatan" — tabel yang sama sekali berbeda (lihat rka-unit-22-output.pdf).
+        if (in_array($varian, ['rka22', 'dpa22'], true)) {
+            return $this->rkaUnit22($r, $varian, $kop, $sekolah, $tahun, $details);
+        }
 
         // Bagian 1 — subtotal per akun sampai 4 segmen kode rekening.
         $nilaiAkun = array_fill_keys(array_keys(self::AKUN_RKA), 0);
@@ -531,6 +538,226 @@ class LaporanArkasController extends Controller
             'barisPeriode' => $barisPeriode, 'nPeriode' => $nPeriode,
             'labelPeriode' => $format === 'tahap' ? 'Tahap' : 'Triwulan',
             'tahaps' => $tahaps, 'kepsek' => $kepsek,
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
+    /**
+     * RKA/DPA Unit Kerja 2.2 — "Rincian Anggaran Belanja Langsung Berdasarkan
+     * Program dan Kegiatan" (rka-unit-22-output.pdf, dpa-unit-22-output.pdf).
+     *
+     * Tiga tingkat baris seperti ARKAS: program (`03.`), sub program (`03.01.`),
+     * lalu rincian dengan uraian = nama kegiatan (`03.01.01.`) beserta kolom
+     * `Lokasi Kegiatan`, `Target Kinerja (Kuantitatif)`, `Barang & Jasa`, `Modal`,
+     * dan `Jumlah (9 = 7 + 8)`.
+     *
+     * `lokasi_kegiatan`/`target_kinerja` di rincian bersifat opsional; bila kosong
+     * dipakai nilai yang sama dengan sampel ARKAS: lokasi = nama sekolah,
+     * target = volume + satuan rincian.
+     */
+    private function rkaUnit22(Request $r, string $varian, array $kop, $sekolah, int $tahun, $details)
+    {
+        $kodeNama = ArkasKode::peta((int) $sekolah->id, $tahun);
+        $lokasiDefault = (string) $sekolah->nama;
+
+        $baris = [];
+        $ringkas = [];
+        $total = 0;
+        $totalBarangJasa = 0;
+        $totalModal = 0;
+
+        foreach ($details->sortBy('kode_kegiatan') as $d) {
+            $keg = preg_replace('/\s+/', '', (string) $d->kode_kegiatan);
+            $seg = $keg === '' ? [] : array_values(array_filter(explode('.', trim($keg, '.'))));
+            $jumlah = (int) $d->jumlah;
+            $kodeRek = trim((string) ($d->rekening->kode ?? ''));
+            $modal = str_starts_with($kodeRek, '5.2');
+            $barangJasa = $modal ? 0 : $jumlah;
+
+            // Baris ringkasan program (1 segmen) dan sub program (2 segmen).
+            foreach ([1, 2] as $level) {
+                if (count($seg) < $level) {
+                    break;
+                }
+                $prefix = implode('.', array_slice($seg, 0, $level));
+                if (! isset($ringkas[$prefix])) {
+                    $ringkas[$prefix] = count($baris);
+                    $baris[] = ['tipe' => $level === 1 ? 'program' : 'subprogram',
+                        'kode' => $prefix.'.',
+                        'uraian' => (string) ($kodeNama[$prefix.'.'] ?? ''),
+                        'rekening' => '', 'kegiatan' => '', 'lokasi' => '', 'target' => '',
+                        'barang_jasa' => 0, 'modal' => 0, 'jumlah' => 0];
+                }
+                $baris[$ringkas[$prefix]]['barang_jasa'] += $barangJasa;
+                $baris[$ringkas[$prefix]]['modal'] += $modal ? $jumlah : 0;
+                $baris[$ringkas[$prefix]]['jumlah'] += $jumlah;
+            }
+
+            $baris[] = ['tipe' => 'rincian',
+                'kode' => $keg !== '' ? $keg : '',
+                'uraian' => (string) ($kodeNama[$keg] ?? ($kodeNama[trim($keg, '.').'.'] ?? '')),
+                'rekening' => $kodeRek,
+                'program' => $seg[0] ?? '',
+                'subprogram' => $seg[1] ?? '',
+                'kegiatan' => $seg[2] ?? '',
+                'lokasi' => trim((string) ($d->lokasi_kegiatan ?? '')) !== ''
+                    ? (string) $d->lokasi_kegiatan : $lokasiDefault,
+                'target' => trim((string) ($d->target_kinerja ?? '')) !== ''
+                    ? (string) $d->target_kinerja
+                    : trim($d->banyak.' '.(string) $d->satuan),
+                'barang_jasa' => $barangJasa, 'modal' => $modal ? $jumlah : 0, 'jumlah' => $jumlah];
+
+            $total += $jumlah;
+            $totalBarangJasa += $barangJasa;
+            $totalModal += $modal ? $jumlah : 0;
+        }
+
+        return view('laporan-arkas.rka-unit-22-cetak', [
+            'varian' => $varian, 'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
+            'baris' => $baris, 'total' => $total, 'totalBarangJasa' => $totalBarangJasa,
+            'totalModal' => $totalModal,
+            'judulVarian' => $varian === 'dpa22'
+                ? 'LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)'
+                : 'LEMBAR KERTAS KERJA',
+            // Dua dokumen ARKAS memakai judul tabel berbeda untuk isi yang sama.
+            'subJudul' => $varian === 'dpa22'
+                ? 'Rekapitulasi Belanja Langsung Berdasarkan Program dan Kegiatan'
+                : 'Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan',
+            'pemerintah' => trim((string) ($sekolah->kab_kota ?? '')) !== ''
+                ? 'PEMERINTAH '.strtoupper((string) $sekolah->kab_kota)
+                : 'PEMERINTAH '.strtoupper((string) ($sekolah->provinsi ?? '')),
+            'kepsek' => Penandatangan::where('jabatan', 'like', '%kepala%')->orderBy('id')->first()
+                ?? Penandatangan::orderBy('id')->first(),
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
+    /**
+     * APBS / RKAS seluruh sumber dana (apbs-all-output.pdf, 14 halaman).
+     *
+     * Bentuk lembar ARKAS:
+     *  - Kop `RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)`, `TAHUN ANGGARAN : …`,
+     *    identitas Nama Sekolah / Alamat / Kabupaten / Provinsi / NPSN.
+     *  - `A. PENERIMAAN`: kolom No. / Kode Penerimaan / Jumlah per sumber dana
+     *    (kode `4.3.1.xx.` dari ref_sumber_dana) + baris `Total Penerimaan`.
+     *  - `B. BELANJA`: lima tingkat baris — program (`03.`), sub program (`03.01.`),
+     *    kegiatan (`03.01.01.`), kegiatan+rekening (`…5.1.02.01.01.0052`), dan
+     *    rincian (`…   001. <uraian>`). Tiap baris membawa satu kolom Jumlah dan
+     *    dua belas kolom `Sumber Dana dan Alokasi Anggaran` = 6 kelompok dana
+     *    (BOSP REGULER · BOSP DAERAH · AFIRMASI · SiLPA · BOSP LAINNYA · KINERJA)
+     *    x (Belanja Operasi · Belanja Modal).
+     *  - Penutup: baris `Jumlah` + tanda tangan Kepala Sekolah / Komite Sekolah /
+     *    Bendahara Sekolah.
+     */
+    public function apbs(Request $r)
+    {
+        [$sid, $tahun] = $this->ctx($r);
+        $kop = $this->kop($sid, $tahun);
+        $kodeNama = ArkasKode::peta($sid, $tahun);
+        $sekolah = $r->user()->school;
+
+        // A. PENERIMAAN per sumber dana (alokasi resmi tahun anggaran).
+        $kodeRef = collect(RkasHeader::SUMBER_DANA_REF_ARKAS)->pluck('kode', 'nama');
+        $penerimaan = [];
+        foreach (Allocation::where('school_id', $sid)->where('tahun', $tahun)->with('bosType')->get() as $a) {
+            $nama = (string) ($a->bosType->nama ?? 'BOSP Reguler');
+            $penerimaan[$nama] = ($penerimaan[$nama] ?? 0) + (int) $a->nilai;
+        }
+        $penerimaan = collect($penerimaan)
+            ->map(fn ($nilai, $nama) => [
+                'kode' => (string) ($kodeRef[$nama] ?? ''),
+                // ARKAS mencetak "BOSP Reguler" walau ref_sumber_dana menulis "BOS Reguler".
+                'nama' => preg_replace('/^BOS /', 'BOSP ', $nama),
+                'nilai' => (int) $nilai,
+            ])
+            ->sortBy('kode')->values()->all();
+
+        // B. BELANJA — enam kelompok dana, urut sama dengan kepala kolom ARKAS.
+        $kelompok = [
+            'reguler' => 'BOSP REGULER', 'bosda' => 'BOSP DAERAH', 'afirmasi' => 'AFIRMASI',
+            'silpa' => 'SiLPA', 'lainnya' => 'BOSP LAINNYA', 'kinerja' => 'KINERJA',
+        ];
+        $danaKosong = fn () => array_map(
+            fn () => ['operasi' => 0, 'modal' => 0], $kelompok
+        );
+
+        $baris = [];
+        $indeks = [];
+        $nomorRincian = [];
+        $pastikan = function (string $kunci, string $keg, string $rek, string $uraian, int $level) use (&$baris, &$indeks, $danaKosong) {
+            if (! isset($indeks[$kunci])) {
+                $indeks[$kunci] = count($baris);
+                $baris[] = ['keg' => $keg, 'rek' => $rek, 'uraian' => $uraian,
+                    'level' => $level, 'jumlah' => 0, 'dana' => $danaKosong()];
+            }
+
+            return $indeks[$kunci];
+        };
+
+        $details = $kop['rkas']?->details()->with('rekening')
+            ->orderBy('kode_kegiatan')->orderBy('id')->get() ?? collect();
+
+        foreach ($details as $d) {
+            $keg = trim(preg_replace('/\s+/', '', (string) $d->kode_kegiatan), '.');
+            $seg = $keg === '' ? [] : explode('.', $keg);
+            $rek = trim((string) ($d->rekening->kode ?? ''));
+            $jumlah = (int) $d->jumlah;
+            $grup = SumberDana::kunci((string) $d->sumber_dana);
+            $grup = isset($kelompok[$grup]) ? $grup : 'lainnya';
+            $modal = str_starts_with($rek, '5.2');
+
+            // Level 1–4: ringkasan program, sub program, kegiatan, kegiatan+rekening.
+            $kegLabel = $seg === [] ? '' : implode('.', $seg).'.';
+            $kunciList = [];
+            for ($lv = 1; $lv <= 3; $lv++) {
+                if (count($seg) < $lv) {
+                    break;
+                }
+                $prefix = implode('.', array_slice($seg, 0, $lv));
+                $kunciList[] = $pastikan('L'.$lv.'|'.$prefix, $prefix.'.', '',
+                    (string) ($kodeNama[$prefix.'.'] ?? ''), $lv);
+            }
+            $kunciRek = $kegLabel.'|'.$rek;
+            $kunciList[] = $pastikan('L4|'.$kunciRek, $kegLabel, $rek,
+                (string) ($d->rekening->nama ?? ''), 4);
+
+            // Level 5: baris rincian dengan nomor urut `001.` per blok rekening.
+            $nomorRincian[$kunciRek] = ($nomorRincian[$kunciRek] ?? 0) + 1;
+            $kunciList[] = $pastikan('L5|'.$kunciRek.'|'.$d->id, $kegLabel, $rek,
+                sprintf('%03d. ', $nomorRincian[$kunciRek]).(string) $d->uraian, 5);
+
+            foreach ($kunciList as $i) {
+                $baris[$i]['jumlah'] += $jumlah;
+                $baris[$i]['dana'][$grup][$modal ? 'modal' : 'operasi'] += $jumlah;
+            }
+        }
+
+        // Total diambil dari baris rincian (level 5) supaya rincian tanpa kode kegiatan
+        // tetap terhitung dan tidak ada angka yang dobel.
+        $total = 0;
+        $totalDana = $danaKosong();
+        foreach ($baris as $b) {
+            if ($b['level'] !== 5) {
+                continue;
+            }
+            $total += $b['jumlah'];
+            foreach ($kelompok as $g => $label) {
+                $totalDana[$g]['operasi'] += $b['dana'][$g]['operasi'];
+                $totalDana[$g]['modal'] += $b['dana'][$g]['modal'];
+            }
+        }
+
+        return view('laporan-arkas.apbs-cetak', [
+            'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
+            'penerimaan' => $penerimaan,
+            'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
+            'kelompok' => $kelompok, 'baris' => $baris,
+            'total' => $total, 'totalDana' => $totalDana,
+            'penandatangan' => Penandatangan::orderBy('id')->get(),
             'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
                 ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
             'tanggalTtd' => now()->translatedFormat('d F Y'),

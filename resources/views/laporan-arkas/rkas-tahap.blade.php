@@ -6,6 +6,8 @@
   <a href="{{ route('laporan-arkas.rka-unit', ['format' => 'triwulan']) }}" class="btn2 btn" data-cetak="RKA Unit Kerja per Triwulan">🖨️ Cetak RKA Unit Kerja (per Triwulan)</a>
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'dpa', 'format' => 'tahap']) }}" class="btn2 btn" data-cetak="DPA Unit Kerja per Tahap">🖨️ Cetak DPA (RKAS) Unit Kerja (per Tahap)</a>
   <a href="{{ route('laporan-arkas.rpd-k7') }}" class="btn2 btn" data-cetak="RPD K7">🖨️ Cetak RPD K7 (Realisasi Penggunaan Dana)</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'rka22']) }}" class="btn2 btn" data-cetak="RKA Unit Kerja 2.2">🖨️ Cetak RKA 2.2 (Belanja Langsung)</a>
+  <a href="{{ route('laporan-arkas.apbs') }}" class="btn2 btn" data-cetak="APBS (RKAS) Semua Sumber Dana">🖨️ Cetak APBS (RKAS) Semua Sumber Dana</a>
   <span class="text-[12px] text-slate-500">Format cetak ARKAS: penerimaan per sumber dana + pohon belanja per tahap.</span>
 </div>
 <div class="card overflow-x-auto">

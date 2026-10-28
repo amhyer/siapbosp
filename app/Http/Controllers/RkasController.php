@@ -199,6 +199,8 @@ class RkasController extends Controller
                     'uraian' => $d->uraian,
                     'satuan' => $d->satuan,
                     'banyak' => $d->banyak,
+                    'lokasi_kegiatan' => $d->lokasi_kegiatan,
+                    'target_kinerja' => $d->target_kinerja,
                     'harga' => (int) $d->harga_satuan,
                     'sumber' => $d->sumber_dana ?: $sumber,
                     'bulan' => $d->bulanMap(),
@@ -234,6 +236,10 @@ class RkasController extends Controller
             'catatan' => 'nullable|string|max:1000',
             'kode_kegiatan' => 'array',
             'kode_kegiatan.*' => 'nullable|string|max:20',
+            'lokasi' => 'array',
+            'lokasi.*' => 'nullable|string|max:120',
+            'target' => 'array',
+            'target.*' => 'nullable|string|max:120',
             'standar_harga_id' => 'array',
             'standar_harga_id.*' => 'nullable|integer',
             'rekening_id' => 'required|array|min:1',
@@ -300,6 +306,9 @@ class RkasController extends Controller
             $barisSiap[] = [
                 'rekening_id' => (int) $rid,
                 'kode_kegiatan' => $data['kode_kegiatan'][$i] ?? null,
+                // Opsional, hanya dipakai lembar RKA/DPA Unit Kerja 2.2.
+                'lokasi_kegiatan' => ($data['lokasi'][$i] ?? '') !== '' ? $data['lokasi'][$i] : null,
+                'target_kinerja' => ($data['target'][$i] ?? '') !== '' ? $data['target'][$i] : null,
                 'standar_harga_id' => $sshId,
                 'uraian' => $data['uraian'][$i],
                 'satuan' => ($data['satuan'][$i] ?? '') ?: 'paket',
@@ -382,6 +391,8 @@ class RkasController extends Controller
             $baru->details()->create([
                 'rekening_id' => $d->rekening_id,
                 'kode_kegiatan' => $d->kode_kegiatan,
+                'lokasi_kegiatan' => $d->lokasi_kegiatan,
+                'target_kinerja' => $d->target_kinerja,
                 'standar_harga_id' => $d->standar_harga_id,
                 'uraian' => $d->uraian,
                 'satuan' => $d->satuan,
@@ -422,6 +433,8 @@ class RkasController extends Controller
         $rkasHeader->details()->create([
             'rekening_id' => $detail->rekening_id,
             'kode_kegiatan' => $detail->kode_kegiatan,
+            'lokasi_kegiatan' => $detail->lokasi_kegiatan,
+            'target_kinerja' => $detail->target_kinerja,
             'standar_harga_id' => $detail->standar_harga_id,
             'uraian' => mb_substr($uraianBaru, 0, 500),
             'satuan' => $detail->satuan,
