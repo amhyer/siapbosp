@@ -163,8 +163,10 @@
   </tfoot>
 </table>
 
-@if($isBulan)
-  {{-- ARKAS: tiga kolom tanda tangan, tanggal di atas kolom kanan. --}}
+@if($isBulan || $format === 'triwulan')
+  {{-- ARKAS: tiga kolom tanda tangan, tanggal di atas kolom kanan.
+       Dipakai lembar per Bulan dan per Triwulan (rapbs-tri-output.pdf hlm. 11:
+       Kepala Sekolah / Komite Sekolah / Bendahara Sekolah + tanggal). --}}
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2rem;margin-top:1.5rem;font-size:11.5px;text-align:center">
     <div>
       <div style="margin-bottom:3.5rem">Komite Sekolah</div>
