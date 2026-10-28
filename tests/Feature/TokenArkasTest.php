@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Tests\TestCase;
+
 /**
  * Kunci palet ARKAS 4.3.1.
  *
