@@ -108,7 +108,7 @@
   </thead>
   <tbody>
     @forelse($baris as $i => $b)
-      <tr class="apbs-l{{ $b['level'] }}">
+      <tr class="{{ $b['level'] === 1 ? 'apbs-l1' : ($b['level'] === 2 ? 'apbs-l2' : '') }}">
         <td class="num">{{ $i + 1 }}</td>
         <td style="font-family:monospace;white-space:nowrap">{{ $b['keg'] }}</td>
         <td style="font-family:monospace;white-space:nowrap">{{ $b['rek'] }}</td>

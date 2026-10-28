@@ -99,7 +99,7 @@ class RkaUnit22CetakTest extends TestCase
             ->assertSee('Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan')
             ->assertSee('Lokasi Kegiatan')
             ->assertSee('Target Kinerja')
-            ->assertSee('Barang &amp; Jasa', false)
+            ->assertSee('Barang &amp;<br>Jasa', false)
             ->assertSee('Jumlah<br>(9 = 7 + 8)', false);
     }
 
