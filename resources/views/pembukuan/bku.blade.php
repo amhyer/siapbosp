@@ -63,6 +63,7 @@
     <a href="{{ route('bku.csv') }}?bulan={{ $bulan }}" class="btn2 btn">⬇ Ekspor CSV</a>
     <a href="{{ route('bku.cetak') }}?bulan={{ $bulan }}" data-cetak="Cetak BKU" class="btn2 btn">🖨️ Cetak BKU</a>
     <a href="{{ route('bku.pajak') }}?bulan={{ $bulan }}" data-cetak="BKU Pajak" class="btn2 btn">🧾 BKU Pajak</a>
+    <a href="{{ route('bku.bank') }}" data-cetak="BKU Pembantu Bank" class="btn2 btn">🏦 BKU Pembantu Bank</a>
     @php $semSekarang = (int) $tglBulan->format('n') <= 6 ? 1 : 2 @endphp
     <a href="{{ route('pembukuan.bukuPembantu', ['semester' => $semSekarang]) }}" data-cetak="Buku Pembantu" class="btn2 btn">📚 Buku Pembantu (Sem {{ $semSekarang }})</a>
     <a href="{{ route('pembukuan.rekapRealisasi', ['semester' => $semSekarang]) }}" data-cetak="Rekap Realisasi" class="btn2 btn">📊 Rekap Realisasi (Sem {{ $semSekarang }})</a>

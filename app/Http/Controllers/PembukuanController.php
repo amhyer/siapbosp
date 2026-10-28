@@ -370,6 +370,112 @@ class PembukuanController extends Controller
         ]);
     }
 
+    /**
+     * Buku Kas Pembantu Bank — "B U K U   K A S   P E M B A N T U   B A N K" (ARKAS 4).
+     *
+     * Dokumen TERPISAH dari BKU Kas Umum; bentuknya dari bku-bank-output.pdf:
+     * satu tahun anggaran penuh, delapan kolom yang sama dengan BKU, tetapi hanya
+     * mutasi rekening bank dan kolom Saldo = posisi bank berjalan.
+     *
+     * Baris "Bunga Bank"/"Pajak Bunga" di akhir setiap bulan berasal dari Tutup BKU
+     * (`bku_tutup_bulans`) — transaksinya sudah dibuat saat bulan ditutup; bulan yang
+     * ditutup dengan nilai 0 tetap dicetak sebagai baris 0 seperti ARKAS.
+     */
+    public function bkuBank()
+    {
+        $sid = auth()->user()->school_id;
+        $tahun = (int) session('tahun', now()->year);
+        $kodeNama = ArkasKode::peta($sid, $tahun);
+
+        // Posisi bank akhir tahun sebelumnya → baris pembuka lembar ini.
+        $bankAwal = 0;
+        foreach (KasTransaction::withoutGlobalScope('school')->where('school_id', $sid)
+            ->where('tahun', '<', $tahun)->get() as $t) {
+            $bankAwal += KasService::efek($t->type, $t->metode_bayar, (int) $t->total)[1];
+        }
+
+        $rows = [];
+        foreach (KasService::ledger($sid, $tahun)['items'] as $it) {
+            $t = $it['trx'];
+            $dBank = (int) $it['dBank'];
+            if ($dBank === 0) {
+                continue; // lembar ini hanya memuat mutasi rekening bank
+            }
+
+            $kodeRek = $t->details->map(fn ($d) => (string) ($d->rekening->kode ?? ''))->filter()->unique();
+            $keg = (string) (($t->details->first(fn ($d) => (string) ($d->kode_kegiatan ?? '') !== '')
+                ?? $t->details->first())?->kode_kegiatan ?? '');
+            $uraian = (string) $t->keterangan;
+            // Transaksi hasil Tutup BKU diberi nama pendek seperti ARKAS.
+            if ($kodeRek->contains('8.1.03.01.01.0001')) {
+                $uraian = 'Bunga Bank';
+            } elseif ($kodeRek->contains('5.1.02.02.01.0059')) {
+                $uraian = 'Pajak Bunga';
+            }
+
+            $rows[] = [
+                'tanggal' => $t->tanggal->toDateString(),
+                'urutan' => 1,
+                'no_bukti' => (string) ($t->arkas_bku ?: ($t->no_bukti ?: ($t->no_bku ? 'BKU#'.$t->no_bku : ''))),
+                'kegiatan' => $keg !== '' ? trim($keg.' '.($kodeNama[$keg] ?? '')) : '',
+                'rekening' => $kodeRek->implode(', '),
+                'uraian' => $uraian,
+                'masuk' => max(0, $dBank),
+                'keluar' => max(0, -$dBank),
+            ];
+        }
+
+        // Baris bunga/pajak bunga bulanan: transaksi nyata sudah tercetak di atas,
+        // jadi di sini hanya bulan tutup yang nilainya 0 (ARKAS tetap mencetaknya).
+        $ada = [];
+        foreach ($rows as $r) {
+            $ada[$r['uraian'].'|'.substr($r['tanggal'], 0, 7)] = true;
+        }
+        $tutup = BkuTutupBulan::withoutGlobalScope('school')->where('school_id', $sid)
+            ->where('tahun', $tahun)->orderBy('bulan')->get();
+        foreach ($tutup as $b) {
+            $tanggal = Carbon::parse($b->bulan.'-01')->endOfMonth()->toDateString();
+            foreach ([['Bunga Bank', (int) $b->bunga_bank], ['Pajak Bunga', (int) $b->pajak_bunga]] as [$nama, $nilai]) {
+                if ($nilai > 0 || isset($ada[$nama.'|'.$b->bulan])) {
+                    continue;
+                }
+                $rows[] = ['tanggal' => $tanggal, 'urutan' => 2, 'no_bukti' => '',
+                    'kegiatan' => '', 'rekening' => '', 'uraian' => $nama, 'masuk' => 0, 'keluar' => 0];
+            }
+        }
+
+        usort($rows, fn ($a, $b) => [$a['tanggal'], $a['urutan'], $a['uraian']]
+            <=> [$b['tanggal'], $b['urutan'], $b['uraian']]);
+
+        // Saldo = posisi bank berjalan, dimulai dari baris pembuka.
+        $saldo = $bankAwal;
+        foreach ($rows as $i => $r) {
+            $saldo += $r['masuk'] - $r['keluar'];
+            $rows[$i]['saldo'] = $saldo;
+        }
+        $saldoAkhir = $rows !== [] ? end($rows)['saldo'] : $bankAwal;
+
+        $akhirTahun = Carbon::create($tahun, 12, 31)->startOfDay();
+        // Tahun berjalan tidak mungkin ditutup 31 Desember di masa depan.
+        $tglTutup = now()->startOfDay()->lt($akhirTahun) ? now()->startOfDay() : $akhirTahun;
+        $tglTutupTeks = $tglTutup->format('d').' '.self::BULAN_ID[(int) $tglTutup->format('n')].' '.$tahun;
+        $hariTutupTeks = self::HARI_ID[(int) $tglTutup->format('N')].' '.$tglTutupTeks;
+
+        [$kopSumber, $revisiKe] = $this->kopDana($sid, $tahun);
+        $sekolah = auth()->user()->school;
+        [$penandatangan, $kepsek, $bendahara, $tempatTtd] = $this->pihakTtd($sekolah);
+
+        return view('pembukuan.bku-bank-cetak', [
+            'rows' => $rows, 'saldoAwal' => $bankAwal, 'saldoAkhir' => $saldoAkhir,
+            'totalMasuk' => array_sum(array_column($rows, 'masuk')),
+            'totalKeluar' => array_sum(array_column($rows, 'keluar')),
+            'tahun' => $tahun, 'sekolah' => $sekolah, 'kopSumber' => $kopSumber, 'revisiKe' => $revisiKe,
+            'penandatangan' => $penandatangan, 'kepsek' => $kepsek, 'bendahara' => $bendahara,
+            'tempatTtd' => $tempatTtd, 'tglTutupTeks' => $tglTutupTeks, 'hariTutupTeks' => $hariTutupTeks,
+            'labelPeriode' => 'TAHUN : '.$tahun,
+        ]);
+    }
+
     public function bkuCsv()
     {
         $bulan = request('bulan', now()->format('Y-m'));
