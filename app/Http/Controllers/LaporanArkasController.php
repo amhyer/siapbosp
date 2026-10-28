@@ -632,6 +632,134 @@ class LaporanArkasController extends Controller
         ]);
     }
 
+    /**
+     * APBS / RKAS seluruh sumber dana (apbs-all-output.pdf, 14 halaman).
+     *
+     * Bentuk lembar ARKAS:
+     *  - Kop `RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)`, `TAHUN ANGGARAN : …`,
+     *    identitas Nama Sekolah / Alamat / Kabupaten / Provinsi / NPSN.
+     *  - `A. PENERIMAAN`: kolom No. / Kode Penerimaan / Jumlah per sumber dana
+     *    (kode `4.3.1.xx.` dari ref_sumber_dana) + baris `Total Penerimaan`.
+     *  - `B. BELANJA`: lima tingkat baris — program (`03.`), sub program (`03.01.`),
+     *    kegiatan (`03.01.01.`), kegiatan+rekening (`…5.1.02.01.01.0052`), dan
+     *    rincian (`…   001. <uraian>`). Tiap baris membawa satu kolom Jumlah dan
+     *    dua belas kolom `Sumber Dana dan Alokasi Anggaran` = 6 kelompok dana
+     *    (BOSP REGULER · BOSP DAERAH · AFIRMASI · SiLPA · BOSP LAINNYA · KINERJA)
+     *    x (Belanja Operasi · Belanja Modal).
+     *  - Penutup: baris `Jumlah` + tanda tangan Kepala Sekolah / Komite Sekolah /
+     *    Bendahara Sekolah.
+     */
+    public function apbs(Request $r)
+    {
+        [$sid, $tahun] = $this->ctx($r);
+        $kop = $this->kop($sid, $tahun);
+        $kodeNama = ArkasKode::peta($sid, $tahun);
+        $sekolah = $r->user()->school;
+
+        // A. PENERIMAAN per sumber dana (alokasi resmi tahun anggaran).
+        $kodeRef = collect(RkasHeader::SUMBER_DANA_REF_ARKAS)->pluck('kode', 'nama');
+        $penerimaan = [];
+        foreach (Allocation::where('school_id', $sid)->where('tahun', $tahun)->with('bosType')->get() as $a) {
+            $nama = (string) ($a->bosType->nama ?? 'BOSP Reguler');
+            $penerimaan[$nama] = ($penerimaan[$nama] ?? 0) + (int) $a->nilai;
+        }
+        $penerimaan = collect($penerimaan)
+            ->map(fn ($nilai, $nama) => [
+                'kode' => (string) ($kodeRef[$nama] ?? ''),
+                // ARKAS mencetak "BOSP Reguler" walau ref_sumber_dana menulis "BOS Reguler".
+                'nama' => preg_replace('/^BOS /', 'BOSP ', $nama),
+                'nilai' => (int) $nilai,
+            ])
+            ->sortBy('kode')->values()->all();
+
+        // B. BELANJA — enam kelompok dana, urut sama dengan kepala kolom ARKAS.
+        $kelompok = [
+            'reguler' => 'BOSP REGULER', 'bosda' => 'BOSP DAERAH', 'afirmasi' => 'AFIRMASI',
+            'silpa' => 'SiLPA', 'lainnya' => 'BOSP LAINNYA', 'kinerja' => 'KINERJA',
+        ];
+        $danaKosong = fn () => array_map(
+            fn () => ['operasi' => 0, 'modal' => 0], $kelompok
+        );
+
+        $baris = [];
+        $indeks = [];
+        $nomorRincian = [];
+        $pastikan = function (string $kunci, string $keg, string $rek, string $uraian, int $level) use (&$baris, &$indeks, $danaKosong) {
+            if (! isset($indeks[$kunci])) {
+                $indeks[$kunci] = count($baris);
+                $baris[] = ['keg' => $keg, 'rek' => $rek, 'uraian' => $uraian,
+                    'level' => $level, 'jumlah' => 0, 'dana' => $danaKosong()];
+            }
+
+            return $indeks[$kunci];
+        };
+
+        $details = $kop['rkas']?->details()->with('rekening')
+            ->orderBy('kode_kegiatan')->orderBy('id')->get() ?? collect();
+
+        foreach ($details as $d) {
+            $keg = trim(preg_replace('/\s+/', '', (string) $d->kode_kegiatan), '.');
+            $seg = $keg === '' ? [] : explode('.', $keg);
+            $rek = trim((string) ($d->rekening->kode ?? ''));
+            $jumlah = (int) $d->jumlah;
+            $grup = SumberDana::kunci((string) $d->sumber_dana);
+            $grup = isset($kelompok[$grup]) ? $grup : 'lainnya';
+            $modal = str_starts_with($rek, '5.2');
+
+            // Level 1–4: ringkasan program, sub program, kegiatan, kegiatan+rekening.
+            $kegLabel = $seg === [] ? '' : implode('.', $seg).'.';
+            $kunciList = [];
+            for ($lv = 1; $lv <= 3; $lv++) {
+                if (count($seg) < $lv) {
+                    break;
+                }
+                $prefix = implode('.', array_slice($seg, 0, $lv));
+                $kunciList[] = $pastikan('L'.$lv.'|'.$prefix, $prefix.'.', '',
+                    (string) ($kodeNama[$prefix.'.'] ?? ''), $lv);
+            }
+            $kunciRek = $kegLabel.'|'.$rek;
+            $kunciList[] = $pastikan('L4|'.$kunciRek, $kegLabel, $rek,
+                (string) ($d->rekening->nama ?? ''), 4);
+
+            // Level 5: baris rincian dengan nomor urut `001.` per blok rekening.
+            $nomorRincian[$kunciRek] = ($nomorRincian[$kunciRek] ?? 0) + 1;
+            $kunciList[] = $pastikan('L5|'.$kunciRek.'|'.$d->id, $kegLabel, $rek,
+                sprintf('%03d. ', $nomorRincian[$kunciRek]).(string) $d->uraian, 5);
+
+            foreach ($kunciList as $i) {
+                $baris[$i]['jumlah'] += $jumlah;
+                $baris[$i]['dana'][$grup][$modal ? 'modal' : 'operasi'] += $jumlah;
+            }
+        }
+
+        // Total diambil dari baris rincian (level 5) supaya rincian tanpa kode kegiatan
+        // tetap terhitung dan tidak ada angka yang dobel.
+        $total = 0;
+        $totalDana = $danaKosong();
+        foreach ($baris as $b) {
+            if ($b['level'] !== 5) {
+                continue;
+            }
+            $total += $b['jumlah'];
+            foreach ($kelompok as $g => $label) {
+                $totalDana[$g]['operasi'] += $b['dana'][$g]['operasi'];
+                $totalDana[$g]['modal'] += $b['dana'][$g]['modal'];
+            }
+        }
+
+        return view('laporan-arkas.apbs-cetak', [
+            'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
+            'penerimaan' => $penerimaan,
+            'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
+            'kelompok' => $kelompok, 'baris' => $baris,
+            'total' => $total, 'totalDana' => $totalDana,
+            'penandatangan' => Penandatangan::orderBy('id')->get(),
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
     // ==================== 2d. RPD K7 (Rekapitulasi Realisasi Penggunaan Dana) ====================
 
     /**
