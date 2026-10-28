@@ -22,6 +22,7 @@ use App\Http\Controllers\PerencanaanController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\ReferensiController;
 use App\Http\Controllers\RekonsiliasiController;
+use App\Http\Controllers\PenatausahaanController;
 use App\Http\Controllers\RkasController;
 use App\Http\Controllers\TarikArkasController;
 use App\Http\Controllers\UnduhAplikasiController;
@@ -232,6 +233,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/data-sekolah/sinkronisasi', [PengaturanController::class, 'sinkronisasi'])->name('datasekolah.sinkronisasi');
         Route::get('/penganggaran/anggaran-bulanan', [LaporanArkasController::class, 'rkasBulanan'])->name('penganggaran.anggaran-bulanan');
         Route::get('/penganggaran/review', [RkasController::class, 'review'])->name('penganggaran.review');
+        // Halaman perantara Penatausahaan (pola ARKAS 4): satu menu sidebar,
+        // status BKU 12 bulan & jalan masuk seluruh fitur ada di halaman ini.
+        Route::get('/penatausahaan', [PenatausahaanController::class, 'index'])->name('penatausahaan.index');
         Route::get('/penatausahaan/penutupan-bku', [LaporanArkasController::class, 'penutupanKas'])->name('penatausahaan.penutupan-bku');
         Route::get('/laporan/realisasi-sumber-dana', [LaporanArkasController::class, 'realisasiSumber'])->name('laporan.realisasi-sumber-dana');
         Route::get('/laporan/rekonsiliasi', [RekonsiliasiController::class, 'form'])->name('laporan.rekonsiliasi');

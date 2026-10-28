@@ -82,21 +82,10 @@
       ['Anggaran Bulanan (ARKAS)', route('penganggaran.anggaran-bulanan'), request()->is('penganggaran/anggaran-bulanan')],
       ['PBD → RKM → RKT (Perencanaan)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
     ]],
-    ['label'=>'Penatausahaan','open'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*')||request()->is('penatausahaan*'),'items'=>[
-      ['Buku Kas Umum', route('bku'), request()->routeIs('bku')],
-      ['Kas dan Bank', route('kas'), request()->routeIs('kas')],
-      ['Penerimaan', '#', false],
-      ['Pendapatan', route('pendapatan.index'), request()->is('penerimaan/pendapatan*')],
-      ['Tarik Tunai (Bank→Tunai)', route('ambil.index'), request()->is('penerimaan/ambil*')],
-      ['Setor Tunai (Tunai→Bank)', route('mutasi.index'), request()->is('penerimaan/mutasi*')],
-      ['Pengeluaran & Pajak', '#', false],
-      ['Pembelanjaan', route('belanja.index'), request()->is('pengeluaran/belanja*')],
-      ['Pajak (Setor & Utang)', route('setorpajak.index'), request()->is('pengeluaran/setor*')],
-      ['Buku Pembantu', route('pembukuan.bukuPembantu'), request()->routeIs('pembukuan.bukuPembantu')],
-      ['Pelaporan', '#', false],
-      ['Penutupan BKU', route('penatausahaan.penutupan-bku'), request()->is('penatausahaan/penutupan-bku')],
-      ['SPTJM BOSP', route('pembukuan.sptjm'), request()->routeIs('pembukuan.sptjm')],
-    ]],
+    // ARKAS 4 hanya punya satu menu "Penatausahaan" di sidebar; rinciannya
+    // (BKU, kas, pendapatan, belanja, pajak, dll.) dibuka dari halaman itu.
+    ['label'=>'Penatausahaan', 'href'=>route('penatausahaan.index'),
+      'aktif'=>request()->is('penerimaan*')||request()->is('pengeluaran*')||request()->is('pembukuan*')||request()->is('penatausahaan*')],
     ['label'=>'Arsip','open'=>request()->is('arsip*'),'items'=>[
       ['Arsip Dokumen Sah', route('arsip.index'), request()->routeIs('arsip.index')],
       ['RKAS Disahkan', route('arsip.rkas'), request()->is('arsip/rkas*')],
@@ -176,20 +165,25 @@
         {{-- 3 area kerja ARKAS 4 --}}
         <div class="navw-utama">
           @foreach($menuUtama as $grp)
-          <div class="grp {{ $grp['open'] ? 'open' : '' }}">
-            <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
-              <span>{{ $grp['label'] }}</span><span class="chev">▾</span>
-            </button>
-            <div class="sub {{ $grp['open'] ? '' : 'hidden' }}">
-              @foreach($grp['items'] as [$label, $href, $aktif])
-                @if($href === '#')
-                  <p class="pointer-events-none select-none px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{{ $label }}</p>
-                @else
-                  <a href="{{ $href }}" class="{{ $aktif ? 'on' : '' }}" @if($aktif) aria-current="page" @endif>{{ $label }}</a>
-                @endif
-              @endforeach
-            </div>
-          </div>
+            @if(isset($grp['href']))
+              {{-- Area kerja yang cukup satu tautan (Penatausahaan ala ARKAS 4) --}}
+              <a href="{{ $grp['href'] }}" class="{{ $grp['aktif'] ? 'on' : '' }}" @if($grp['aktif']) aria-current="page" @endif>{{ $grp['label'] }}</a>
+            @else
+              <div class="grp {{ $grp['open'] ? 'open' : '' }}">
+                <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
+                  <span>{{ $grp['label'] }}</span><span class="chev">▾</span>
+                </button>
+                <div class="sub {{ $grp['open'] ? '' : 'hidden' }}">
+                  @foreach($grp['items'] as [$label, $href, $aktif])
+                    @if($href === '#')
+                      <p class="pointer-events-none select-none px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{{ $label }}</p>
+                    @else
+                      <a href="{{ $href }}" class="{{ $aktif ? 'on' : '' }}" @if($aktif) aria-current="page" @endif>{{ $label }}</a>
+                    @endif
+                  @endforeach
+                </div>
+              </div>
+            @endif
           @endforeach
         </div>
 

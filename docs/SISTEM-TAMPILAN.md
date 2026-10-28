@@ -112,7 +112,9 @@ kelas komponen `app.css` ada di jalur darurat.
   (`layouts/print`, `layouts.error`, halaman `dokumen`) tetap seperti semula.
 - **Navigasi.** Sidebar gelap tiga area (Penganggaran · Penatausahaan · Arsip) sudah
   meniru ARKAS 4; menu SiapBOSP yang tidak punya padanan ARKAS tetap ada di bawah
-  label “Menu Lain”.
+  label “Menu Lain”. Sejak 28 Okt 2026 area **Penatausahaan** mengikuti ARKAS
+  sepenuhnya: satu tautan, sedangkan rincian fiturnya ada di halaman
+  `/penatausahaan` (lihat `docs/GAMBARAN-ARKAS-4.md` bagian 20).
 - **Ikon/emoji.** ARKAS 4 tidak memakai ikon di sidebar sekolah; SiapBOSP masih
   memakai emoji pada beberapa item menu Dinas. Belum diubah karena akan mengubah
   hafalan pengguna tanpa manfaat fungsional.
