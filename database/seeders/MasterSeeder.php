@@ -23,14 +23,20 @@ class MasterSeeder extends Seeder
 {
     public function run(): void
     {
+        // Nama mengikuti tabel `ref_sumber_dana` ARKAS Desktop 4.3.1 apa adanya
+        // (docs/arkas-ref/ref_sumber_dana.csv), termasuk SiLPA per sumber dana.
+        // Kode lama (bosda, silpa) sengaja tidak diganti agar data & impor lama
+        // tetap menemukan barisnya; hanya namanya yang disamakan.
         foreach ([
             'reguler' => 'BOS Reguler',
             'kinerja' => 'BOS Kinerja',
-            'silpa_kinerja' => 'SiLPA BOSP Kinerja',
-            'afirmasi' => 'BOSP Afirmasi',
-            'bosda' => 'BOSP Daerah',
+            'silpa_kinerja' => 'SiLPA BOS Kinerja',
+            'silpa_reguler' => 'SiLPA BOS Reguler',
+            'silpa_afirmasi' => 'SiLPA BOS Afirmasi',
+            'afirmasi' => 'BOS Afirmasi',
+            'bosda' => 'BOS Daerah',
             'silpa' => 'SILPA Tahun Sebelumnya',
-            'lainnya' => 'Sumber Dana Lainnya',
+            'lainnya' => 'Lainnya',
         ] as $k => $n) {
             BosType::updateOrCreate(['kode' => $k], ['nama' => $n]);
         }

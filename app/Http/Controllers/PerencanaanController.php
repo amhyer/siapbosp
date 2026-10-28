@@ -49,7 +49,7 @@ class PerencanaanController extends Controller
             'rekenings' => $rekenings,
             'kodeKegiatan' => $kodeKegiatan,
             'indikatorRapor' => PerencanaanPbd::INDIKATOR_RAPOR,
-            'sumberDanaList' => RkasHeader::SUMBER_DANA_ARKAS,
+            'sumberDanaList' => RkasHeader::SUMBER_DANA_PILIHAN,
         ]);
     }
 

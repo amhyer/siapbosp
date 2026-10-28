@@ -105,14 +105,26 @@ Ada satu kredensial (`SATU_EVENT_PASSWORD`) yang sengaja tidak dicatat di repo.
 Ringkas: ARKAS memakai awalan **BOS** (bukan BOSP) dan memisahkan **SiLPA per sumber
 dana**; SiapBOSP memakai BOSP dan satu `SILPA`.
 
-**Status 2026-10-28:** ejaan BOS sudah *diterima* di pemetaan tab
-(`RkasHeader::TAB_SUMBER_DANA`) — impor berkas ARKAS yang menulis "BOS Daerah",
-"SiLPA BOS Kinerja", atau "BOS Afirmasi" kini jatuh ke tab yang benar
-(`tests/Feature/SumberDanaArkasTest.php`). Nama tampilan tetap "BOSP …" karena
-itu yang dipakai **layar** ARKAS 4 dan dokumen sekolah. Yang sengaja belum
-diubah: mengganti nama master `BosType` (karena itu migrasi data + mengubah
-nama dokumen lama) dan membuat tab baru untuk SiLPA Reguler/Afirmasi (pita tab
-ARKAS juga tidak punya tab itu; keduanya ikut sumber induknya).
+**Status 2026-10-28 — sudah disamakan:**
+
+- `RkasHeader::SUMBER_DANA_REF_ARKAS` menyimpan **9 baris** `ref_sumber_dana`
+  apa adanya (kode + nama), dan `SUMBER_DANA_ARKAS` memakai ejaan resmi
+  tersebut. `SUMBER_DANA_PILIHAN` (8 nama, tanpa "Saldo Awal") dipakai
+  formulir RKAS/Perencanaan.
+- `MasterSeeder` memberi nama `BosType` sesuai ARKAS, termasuk jenis baru
+  `silpa_reguler` dan `silpa_afirmasi`.
+- Migrasi `2026_10_28_000001_samakan_sumber_dana_arkas` mengganti ejaan lama
+  ("BOSP Daerah", "BOSP Afirmasi", "SiLPA BOSP Kinerja", "Sumber Dana
+  Lainnya") pada `bos_types`, `rkas_headers`, `rkas_details`, dan
+  `perencanaan_rkts`; idempoten dan punya `down()`.
+- Ejaan lama tetap dikenali di pemetaan tab (`SUMBER_DANA_LAMA`), jadi dokumen
+  lama tidak berpindah tab.
+- ARKAS **tidak** punya tab SiLPA Reguler/Afirmasi di pitanya, jadi kedua jenis
+  itu ikut tab sumber induknya (Reguler / Sumber Dana Tambahan) — bukan tab
+  baru buatan SiapBOSP.
+
+Dijaga oleh `tests/Feature/SumberDanaMasterTest.php` dan
+`tests/Feature/SumberDanaArkasTest.php`.
 
 ## 6a. Yang sudah disamakan dengan keluaran cetak ARKAS 4.3.1
 
