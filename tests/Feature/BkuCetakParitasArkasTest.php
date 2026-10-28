@@ -66,25 +66,55 @@ class BkuCetakParitasArkasTest extends TestCase
             ->getContent();
     }
 
-    /** ARKAS mencetak 8 kolom dengan baris nomor 1–8 di atas judul kolom. */
+    /** ARKAS mencetak judul kolom (kapital) DULU, lalu baris nomor 1–8. */
     public function test_kolom_bernomor_dan_berjudul_seperti_arkas(): void
     {
         $html = $this->cetak();
 
-        $this->assertStringContainsString(
-            '<tr class="bku-nomor"><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>',
-            $html
-        );
-
-        foreach (['Tanggal', 'Kode Kegiatan', 'Kode Rekening', 'No. Bukti', 'Uraian', 'Penerimaan', 'Pengeluaran', 'Saldo'] as $judul) {
-            // Kolom angka memakai class="num", jadi dicocokkan lewat penutup tag.
+        foreach (['TANGGAL', 'KODE<br>KEGIATAN', 'KODE<br>REKENING', 'NO. BUKTI', 'URAIAN',
+            'PENERIMAAN', 'PENGELUARAN', 'SALDO'] as $judul) {
             $this->assertStringContainsString('>'.$judul.'</th>', $html,
                 'Judul kolom ARKAS hilang: '.$judul);
         }
 
+        // Urutan ARKAS: baris judul kolom lebih dulu, baris nomor 1–8 sesudahnya.
+        $posJudul = strpos($html, '>TANGGAL</th>');
+        $posNomor = strpos($html, '<tr class="bku-nomor"><th>1</th><th>2</th>');
+        $this->assertNotFalse($posJudul, 'Baris judul kolom tidak ditemukan.');
+        $this->assertNotFalse($posNomor, 'Baris nomor kolom tidak ditemukan.');
+        $this->assertLessThan($posNomor, $posJudul, 'Nomor kolom harus berada di bawah judul kolom.');
+
         // Judul lama buatan sendiri tidak boleh tersisa.
         $this->assertStringNotContainsString('<th>Kegiatan</th>', $html);
         $this->assertStringNotContainsString('Penerimaan (Rp)', $html);
+    }
+
+    /** Kepala dokumen mengikuti BKU ARKAS: judul berjarak + blok identitas. */
+    public function test_kepala_dokumen_mengikuti_arkas(): void
+    {
+        $html = $this->cetak();
+
+        $this->assertStringContainsString('B U K U   K A S   U M U M', $html);
+        $this->assertStringContainsString('BULAN : JANUARI TAHUN : 2026', $html);
+
+        foreach (['NPSN : 40313912', 'Nama Sekolah : ', 'Desa/Kecamatan : ', 'Kabupaten / Kota : ',
+            'Provinsi : ', 'Sumber Dana : '] as $baris) {
+            $this->assertStringContainsString($baris, $html, 'Baris identitas hilang: '.$baris);
+        }
+
+        // Penanda dokumen di kanan atas.
+        $this->assertStringContainsString('>BKU</div>', $html);
+    }
+
+    /** ARKAS memisah saldo awal bank & tunai, dan mencetak 0 (bukan kosong). */
+    public function test_saldo_awal_bank_dan_tunai_terpisah(): void
+    {
+        $html = $this->cetak(); // Januari 2026 → bulan sebelumnya Desember 2025
+
+        $this->assertStringContainsString('Saldo Bank Bulan Desember 2025', $html);
+        $this->assertStringContainsString('Saldo Tunai Bulan Desember 2025', $html);
+        $this->assertStringContainsString('<td class="num">0</td>', $html,
+            'Kolom uang yang kosong harus tercetak 0 seperti ARKAS.');
     }
 
     /** Baris rekap ARKAS berlabel "Jumlah" (bukan JUMLAH kapital). */
@@ -119,5 +149,27 @@ class BkuCetakParitasArkasTest extends TestCase
         $this->assertStringContainsString('Menyetujui,<br>Kepala Sekolah', $html);
         $this->assertStringContainsString('Kec. Makasar, 31 Januari 2026<br>Bendahara', $html);
         $this->assertStringNotContainsString('Komite Sekolah', $html);
+    }
+
+    /** Bunga/pajak bank adalah transaksi sungguhan; jangan ada baris karangan. */
+    public function test_tidak_ada_baris_pajak_bunga_karangan(): void
+    {
+        $html = $this->cetak();
+
+        $this->assertStringNotContainsString('>Pajak Bunga</td>', $html,
+            'Baris Pajak Bunga tidak boleh dicetak paksa; ARKAS mengambilnya dari transaksi.');
+    }
+
+    /** Kaki halaman ARKAS: identitas BKU di kiri, "Halaman X dari Y" di kanan. */
+    public function test_kaki_halaman_memakai_margin_box_arkas(): void
+    {
+        $html = $this->cetak();
+
+        $this->assertStringContainsString('@bottom-left', $html);
+        $this->assertStringContainsString('@bottom-right', $html);
+        $this->assertStringContainsString('content: "Halaman " counter(page) " dari " counter(pages)', $html);
+
+        // Teks kaki kiri: BKU <Bulan Akhir> <Tahun> - NPSN : …, Nama Sekolah : …
+        $this->assertStringContainsString('content: "BKU Januari 2026 - NPSN : 40313912, Nama Sekolah : ', $html);
     }
 }

@@ -134,21 +134,26 @@ Januari 2026, BOSP Reguler Perubahan Revisi Ke 1) — teksnya dibaca dengan
 
 | Butir | Sebelum | Sekarang (`pembukuan/bku-cetak`) |
 |---|---|---|
-| Kepala kolom | Tanggal · Kegiatan · Rekening · No. Bukti · Uraian · Penerimaan (Rp) · Pengeluaran (Rp) · Saldo (Rp) | nomor kolom **1–8** + Tanggal · Kode Kegiatan · Kode Rekening · No. Bukti · Uraian · Penerimaan · Pengeluaran · Saldo |
-| Angka kolom | `Rp 10.000.000` | `10.000.000` (tanpa awalan Rp, pemisah titik) |
+| Judul | `BUKU KAS UMUM` + baris `PERIODE : …` | `B U K U   K A S   U M U M` + `BULAN : JANUARI TAHUN : 2026` |
+| Blok identitas | satu baris padat | label:nilai per baris (NPSN, Nama Sekolah, Desa/Kecamatan, Kabupaten / Kota, Provinsi, Sumber Dana) + penanda `BKU` di kanan |
+| Kepala kolom | Tanggal · Kegiatan · Rekening · No. Bukti · Uraian · Penerimaan (Rp) · Pengeluaran (Rp) · Saldo (Rp) | baris judul kapital (TANGGAL · KODE KEGIATAN · KODE REKENING · NO. BUKTI · URAIAN · PENERIMAAN · PENGELUARAN · SALDO), baris nomor **1–8** di bawahnya |
+| Angka kolom | `Rp 10.000.000`, sel kosong dibiarkan kosong | `10.000.000` (tanpa awalan Rp, pemisah titik), sel kosong tercetak `0` seperti ARKAS |
 | Baris rekap | `JUMLAH` | `Jumlah` |
+| Saldo awal | satu baris `Saldo Bulan Lalu` (bank+tunai) | dua baris: `Saldo Bank Bulan Desember 2025` + `Saldo Tunai Bulan Desember 2025`; SILPA tahun lalu yang tidak bisa dipecah bank/tunai dicetak sebagai baris `Saldo Awal Tahun (SILPA)` sendiri agar jumlah kolom Saldo tetap utuh |
+| Baris `Pajak Bunga` | dicetak paksa di akhir tabel dengan tanggal akhir periode | dihapus; bunga/pajak bank adalah transaksi `kas_umum` sungguhan, jadi barisnya datang dari ledger |
 | Blok penutup | `Rp 14.000.000` | `Rp. 14.000.000`, rincian ditulis `- Saldo Bank` / `- Saldo Kas Tunai` |
 | Tanda tangan | 3 kolom (+ Komite Sekolah), tempat = kabupaten/kota | 2 kolom: Menyetujui/Kepala Sekolah dan Bendahara; tempat = **Kec. <kecamatan>** |
+| Kaki halaman | jejak cetak SiapBOSP saja | `BKU <Bulan> <Tahun> - NPSN : …, Nama Sekolah : …` di kiri, `Halaman X dari Y` di kanan, lewat `@page` margin box |
 
-Belum bisa ditiru dan sebabnya:
-- **Dua baris saldo awal** (`Saldo Bank Bulan Desember 2025` + `Saldo Tunai ...`)
-  — ARKAS memisah saldo bank/tunai karena punya tabel `aktivasi_bku` dengan
-  saldo awal per jenis kas. `KasService::ledger` SiapBOSP mencampur SILPA tahun
-  lalu ke satu angka `saldoAwalTahun`, sehingga memecahnya jadi dua baris akan
-  memunculkan selisih palsu. Rincian bank/tunai tetap ada di blok penutup.
-- **`Halaman 1 dari 2` di kaki tiap halaman** — butuh counter halaman cetak;
-  CSS `@page` di Chromium tidak mendukung isi margin box, jadi tidak dipaksakan
-  (footer jejak cetak "bukan dokumen resmi ARKAS" tetap ada).
+Kaki halaman memakai `@page { @bottom-left/@bottom-right }` + `counter(page)` /
+`counter(pages)`. Dukungan: Chromium 131+ dan Safari 18.2+ (margin box CSS),
+Firefox belum — di peramban tanpa dukungan aturan itu diabaikan dan dokumen
+tetap utuh (footer jejak cetak "bukan dokumen resmi ARKAS" tetap ada). Ini
+belum pernah dilihat hasil cetaknya di lingkungan agen; yang diuji hanya HTML
+yang dikirim (kelas, label, dan isi margin box).
+
+Dijaga oleh `tests/Feature/BkuCetakParitasArkasTest.php` dan
+`tests/Feature/BkuCetakFormatTest.php`.
 
 ## 7. Privasi
 
