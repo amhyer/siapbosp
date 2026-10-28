@@ -213,7 +213,7 @@ class RkasController extends Controller
             'tahun' => $tahun,
             'sekolah' => $sekolah,
             'sumber' => $sumber,
-            'sumberList' => RkasHeader::SUMBER_DANA_ARKAS,
+            'sumberList' => RkasHeader::SUMBER_DANA_PILIHAN,
             'jenis' => $jenis,
             'acuanHeader' => $acuanHeader,
             'prefillRows' => $prefillRows,

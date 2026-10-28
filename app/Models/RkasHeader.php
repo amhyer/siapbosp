@@ -50,13 +50,16 @@ class RkasHeader extends Model
     ];
 
     /**
-     * Tab sumber dana seperti di ARKAS 4 v4.3.0:
+     * Tab sumber dana seperti di ARKAS 4 (layar Penatausahaan):
      * BOSP Reguler · BOSP Daerah · BOSP Kinerja · SiLPA BOSP Kinerja ·
      * Lainnya · Sumber Dana Tambahan.
      *
-     * Nilai `sumber_dana` di database tetap 7 nilai bebas (SUMBER_DANA_ARKAS),
-     * lalu dipetakan ke tab di bawah ini agar pengguna ARKAS menemukan letak
-     * dokumennya tanpa belajar istilah baru.
+     * ARKAS tidak punya tab SiLPA Reguler/Afirmasi, jadi SiLPA per sumber itu
+     * ikut tab sumber induknya (lihat alias di bawah).
+     *
+     * Kolom `sumber_dana` tetap berupa teks bebas, lalu dipetakan ke tab di
+     * bawah ini agar pengguna ARKAS menemukan letak dokumennya tanpa belajar
+     * istilah baru.
      *
      * Dua ejaan diterima untuk sumber dana yang sama: ARKAS Desktop 4.3.1
      * menamai baris `ref_sumber_dana` dengan "BOS …" (mis. `4.3.1.01. BOS
@@ -69,12 +72,12 @@ class RkasHeader extends Model
      * @var array<string,array{label:string,sumber:array<int,string>}>
      */
     public const TAB_SUMBER_DANA = [
-        'reguler' => ['label' => 'BOSP Reguler', 'sumber' => ['BOS Reguler', 'BOSP Reguler']],
+        'reguler' => ['label' => 'BOSP Reguler', 'sumber' => ['SiLPA BOS Reguler', 'SiLPA BOSP Reguler', 'BOS Reguler', 'BOSP Reguler']],
         'daerah' => ['label' => 'BOSP Daerah', 'sumber' => ['BOS Daerah', 'BOSP Daerah']],
         'kinerja' => ['label' => 'BOSP Kinerja', 'sumber' => ['BOS Kinerja', 'BOSP Kinerja']],
         'silpa_kinerja' => ['label' => 'SiLPA BOSP Kinerja', 'sumber' => ['SiLPA BOS Kinerja', 'SiLPA BOSP Kinerja', 'SILPA']],
         'lainnya' => ['label' => 'Lainnya', 'sumber' => ['Sumber Dana Lainnya', 'Lainnya']],
-        'tambahan' => ['label' => 'Sumber Dana Tambahan', 'sumber' => ['BOS Afirmasi', 'BOSP Afirmasi', 'Afirmasi']],
+        'tambahan' => ['label' => 'Sumber Dana Tambahan', 'sumber' => ['SiLPA BOS Afirmasi', 'SiLPA BOSP Afirmasi', 'BOS Afirmasi', 'BOSP Afirmasi', 'Afirmasi']],
     ];
 
     /**
@@ -96,14 +99,77 @@ class RkasHeader extends Model
         return \App\Models\BosType::whereIn('nama', $sumber)->pluck('id')->all();
     }
 
-    public const SUMBER_DANA_ARKAS = [
+    /**
+     * Nama sumber dana persis seperti tabel `ref_sumber_dana` ARKAS Desktop
+     * 4.3.1 (docs/arkas-ref/ref_sumber_dana.csv) — urut kode rekening.
+     *
+     *   1  4.3.1.01.  BOS Reguler
+     *   3  4.3.1.03.  BOS Daerah
+     *   5  4.3.1.05.  Lainnya
+     *  11  4.3.1.11   BOS Afirmasi
+     *  12  4.3.1.12   BOS Kinerja
+     *  33  4.3.1.33.  SiLPA BOS Reguler
+     *  34  4.3.1.34   SiLPA BOS Afirmasi
+     *  35  4.3.1.35   SiLPA BOS Kinerja
+     *  99  0         Saldo Awal
+     *
+     * @var array<int,array{kode:string,nama:string}>
+     */
+    public const SUMBER_DANA_REF_ARKAS = [
+        ['kode' => '4.3.1.01.', 'nama' => 'BOS Reguler'],
+        ['kode' => '4.3.1.03.', 'nama' => 'BOS Daerah'],
+        ['kode' => '4.3.1.05.', 'nama' => 'Lainnya'],
+        ['kode' => '4.3.1.11', 'nama' => 'BOS Afirmasi'],
+        ['kode' => '4.3.1.12', 'nama' => 'BOS Kinerja'],
+        ['kode' => '4.3.1.33.', 'nama' => 'SiLPA BOS Reguler'],
+        ['kode' => '4.3.1.34', 'nama' => 'SiLPA BOS Afirmasi'],
+        ['kode' => '4.3.1.35', 'nama' => 'SiLPA BOS Kinerja'],
+        ['kode' => '0', 'nama' => 'Saldo Awal'],
+    ];
+
+    /**
+     * Daftar nama untuk pilihan formulir. "Saldo Awal" sengaja tidak ikut:
+     * itu pos pembukaan buku, bukan sumber dana yang boleh dipilih pada RKAS.
+     *
+     * @var array<int,string>
+     */
+    public const SUMBER_DANA_PILIHAN = [
         'BOS Reguler',
+        'BOS Daerah',
+        'Lainnya',
+        'BOS Afirmasi',
         'BOS Kinerja',
-        'SiLPA BOSP Kinerja',
-        'BOSP Afirmasi',
+        'SiLPA BOS Reguler',
+        'SiLPA BOS Afirmasi',
+        'SiLPA BOS Kinerja',
+    ];
+
+    /**
+     * Ejaan lama yang masih tersimpan di dokumen sekolah. Tetap diakui agar
+     * RKAS/BKU lama tidak berubah tab setelah nama resmi ARKAS dipakai.
+     *
+     * @var array<int,string>
+     */
+    public const SUMBER_DANA_LAMA = [
+        'BOSP Reguler',
         'BOSP Daerah',
+        'BOSP Afirmasi',
+        'SiLPA BOSP Kinerja',
         'SILPA',
         'Sumber Dana Lainnya',
+    ];
+
+    /** Nama resmi ARKAS (tanpa kode) — dipakai sebagai daftar nilai yang sah. */
+    public const SUMBER_DANA_ARKAS = [
+        'BOS Reguler',
+        'BOS Daerah',
+        'Lainnya',
+        'BOS Afirmasi',
+        'BOS Kinerja',
+        'SiLPA BOS Reguler',
+        'SiLPA BOS Afirmasi',
+        'SiLPA BOS Kinerja',
+        'Saldo Awal',
     ];
 
     public function details()
