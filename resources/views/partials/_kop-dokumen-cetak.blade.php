@@ -32,7 +32,9 @@
     <div>Provinsi : {{ $provinsiTeks }}</div>
     <div>Sumber Dana : {{ $sumberDana }}{{ $revisi > 1 ? ' Perubahan Revisi Ke '.($revisi - 1) : '' }}</div>
   </div>
+  @isset($penanda)
   <div style="font-weight:700;font-size:13px">{{ $penanda }}</div>
+  @endisset
 </div>
 @isset($catatan)
 <div style="font-size:10.5px;color:#475569;margin-bottom:.5rem">{!! $catatan !!}</div>

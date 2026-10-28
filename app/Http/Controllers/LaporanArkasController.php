@@ -252,6 +252,115 @@ class LaporanArkasController extends Controller
             'nTahap' => $nTahap, 'totalTahap' => $totalTahap, 'jumlahTahap' => $jumlahTahap]);
     }
 
+    // ==================== 2b. Kertas Kerja RAPBS per Tahap ====================
+
+    /**
+     * Kertas Kerja RAPBS — dua varian cetak ARKAS 4.3.1:
+     *
+     *  - per Tahap (baku): "KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH
+     *    (RKAS) PER TAHAP" — blok A. PENERIMAAN + pohon belanja dengan kolom
+     *    per tahap, ditutup Jumlah; tanpa tanda tangan (sama seperti ARKAS).
+     *  - per Bulan (?format=bulan): "RINCIAN KERTAS KERJA PERBULAN" — angka
+     *    kolom Jumlah = rencana bulan terpilih, ditutup tanda tangan 3 kolom
+     *    (Komite Sekolah / Kepala Sekolah / Bendahara Sekolah).
+     *
+     * Angka bulanan memakai RkasDetail::nominalPerBulan() — sumber yang sama
+     * dengan Kertas Kerja ARKAS 4 (bulan_volumes, fallback periode_volume).
+     */
+    public function rapbsCetak(Request $r)
+    {
+        [$sid, $tahun, $bulan] = $this->ctx($r);
+        $format = $r->query('format') === 'bulan' ? 'bulan' : 'tahap';
+        $kop = $this->kop($sid, $tahun);
+        $kodeNama = ArkasKode::peta($sid, $tahun);
+        $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
+        $nTahap = max(2, $tahaps->count());
+
+        // A. Penerimaan per sumber dana (alokasi resmi tahun anggaran).
+        $kodeRef = collect(RkasHeader::SUMBER_DANA_REF_ARKAS)->pluck('kode', 'nama');
+        $penerimaan = [];
+        foreach (Allocation::where('school_id', $sid)->where('tahun', $tahun)->with('bosType')->get() as $a) {
+            $nama = (string) ($a->bosType->nama ?? 'BOSP Reguler');
+            $penerimaan[$nama] = ($penerimaan[$nama] ?? 0) + (int) $a->nilai;
+        }
+        $penerimaan = collect($penerimaan)
+            ->map(fn ($nilai, $nama) => ['kode' => (string) ($kodeRef[$nama] ?? ''), 'nama' => $nama, 'nilai' => (int) $nilai])
+            ->sortBy('kode')->values()->all();
+
+        // B. Belanja: pohon program/kegiatan/sub-kegiatan + baris rincian.
+        $baris = [];
+        $ringkas = [];
+        $total = 0;
+        $totalTahap = array_fill(1, $nTahap, 0);
+        $totalBulan = 0;
+
+        foreach ($kop['rkas']?->details()->with('rekening')->orderBy('kode_kegiatan')->orderBy('id')->get() ?? [] as $d) {
+            $keg = preg_replace('/\s+/', '', (string) $d->kode_kegiatan);
+            $seg = $keg === '' ? [] : array_values(array_filter(explode('.', trim($keg, '.'))));
+            $jumlah = (int) $d->jumlah;
+            $nilaiBulan = (int) ($d->nominalPerBulan()[$bulan] ?? 0);
+
+            // Pembagian per tahap: proporsi periode_volume, jika tidak ada dibagi rata
+            // (aturan yang sama dengan layar Rincian RKAS per Tahap).
+            $vol = json_decode((string) ($d->periode_volume ?? '[]'), true);
+            $vol = is_array($vol) ? array_map('floatval', $vol) : [];
+            $totVol = array_sum($vol);
+            $tahapNilai = [];
+            for ($i = 1; $i <= $nTahap; $i++) {
+                $tahapNilai[$i] = ($totVol > 0 && (float) ($vol[$i] ?? 0) > 0)
+                    ? (int) round($jumlah * (float) $vol[$i] / $totVol)
+                    : (int) floor($jumlah / max(1, $nTahap));
+            }
+
+            $prefix = '';
+            foreach ($seg as $i => $bagian) {
+                $prefix = $prefix === '' ? $bagian : $prefix.'.'.$bagian;
+                $tipe = ['program', 'kegiatan', 'sub'][$i] ?? 'sub';
+                if (! isset($ringkas[$prefix])) {
+                    $ringkas[$prefix] = count($baris);
+                    $baris[] = ['tipe' => $tipe, 'kode' => $prefix.'.',
+                        'uraian' => (string) ($kodeNama[$prefix.'.'] ?? ($kodeNama[$prefix] ?? '')),
+                        'rek' => '', 'volume' => null, 'satuan' => '', 'tarif' => null,
+                        'jumlah' => 0, 'bulan' => 0, 'tahap' => array_fill(1, $nTahap, 0)];
+                }
+                $baris[$ringkas[$prefix]]['jumlah'] += $jumlah;
+                $baris[$ringkas[$prefix]]['bulan'] += $nilaiBulan;
+                foreach ($tahapNilai as $i2 => $v) {
+                    $baris[$ringkas[$prefix]]['tahap'][$i2] += $v;
+                }
+            }
+
+            $baris[] = ['tipe' => 'rincian', 'kode' => '', 'uraian' => (string) $d->uraian,
+                'rek' => (string) ($d->rekening->kode ?? '—'), 'volume' => $d->banyak,
+                'satuan' => (string) $d->satuan, 'tarif' => (int) $d->harga_satuan,
+                'jumlah' => $jumlah, 'bulan' => $nilaiBulan, 'tahap' => $tahapNilai];
+
+            $total += $jumlah;
+            $totalBulan += $nilaiBulan;
+            foreach ($tahapNilai as $i2 => $v) {
+                $totalTahap[$i2] += $v;
+            }
+        }
+
+        $labelTahap = $tahaps->pluck('nama')->implode(' dan ');
+        $namaBulanTeks = self::BULAN[$bulan];
+        $penandatangan = Penandatangan::orderBy('id')->get();
+        $sekolah = $r->user()->school;
+
+        return view('laporan-arkas.rapbs-cetak', [
+            'format' => $format, 'baris' => $baris, 'penerimaan' => $penerimaan,
+            'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
+            'total' => $total, 'totalTahap' => $totalTahap, 'totalBulan' => $totalBulan, 'nTahap' => $nTahap,
+            'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun, 'bulan' => $bulan,
+            'namaBulan' => self::BULAN, 'labelBulan' => $namaBulanTeks,
+            'labelTahap' => $labelTahap !== '' ? $labelTahap : ('I s/d '.$nTahap),
+            'penandatangan' => $penandatangan,
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
     // ==================== 3. Realisasi Anggaran (per bulan) ====================
 
     /** Baris Realisasi Anggaran per rekening: anggaran, realisasi per bulan, komponen, %. */

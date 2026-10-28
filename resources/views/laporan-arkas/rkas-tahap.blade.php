@@ -1,6 +1,10 @@
 @extends('layouts.app', ['title' => 'Rincian RKAS per Tahap'])
 @section('content')
 @include('laporan-arkas._header', ['judul' => 'Rincian Rencana Kegiatan Dan Anggaran Sekolah (RKAS) Per Tahap'])
+<div class="flex flex-wrap items-center gap-2 mb-3">
+  <a href="{{ route('laporan-arkas.rapbs-cetak') }}" class="btn2 btn" data-cetak="Kertas Kerja RAPBS per Tahap">🖨️ Cetak Kertas Kerja RAPBS (per Tahap)</a>
+  <span class="text-[12px] text-slate-500">Format cetak ARKAS: penerimaan per sumber dana + pohon belanja per tahap.</span>
+</div>
 <div class="card overflow-x-auto">
   <div class="tbl-wrap"><table class="tbl text-[12px]">
     <thead><tr>
