@@ -252,6 +252,98 @@ class LaporanArkasController extends Controller
             'nTahap' => $nTahap, 'totalTahap' => $totalTahap, 'jumlahTahap' => $jumlahTahap]);
     }
 
+    // ==================== 2b. Kertas Kerja RAPBS per Tahap ====================
+
+    /**
+     * RAPBS per Tahap — "KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH
+     * (RKAS) PER TAHAP", bentuk mengikuti rapbs-tahap-output.pdf ARKAS 4.3.1:
+     * blok A. PENERIMAAN per sumber dana, blok B. BELANJA berbentuk pohon
+     * (program → kegiatan → sub-kegiatan → rincian) dengan volume/satuan/tarif
+     * dan pembagian per tahap, ditutup baris Jumlah.
+     *
+     * Varian "per Bulan" milik ARKAS belum bisa dicetak: rkas_details hanya
+     * menyimpan volume per tahap (`periode_volume`), bukan rencana per bulan,
+     * jadi angka bulanan akan mengarang. Lihat docs/ARKAS-CETAK-RAPBS-RKA-DPA-RPD.md.
+     */
+    public function rapbsCetak(Request $r)
+    {
+        [$sid, $tahun] = $this->ctx($r);
+        $kop = $this->kop($sid, $tahun);
+        $kodeNama = ArkasKode::peta($sid, $tahun);
+        $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
+        $nTahap = max(2, $tahaps->count());
+
+        // A. Penerimaan per sumber dana (alokasi resmi tahun anggaran).
+        $kodeRef = collect(RkasHeader::SUMBER_DANA_REF_ARKAS)->pluck('kode', 'nama');
+        $penerimaan = [];
+        foreach (Allocation::where('school_id', $sid)->where('tahun', $tahun)->with('bosType')->get() as $a) {
+            $nama = (string) ($a->bosType->nama ?? 'BOSP Reguler');
+            $penerimaan[$nama] = ($penerimaan[$nama] ?? 0) + (int) $a->nilai;
+        }
+        $penerimaan = collect($penerimaan)
+            ->map(fn ($nilai, $nama) => ['kode' => (string) ($kodeRef[$nama] ?? ''), 'nama' => $nama, 'nilai' => (int) $nilai])
+            ->sortBy('kode')->values()->all();
+
+        // B. Belanja: pohon program/kegiatan/sub-kegiatan + baris rincian.
+        $baris = [];
+        $ringkas = []; // prefix kode kegiatan => indeks baris ringkasan
+        $total = 0;
+        $totalTahap = array_fill(1, $nTahap, 0);
+
+        foreach ($kop['rkas']?->details()->with('rekening')->orderBy('kode_kegiatan')->orderBy('id')->get() ?? [] as $d) {
+            $keg = preg_replace('/\s+/', '', (string) $d->kode_kegiatan);
+            $seg = $keg === '' ? [] : array_values(array_filter(explode('.', trim($keg, '.'))));
+            $jumlah = (int) $d->jumlah;
+
+            // Pembagian per tahap sama dengan layar Rincian RKAS per Tahap.
+            $vol = json_decode((string) ($d->periode_volume ?? '[]'), true);
+            $vol = is_array($vol) ? array_map('floatval', $vol) : [];
+            $totVol = array_sum($vol);
+            $tahapNilai = [];
+            for ($i = 1; $i <= $nTahap; $i++) {
+                $tahapNilai[$i] = ($totVol > 0 && (float) ($vol[$i] ?? 0) > 0)
+                    ? (int) round($jumlah * (float) $vol[$i] / $totVol)
+                    : (int) floor($jumlah / max(1, $nTahap));
+            }
+
+            $prefix = '';
+            foreach ($seg as $i => $bagian) {
+                $prefix = $prefix === '' ? $bagian : $prefix.'.'.$bagian;
+                $tipe = ['program', 'kegiatan', 'sub'][$i] ?? 'sub';
+                if (! isset($ringkas[$prefix])) {
+                    $ringkas[$prefix] = count($baris);
+                    $nama = (string) ($kodeNama[$prefix.'.'] ?? ($kodeNama[$prefix] ?? ''));
+                    $baris[] = ['tipe' => $tipe, 'kode' => $prefix.'.', 'uraian' => $nama,
+                        'rek' => '', 'volume' => null, 'satuan' => '', 'tarif' => null,
+                        'jumlah' => 0, 'tahap' => array_fill(1, $nTahap, 0)];
+                }
+                $baris[$ringkas[$prefix]]['jumlah'] += $jumlah;
+                foreach ($tahapNilai as $i2 => $v) {
+                    $baris[$ringkas[$prefix]]['tahap'][$i2] += $v;
+                }
+            }
+
+            $baris[] = ['tipe' => 'rincian', 'kode' => '', 'uraian' => (string) $d->uraian,
+                'rek' => (string) ($d->rekening->kode ?? '—'), 'volume' => $d->volume ?? $d->banyak,
+                'satuan' => (string) $d->satuan, 'tarif' => (int) $d->harga_satuan,
+                'jumlah' => $jumlah, 'tahap' => $tahapNilai];
+
+            $total += $jumlah;
+            foreach ($tahapNilai as $i2 => $v) {
+                $totalTahap[$i2] += $v;
+            }
+        }
+
+        $labelTahap = $tahaps->pluck('nama')->implode(' dan ');
+
+        return view('laporan-arkas.rapbs-cetak', [
+            'baris' => $baris, 'penerimaan' => $penerimaan, 'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
+            'total' => $total, 'totalTahap' => $totalTahap, 'nTahap' => $nTahap,
+            'kop' => $kop, 'sekolah' => $r->user()->school, 'tahun' => $tahun,
+            'labelTahap' => $labelTahap !== '' ? $labelTahap : ('I s/d '.$nTahap),
+        ]);
+    }
+
     // ==================== 3. Realisasi Anggaran (per bulan) ====================
 
     /** Baris Realisasi Anggaran per rekening: anggaran, realisasi per bulan, komponen, %. */
