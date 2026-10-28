@@ -66,7 +66,7 @@
         <div>
           <label class="text-xs font-semibold text-slate-600">Tahun anggaran</label>
           <select name="tahun" class="inp mt-1">
-            @for($y = 2022; $y <= 2028; $y++)
+            @for($y = min(2022, (int) $tahun); $y <= max(2028, (int) $tahun, (int) now()->year + 1); $y++)
               <option value="{{ $y }}" @selected($tahun === $y)>{{ $y }}</option>
             @endfor
           </select>

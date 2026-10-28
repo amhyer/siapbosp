@@ -53,7 +53,7 @@
     <div>
       <label class="lbl" for="tahun">Tahun anggaran di file</label>
       <select id="tahun" name="tahun" class="inp !w-auto">
-        @for($y = 2022; $y <= 2028; $y++) <option value="{{ $y }}" @selected($tahun === $y)>{{ $y }}</option> @endfor
+        @for($y = min(2022, (int) $tahun); $y <= max(2028, (int) $tahun, (int) now()->year + 1); $y++) <option value="{{ $y }}" @selected($tahun === $y)>{{ $y }}</option> @endfor
       </select>
     </div>
     <button class="btn">⬆️ Proses Impor</button>
