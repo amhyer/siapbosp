@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityLog;
+use App\Models\BkuTutupBulan;
 use App\Models\BosType;
 use App\Models\RkasHeader;
 use App\Models\School;
@@ -226,6 +227,26 @@ class MenuDanArsipTest extends TestCase
         // Filter tahun yang tidak punya dokumen
         $this->withSession(['tahun' => 2025])->get(route('arsip.index', ['tahun' => '2021']))
             ->assertOk()->assertSee('Belum ada dokumen sah');
+    }
+
+    /**
+     * BKU yang sudah ditutup masuk arsip dengan nama bulan yang benar.
+     * Regresi: kolom `bulan` berisi 'YYYY-MM' dan dulu di-cast (int) sehingga
+     * dokumen tampil "BKU 2025 2025" dengan tautan ?bulan=2025-2025.
+     */
+    public function test_arsip_bku_menampilkan_nama_bulan_dan_tautan_yang_benar(): void
+    {
+        BkuTutupBulan::create(['school_id' => $this->sekolah->id, 'tahun' => 2025,
+            'bulan' => '2025-03', 'ditutup_oleh' => 'operator']);
+
+        $r = $this->withSession(['tahun' => 2025])
+            ->get(route('arsip.index', ['format' => 'bku']))
+            ->assertOk();
+
+        $r->assertSee('BKU Maret 2025');
+        $r->assertDontSee('BKU 2025 2025');
+        $r->assertSee('bulan=2025-03', false);
+        $r->assertDontSee('bulan=2025-2025', false);
     }
 
     public function test_arsip_hanya_memuat_dokumen_sah(): void
