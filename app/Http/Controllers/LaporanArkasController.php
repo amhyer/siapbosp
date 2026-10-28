@@ -443,7 +443,7 @@ class LaporanArkasController extends Controller
     {
         [$sid, $tahun] = $this->ctx($r);
         $format = $r->query('format') === 'tahap' ? 'tahap' : 'triwulan';
-        $varian = in_array($r->query('varian'), ['dpa', 'rka22', 'dpa22'], true)
+        $varian = in_array($r->query('varian'), ['dpa', 'rka22', 'dpa22', 'rka221', 'dpa221'], true)
             ? (string) $r->query('varian') : 'rka';
         $kop = $this->kop($sid, $tahun);
         $sekolah = $r->user()->school;
@@ -455,6 +455,11 @@ class LaporanArkasController extends Controller
         // Kegiatan" — tabel yang sama sekali berbeda (lihat rka-unit-22-output.pdf).
         if (in_array($varian, ['rka22', 'dpa22'], true)) {
             return $this->rkaUnit22($r, $varian, $kop, $sekolah, $tahun, $details);
+        }
+
+        // Varian 2.2.1: rekap belanja langsung per rekening (bukan per program).
+        if (in_array($varian, ['rka221', 'dpa221'], true)) {
+            return $this->rkaUnit221($r, $varian, $kop, $sekolah, $tahun, $details);
         }
 
         // Bagian 1 — subtotal per akun sampai 4 segmen kode rekening.
@@ -758,6 +763,129 @@ class LaporanArkasController extends Controller
             'kelompok' => $kelompok, 'baris' => $baris,
             'total' => $total, 'totalDana' => $totalDana,
             'penandatangan' => Penandatangan::orderBy('id')->get(),
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
+    /**
+     * RKA/DPA Unit Kerja 2.2.1 — "Rincian Anggaran Belanja Langsung Menurut
+     * Program dan Per Kegiatan Unit Kerja" (rka-unit-221-output.pdf, dpa-unit-221-output.pdf).
+     *
+     * Beda dengan 2.2: baris dikelompokkan menurut KODE REKENING, bukan kode
+     * kegiatan — `5.` (belanja) → `5.1.02.01` (4 segmen) → kode rekening penuh →
+     * baris rincian dengan kolom Rincian Perhitungan (Volume / Satuan / Harga
+     * Satuan) dan Jumlah (Rp) = kolom 6 = 3 x 5.
+     *
+     * Kepala lembar memuat blok Program / Sub Program / Lokasi Kegiatan /
+     * Jumlah Tahun n-1, n, n+1 / Kegiatan dan tabel Indikator & Tolok Ukur
+     * Kinerja Belanja Langsung. ARKAS mencetak "-" untuk Program/Sub Program/
+     * Kegiatan karena dokumen ini tidak diikat ke satu kegiatan; di sini nilai
+     * yang sama dipakai bila RKAS tidak menyebut kegiatan.
+     */
+    private function rkaUnit221(Request $r, string $varian, array $kop, $sekolah, int $tahun, $details)
+    {
+        $lokasi = trim((string) $sekolah->nama);
+
+        // Kelompokkan per rekening: prefix 4 segmen, lalu kode rekening penuh.
+        $urut = [];
+        foreach ($details as $d) {
+            $kode = trim((string) ($d->rekening->kode ?? ''));
+            if ($kode === '') {
+                continue;
+            }
+            $seg = explode('.', $kode);
+            $prefix = implode('.', array_slice($seg, 0, 4));
+            $urut[$kode]['prefix'] = $prefix;
+            $urut[$kode]['nama'] = (string) ($d->rekening->nama ?? '');
+            $urut[$kode]['items'][] = $d;
+        }
+        uksort($urut, fn ($a, $b) => strnatcmp($a, $b));
+
+        // Susun baris: `5.` (total) → `5.1.`/`5.2.` → prefix 4 segmen → rekening → rincian.
+        $baris = [];
+        $kosong = ['volume' => '', 'satuan' => '', 'harga' => ''];
+        $sumPrefix = [];
+        $sumSeg1 = [];
+        foreach ($urut as $kode => $blok) {
+            // `5.1.` = dua segmen pertama kode rekening (5.1 operasi, 5.2 modal).
+            $seg1 = implode('.', array_slice(explode('.', $kode), 0, 2)).'.';
+            $j = 0;
+            foreach ($blok['items'] as $d) {
+                $j += (int) $d->jumlah;
+            }
+            $sumPrefix[$blok['prefix']] = ($sumPrefix[$blok['prefix']] ?? 0) + $j;
+            $sumSeg1[$seg1] = ($sumSeg1[$seg1] ?? 0) + $j;
+        }
+
+        // Tanpa rincian, $baris dibiarkan kosong supaya view menampilkan pesan kosong.
+        if ($urut !== []) {
+            $baris[] = ['tipe' => 'total', 'kode' => '5.', 'uraian' => 'BELANJA',
+                'jumlah' => array_sum($sumSeg1)] + $kosong;
+        }
+
+        $prefixAktif = null;
+        $seg1Aktif = null;
+        foreach ($urut as $kode => $blok) {
+            $seg1 = implode('.', array_slice(explode('.', $kode), 0, 2)).'.';
+            if ($seg1 !== $seg1Aktif) {
+                $seg1Aktif = $seg1;
+                $baris[] = ['tipe' => 'seg1', 'kode' => $seg1,
+                    'uraian' => $seg1 === '5.2.' ? 'BELANJA LANGSUNG' : '',
+                    'jumlah' => $sumSeg1[$seg1]] + $kosong;
+                $prefixAktif = null;
+            }
+
+            if ($blok['prefix'] !== $prefixAktif) {
+                $prefixAktif = $blok['prefix'];
+                $baris[] = ['tipe' => 'prefix', 'kode' => $blok['prefix'], 'uraian' => '',
+                    'jumlah' => $sumPrefix[$blok['prefix']]] + $kosong;
+            }
+
+            $jumlahRek = 0;
+            foreach ($blok['items'] as $d) {
+                $jumlahRek += (int) $d->jumlah;
+            }
+
+            $baris[] = ['tipe' => 'rekening', 'kode' => $kode, 'uraian' => $blok['nama'],
+                'jumlah' => $jumlahRek] + $kosong;
+
+            foreach ($blok['items'] as $d) {
+                $baris[] = ['tipe' => 'item', 'kode' => '', 'uraian' => (string) $d->uraian,
+                    'volume' => (float) $d->banyak, 'satuan' => (string) $d->satuan,
+                    'harga' => (int) $d->harga_satuan, 'jumlah' => (int) $d->jumlah];
+            }
+        }
+
+        $total = array_sum(array_map(fn ($b) => $b['tipe'] === 'item' ? (int) $b['jumlah'] : 0, $baris));
+        $totalOperasi = 0;
+        $totalModal = 0;
+        foreach ($details as $d) {
+            $kode = trim((string) ($d->rekening->kode ?? ''));
+            if (str_starts_with($kode, '5.2')) {
+                $totalModal += (int) $d->jumlah;
+            } else {
+                $totalOperasi += (int) $d->jumlah;
+            }
+        }
+
+        return view('laporan-arkas.rka-unit-221-cetak', [
+            'varian' => $varian, 'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
+            'baris' => $baris, 'total' => $total,
+            'totalOperasi' => $totalOperasi, 'totalModal' => $totalModal,
+            'lokasi' => $lokasi,
+            'judulVarian' => $varian === 'dpa221'
+                ? 'RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)'
+                : 'LEMBAR KERTAS KERJA',
+            'judulRincian' => $varian === 'dpa221'
+                ? 'Rincian Dokumen Pelaksanaan Anggaran Belanja Langsung'
+                : 'Rincian Anggaran Belanja Langsung',
+            'pemerintah' => trim((string) ($sekolah->kab_kota ?? '')) !== ''
+                ? 'PEMERINTAH '.strtoupper((string) $sekolah->kab_kota)
+                : 'PEMERINTAH '.strtoupper((string) ($sekolah->provinsi ?? '')),
+            'kepsek' => Penandatangan::where('jabatan', 'like', '%kepala%')->orderBy('id')->first()
+                ?? Penandatangan::orderBy('id')->first(),
             'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
                 ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
             'tanggalTtd' => now()->translatedFormat('d F Y'),
