@@ -285,6 +285,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembukuan/bku/cetak', [PembukuanController::class, 'bkuCetak'])->name('bku.cetak');
         // Buku Pembantu Pajak (ARKAS 4: "Buku Pembantu Pajak").
         Route::get('/pembukuan/bku-pajak', [PembukuanController::class, 'bkuPajak'])->name('bku.pajak');
+        // Buku Kas Pembantu Bank (ARKAS 4: satu tahun penuh, hanya mutasi bank).
+        Route::get('/pembukuan/bku-bank', [PembukuanController::class, 'bkuBank'])->name('bku.bank');
         Route::get('/pembukuan/bku.csv', [PembukuanController::class, 'bkuCsv'])->name('bku.csv');
         Route::get('/pembukuan/buku-pembantu', [PembukuanController::class, 'bukuPembantu'])->name('pembukuan.bukuPembantu');
         Route::get('/pembukuan/rekap-realisasi', [PembukuanController::class, 'rekapRealisasi'])->name('pembukuan.rekapRealisasi');

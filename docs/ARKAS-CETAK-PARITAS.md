@@ -37,7 +37,10 @@ Sumber acuan (19 berkas) — yang relevan untuk empat dokumen yang diminta:
 | DPA Unit Kerja 2.2 / 2.2.1 | — | **belum** | Sebab sama dengan RKA Unit 2.2 (lokasi + target kinerja) |
 | RPD K7 | `laporan-arkas.rpd-k7` | **sama susunannya** (baru) | Nama 12 sub program dicetak sebagai baris teks di bawah nomor kolom (ARKAS mencetaknya vertikal); sel matriks bergantung konvensi kode kegiatan `SS.SP.KK` |
 | APBS (RKAS) | — | **belum** | Matriks `RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)` dengan 6 kelompok sumber dana (BOSP Reguler, BOSP Daerah, Afirmasi, SiLPA, BOSP Lainnya, Kinerja) × kolom Belanja Operasi/Belanja Modal + `Uraian Kegiatan`/`Kode Kegiatan`; pohon kode kegiatan sampai rincian rekening. Belum dibuat — perlu satu tabel lebar dengan pengelompokan kolom per sumber dana |
-| BKU / BKU Bank / BKU Pajak / BHM | `pembukuan.bku-cetak`, `…bku-pajak`, `laporan-arkas.bhm` | **sama susunannya** (PR #46–#48) | Kolom `SSPD` (BKU Pajak) dan `ID Barang` (BHM) tidak dicetak; baris `Saldo Awal Tahun (SILPA)` adalah tambahan SiapBOSP |
+| BKU (Kas Umum) | `pembukuan.bku-cetak` | **sama susunannya** (PR #46) | Baris `Saldo Awal Tahun (SILPA)` adalah tambahan SiapBOSP |
+| BKU Pembantu Bank | `pembukuan.bku-bank` | **sama susunannya** (baru) | Lihat catatan di bawah tabel |
+| BKU Pajak | `pembukuan.bku-pajak` | **sama susunannya** (PR #48) | Kolom `SSPD` tidak dicetak |
+| BHM | `laporan-arkas.bhm` | **sama susunannya** (PR #48) | Kolom `ID Barang` tidak dicetak (SiapBOSP belum punya master barang) |
 
 ## Rincian yang sudah disamakan pada RAPBS (PR ini)
 
@@ -71,3 +74,28 @@ Diambil dari teks `rapbs-tahap-output.pdf` / `rapbs-tri-output.pdf` / `rapbs-bul
   yang masuk repo hanya susunan/labelnya.
 - `@page` margin box (kaki halaman + nomor halaman) hanya didukung Chromium 131+
   dan Safari 18.2+; peramban lain mengabaikannya tanpa merusak halaman.
+
+## BKU Pembantu Bank (`bku-bank-output.pdf` → `pembukuan.bku-bank`)
+
+Ini **bukan** varian BKU Kas Umum: ARKAS punya dokumen tersendiri untuk rekening bank.
+
+| Ciri | ARKAS `bku-bank-output.pdf` | SiapBOSP |
+|---|---|---|
+| Judul | `B U K U   K A S   P E M B A N T U   B A N K`, penanda kanan `BKU - BANK` | sama |
+| Periode | `TAHUN : 2025` (satu tahun penuh, 9 halaman) | sama (`TAHUN : <tahun anggaran>`) |
+| Kolom | `TANGGAL · KODE KEGIATAN · KODE REKENING · NO. BUKTI · URAIAN · PENERIMAAN · PENGELUARAN · SALDO`, bernomor 1–8 | sama, nomor 1–8 seperti BKU Kas Umum |
+| Isi | **hanya** mutasi rekening bank | `KasService::efek()` kolom bank ≠ 0 |
+| Baris pembuka | `01-01-2025  Saldo Bank Bulan Desember 2024  0  0  0` | sama, saldo = posisi bank akhir tahun sebelumnya |
+| Baris bulanan | `Bunga Bank` dan `Pajak Bunga` di akhir **setiap** bulan, termasuk yang bernilai 0 | dari `bku_tutup_bulans`; transaksi bunga/admin sudah dibuat saat Tutup BKU, dan baris `0` disintesis untuk bulan yang ditutup tanpa bunga |
+| Penutup | baris `Jumlah` + `Menyetujui,/Kepala Sekolah` + `Kec. …, 31 Desember 2025/Bendahara` + kalimat `Pada hari ini <hari> <tgl> Buku Kas Umum Ditutup … Saldo Bank : Rp. …` | sama, tanpa baris `Saldo Kas Tunai` (lembar ini bank saja) |
+| Kaki halaman | `BKU Pembantu Bank Tahun 2025 - NPSN : …, Nama Sekolah : …` + `Halaman X dari 9` | sama (nomor halaman dari `layouts.print`) |
+
+Selisih yang **tidak** bisa ditutup:
+
+- `NO. BUKTI` di ARKAS berasal dari nomor bukti ARKAS (`BBU01`, `BNU02`, …). SiapBOSP memakai
+  `kas_transactions.no_bukti`, jatuh ke `arkas_bku`, lalu `BKU#<no_bku>` bila keduanya kosong.
+- Bila satu transaksi punya beberapa rincian rekening, SiapBOSP mencetak **satu baris** dengan
+  kode rekening digabung `, ` — ARKAS memecah per nota.
+- `Bunga Bank`/`Pajak Bunga` bernilai > 0: SiapBOSP menormalkan uraian transaksi hasil Tutup BKU
+  menjadi `Bunga Bank` / `Pajak Bunga` agar sebanding dengan ARKAS.
+- Sama seperti seluruh dokumen lain: belum ada verifikasi visual (sandbox tanpa PHP/peramban).
