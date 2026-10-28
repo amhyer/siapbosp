@@ -809,7 +809,8 @@ class LaporanArkasController extends Controller
         $sumPrefix = [];
         $sumSeg1 = [];
         foreach ($urut as $kode => $blok) {
-            $seg1 = explode('.', $kode)[0].'.';
+            // `5.1.` = dua segmen pertama kode rekening (5.1 operasi, 5.2 modal).
+            $seg1 = implode('.', array_slice(explode('.', $kode), 0, 2)).'.';
             $j = 0;
             foreach ($blok['items'] as $d) {
                 $j += (int) $d->jumlah;
@@ -818,12 +819,16 @@ class LaporanArkasController extends Controller
             $sumSeg1[$seg1] = ($sumSeg1[$seg1] ?? 0) + $j;
         }
 
-        $baris[] = ['tipe' => 'total', 'kode' => '5.', 'uraian' => 'BELANJA', 'jumlah' => array_sum($sumSeg1)] + $kosong;
+        // Tanpa rincian, $baris dibiarkan kosong supaya view menampilkan pesan kosong.
+        if ($urut !== []) {
+            $baris[] = ['tipe' => 'total', 'kode' => '5.', 'uraian' => 'BELANJA',
+                'jumlah' => array_sum($sumSeg1)] + $kosong;
+        }
 
         $prefixAktif = null;
         $seg1Aktif = null;
         foreach ($urut as $kode => $blok) {
-            $seg1 = explode('.', $kode)[0].'.';
+            $seg1 = implode('.', array_slice(explode('.', $kode), 0, 2)).'.';
             if ($seg1 !== $seg1Aktif) {
                 $seg1Aktif = $seg1;
                 $baris[] = ['tipe' => 'seg1', 'kode' => $seg1,
