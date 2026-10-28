@@ -621,6 +621,10 @@ class LaporanArkasController extends Controller
             'judulVarian' => $varian === 'dpa22'
                 ? 'LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)'
                 : 'LEMBAR KERTAS KERJA',
+            // Dua dokumen ARKAS memakai judul tabel berbeda untuk isi yang sama.
+            'subJudul' => $varian === 'dpa22'
+                ? 'Rekapitulasi Belanja Langsung Berdasarkan Program dan Kegiatan'
+                : 'Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan',
             'pemerintah' => trim((string) ($sekolah->kab_kota ?? '')) !== ''
                 ? 'PEMERINTAH '.strtoupper((string) $sekolah->kab_kota)
                 : 'PEMERINTAH '.strtoupper((string) ($sekolah->provinsi ?? '')),

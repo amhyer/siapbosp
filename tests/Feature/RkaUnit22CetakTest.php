@@ -109,7 +109,9 @@ class RkaUnit22CetakTest extends TestCase
         $this->cetak(['varian' => 'dpa22'])
             ->assertSee('LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)')
             ->assertDontSee('LEMBAR KERTAS KERJA')
-            ->assertSee('Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan');
+            // dpa-unit-22-output.pdf memakai "Rekapitulasi …", rka-unit-22 "Rincian …".
+            ->assertSee('Rekapitulasi Belanja Langsung Berdasarkan Program dan Kegiatan')
+            ->assertDontSee('Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan');
     }
 
     /** Tiga tingkat baris: program, sub program, lalu rincian. */

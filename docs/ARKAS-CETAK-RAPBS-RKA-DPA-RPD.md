@@ -122,12 +122,24 @@ Dua varian dalam sampel:
   `Tahun 2023` walau kop `TAHUN ANGGARAN 2026` — quirk ARKAS). Kaki halaman:
   `RKAS Unit Kerja 2.2 - NPSN : … Halaman X dari 6`.
 
-Sebab `dpa-unit-22-output.pdf` belum dibuat: butuh kolom `lokasi kegiatan` dan
-`target kinerja (kuantitatif)` per rincian — tidak ada di `rkas_details`
-SiapBOSP. Menambah dokumen tanpa dua kolom itu akan menghasilkan lembar yang
-berbeda bentuknya dari ARKAS, jadi belum dikerjakan.
+Status: **dibuat** — `?varian=rka22` (RKA) dan `?varian=dpa22` (DPA), view
+`laporan-arkas/rka-unit-22-cetak.blade.php`.
 
-## 5. RPD K7 — **belum dibuat**
+Dua kolom yang dulu menjadi penghalang kini ada di `rkas_details`:
+`lokasi_kegiatan` dan `target_kinerja` (migrasi
+`2026_10_28_000002_add_lokasi_target_ke_rkas_details.php`), diisi opsional pada
+form Kertas Kerja. Bila kosong, saat cetak dipakai nilai turunan seperti sampel
+ARKAS: lokasi = nama sekolah, target = `volume satuan` rincian.
+
+Selisih yang masih tersisa:
+
+- Sampel ARKAS 2.2 memakai kolom kode rekening bertahap (`5.1.02` pada baris
+  ringkasan); SiapBOSP mencetak kode rekening penuh hanya pada baris rincian.
+- Kepala kolom `Tahun 2023` pada `dpa-unit-22-output.pdf` adalah quirk ARKAS
+  (tahun tetap); SiapBOSP mencetak tahun anggaran berjalan.
+- `2.2.1` (rincian per standar harga) belum dibuat.
+
+## 5. RPD K7 — **dibuat** (rute `laporan-arkas.rpd-k7`)
 
 Literal: `REKAPITULASI REALISASI PENGGUNAAN DANA BOSP`,
 `PERIODE TANGGAL : 01 Januari 2023 s/d 31 Desember 2023`, `TAHUN 2023`,
@@ -142,10 +154,11 @@ penilaian` + `JUMLAH`; ringkasan saldo 4 baris
 `Menyetujui, Kepala Sekolah` dan `Bendahara / Penanggungjawab Kegiatan`.
 Kaki halaman: **tidak ada** pada sampel.
 
-Sebab belum dibuat: matriks sub-program (12 kolom) butuh pemetaan kode kegiatan
-→ sub-program; SiapBOSP baru punya ringkasan per standar lewat laporan lain.
-Dokumen cetak `pembukuan/rekap-realisasi` yang ada **bukan** RPD K7: itu
-rekapitulasi per rekening per semester (konsep SiapBOSP sendiri, dipertahankan).
+Status: **dibuat** di `LaporanArkasController::rpdK7()` dengan matriks
+8 standar x sub-program, ringkasan saldo, dan dua kolom tanda tangan; uji
+`RpdK7CetakTest`. Dokumen cetak `pembukuan/rekap-realisasi` yang ada tetap
+**bukan** RPD K7: itu rekapitulasi per rekening per semester (konsep SiapBOSP
+sendiri, dipertahankan).
 
 ---
 
@@ -158,8 +171,11 @@ rekapitulasi per rekening per semester (konsep SiapBOSP sendiri, dipertahankan).
 | Kertas Kerja RAPBS per Bulan | **ada** | `?format=bulan`; uji `RapbsCetakTest` |
 | RKA Unit Kerja (triwulan) | **ada (baru)** | `laporan-arkas.rka-unit`; uji `RkaUnitCetakTest` |
 | DPA / RKAS Unit Kerja (per Tahap) | **ada (baru)** | `?varian=dpa&format=tahap` |
-| DPA Unit Kerja 2.2 (rekap) | belum | butuh lokasi kegiatan + target kinerja |
-| RPD K7 (8 standar) | belum | butuh pemetaan sub-program |
+| RKA Unit Kerja 2.2 | **ada (baru)** | `?varian=rka22`; uji `RkaUnit22CetakTest` |
+| DPA Unit Kerja 2.2 (rekap) | **ada (baru)** | `?varian=dpa22`; judul tabel `Rekapitulasi …` |
+| RKA/DPA Unit Kerja 2.2.1 | belum | rincian per standar harga |
+| RPD K7 (8 standar) | **ada** | `laporan-arkas.rpd-k7`; uji `RpdK7CetakTest` |
+| APBS / RKAS semua sumber dana | **ada (baru)** | `laporan-arkas.apbs`; uji `ApbsCetakTest` |
 
 Tidak ada satu pun angka di dokumen ini yang diverifikasi lewat peramban: yang
 diuji CI adalah HTML yang dikirim (judul, kolom, baris, total, kaki halaman).

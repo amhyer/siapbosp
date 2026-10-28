@@ -36,7 +36,7 @@
 </table>
 
 <div style="text-align:center;font-weight:700;font-size:12px;margin:1rem 0 .35rem">
-  Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan
+  {{ $subJudul }}
 </div>
 
 <table class="tbl" style="font-size:.68rem">
