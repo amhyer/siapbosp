@@ -90,8 +90,14 @@ Catatan pemetaan:
 - `.btn`, `.btn-danger`, `.inp:focus`, `.navw a.on`, dan kepala `.tbl th`
   memakai token di atas; kartu tetap **tanpa bayangan** (garis 1 px) seperti
   keputusan tampilan sebelumnya.
-- Tipografi ARKAS memakai **Inter**; SiapBOSP tetap Instrument Sans agar tidak
-  bergantung font berjaringan (tidak ada perubahan di sini).
+- Tipografi ARKAS memakai **Inter**. Sejak 28 Okt 2026 SiapBOSP memakai Inter
+  yang **disimpan sendiri** di `public/fonts/inter-latin-wght-normal.woff2`
+  (variabel, subset latin, 48 KB) — bukan CDN, karena CSP aplikasi hanya
+  mengizinkan `font-src 'self'`. Deklarasi `@font-face` ada di tiga jalur
+  pemuatan gaya supaya hasilnya sama: `resources/css/app.css` (aset build),
+  `layouts/print` (dokumen cetak), dan `layouts/_gaya-darurat` (fallback tanpa
+  build). Lisensi SIL OFL disertakan di `public/fonts/Inter-OFL.txt`.
+  Dijaga oleh `tests/Feature/TipografiInterTest.php`.
 
 Halaman **`/gaya`** menampilkan seluruh token, tombol, badge, formulir, tabel,
 dan tab sehingga hasilnya bisa diperiksa tanpa membuka ARKAS. Halaman itu
@@ -143,7 +149,10 @@ Aturan praktis saat menambah UI baru:
 
 Selain itu `CssHalamanTest` tetap menjaga: setiap view punya layout beraset CSS,
 halaman cetak hanya memakai kelas yang didefinisikan di `layouts/print`, dan semua
-kelas komponen `app.css` ada di jalur darurat.
+kelas komponen `app.css` ada di jalur darurat. `TipografiInterTest` menjaga fon
+Inter: berkasnya ada & sah (magic `wOF2`), lisensinya ikut, ketiga jalur gaya
+menunjuk berkas yang sama, CSP mengizinkan `font-src 'self'`, dan aset build
+memuat `@font-face`-nya.
 
 ## 6. Yang sengaja tidak diubah
 

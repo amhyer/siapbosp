@@ -15,9 +15,17 @@
   berkas tetap sepadan.
 --}}
 <style>
+  /* Tipografi ARKAS: Inter disimpan lokal (public/fonts), sama dengan app.css. */
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2');
+  }
   /* ===== Dasar (app.css @layer base) ===== */
   body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     background: #f1f5f9;
     color: #1e293b;
     -webkit-font-smoothing: antialiased;

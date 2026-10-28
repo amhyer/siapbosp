@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ $title ?? 'Cetak' }}@isset($sekolah) — {{ $sekolah->nama }}@endisset</title>
 <style>
+  /* Inter (berkas yang sama dengan aplikasi) supaya dokumen cetak memakai
+     tipografi yang sama seperti layar; asal-usul & lisensi: public/fonts. */
+  @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;
+    src:url('/fonts/inter-latin-wght-normal.woff2') format('woff2')}
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px;max-width:62rem;margin:auto;color:#0f172a;line-height:1.5}
+  body{font-family:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px;max-width:62rem;margin:auto;color:#0f172a;line-height:1.5}
   .kop{border-bottom:3px double #0f172a;padding-bottom:.6rem;margin-bottom:1rem;text-align:center}
   .tbl{width:100%;border-collapse:collapse;font-size:.78rem}
   .tbl th,.tbl td{border:1px solid #94a3b8;padding:.32rem .5rem;text-align:left;vertical-align:top}
