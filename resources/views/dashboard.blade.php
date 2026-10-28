@@ -106,7 +106,7 @@
 
   <div class="card flex items-center gap-4">
     <div class="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
-         style="background:conic-gradient(#1a56db {{ min(100,$serapan)*3.6 }}deg, #e2e8f0 0deg)">
+         style="background:conic-gradient(#0b5fef {{ min(100,$serapan)*3.6 }}deg, #e2e8f0 0deg)">
       <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-sm font-bold text-indigo-700">{{ $serapan }}%</div>
     </div>
     <div>
@@ -255,7 +255,7 @@
     new Chart(elK,{type:'bar',
       data:{labels:@json(($serapanKomponen ?? collect())->pluck('nama')),datasets:[
         {label:'Anggaran RKAS',data:@json(($serapanKomponen ?? collect())->pluck('anggaran')),backgroundColor:'#bfdbfe',borderRadius:4},
-        {label:'Realisasi',data:@json(($serapanKomponen ?? collect())->pluck('realisasi')),backgroundColor:'#1a56db',borderRadius:4}]},
+        {label:'Realisasi',data:@json(($serapanKomponen ?? collect())->pluck('realisasi')),backgroundColor:'#0b5fef',borderRadius:4}]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtUang(c.parsed.x)}}},scales:{x:{ticks:{callback:fmtUang}}}}});
   }
 })();

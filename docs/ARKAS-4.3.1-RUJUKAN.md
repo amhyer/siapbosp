@@ -86,7 +86,7 @@ bentuk dokumennya (dari PDF di `output/`).
 
 Ada satu kredensial (`SATU_EVENT_PASSWORD`) yang sengaja tidak dicatat di repo.
 
-## 6. Selisih nyata dengan SiapBOSP (belum diperbaiki)
+## 6. Selisih nyata dengan SiapBOSP
 
 `ref_sumber_dana` ARKAS 4.3.1 (9 baris, lengkap dengan kode rekening):
 
@@ -103,8 +103,40 @@ Ada satu kredensial (`SATU_EVENT_PASSWORD`) yang sengaja tidak dicatat di repo.
 | 99 | `0` | Saldo Awal | dihitung `KasService` (bukan sumber dana) |
 
 Ringkas: ARKAS memakai awalan **BOS** (bukan BOSP) dan memisahkan **SiLPA per sumber
-dana**; SiapBOSP memakai BOSP dan satu `SILPA`. Perubahan nama = migrasi data +
-penyesuaian test, jadi dicatat dulu di sini, belum dijalankan.
+dana**; SiapBOSP memakai BOSP dan satu `SILPA`.
+
+**Status 2026-10-28:** ejaan BOS sudah *diterima* di pemetaan tab
+(`RkasHeader::TAB_SUMBER_DANA`) — impor berkas ARKAS yang menulis "BOS Daerah",
+"SiLPA BOS Kinerja", atau "BOS Afirmasi" kini jatuh ke tab yang benar
+(`tests/Feature/SumberDanaArkasTest.php`). Nama tampilan tetap "BOSP …" karena
+itu yang dipakai **layar** ARKAS 4 dan dokumen sekolah. Yang sengaja belum
+diubah: mengganti nama master `BosType` (karena itu migrasi data + mengubah
+nama dokumen lama) dan membuat tab baru untuk SiLPA Reguler/Afirmasi (pita tab
+ARKAS juga tidak punya tab itu; keduanya ikut sumber induknya).
+
+## 6a. Yang sudah disamakan dengan keluaran cetak ARKAS 4.3.1
+
+Acuan: `Arkas/output/bku-output.pdf` (BKU resmi sekolah, NPSN 40313912,
+Januari 2026, BOSP Reguler Perubahan Revisi Ke 1) — teksnya dibaca dengan
+`pypdf` mode layout, bukan ditebak.
+
+| Butir | Sebelum | Sekarang (`pembukuan/bku-cetak`) |
+|---|---|---|
+| Kepala kolom | Tanggal · Kegiatan · Rekening · No. Bukti · Uraian · Penerimaan (Rp) · Pengeluaran (Rp) · Saldo (Rp) | nomor kolom **1–8** + Tanggal · Kode Kegiatan · Kode Rekening · No. Bukti · Uraian · Penerimaan · Pengeluaran · Saldo |
+| Angka kolom | `Rp 10.000.000` | `10.000.000` (tanpa awalan Rp, pemisah titik) |
+| Baris rekap | `JUMLAH` | `Jumlah` |
+| Blok penutup | `Rp 14.000.000` | `Rp. 14.000.000`, rincian ditulis `- Saldo Bank` / `- Saldo Kas Tunai` |
+| Tanda tangan | 3 kolom (+ Komite Sekolah), tempat = kabupaten/kota | 2 kolom: Menyetujui/Kepala Sekolah dan Bendahara; tempat = **Kec. <kecamatan>** |
+
+Belum bisa ditiru dan sebabnya:
+- **Dua baris saldo awal** (`Saldo Bank Bulan Desember 2025` + `Saldo Tunai ...`)
+  — ARKAS memisah saldo bank/tunai karena punya tabel `aktivasi_bku` dengan
+  saldo awal per jenis kas. `KasService::ledger` SiapBOSP mencampur SILPA tahun
+  lalu ke satu angka `saldoAwalTahun`, sehingga memecahnya jadi dua baris akan
+  memunculkan selisih palsu. Rincian bank/tunai tetap ada di blok penutup.
+- **`Halaman 1 dari 2` di kaki tiap halaman** — butuh counter halaman cetak;
+  CSS `@page` di Chromium tidak mendukung isi margin box, jadi tidak dipaksakan
+  (footer jejak cetak "bukan dokumen resmi ARKAS" tetap ada).
 
 ## 7. Privasi
 

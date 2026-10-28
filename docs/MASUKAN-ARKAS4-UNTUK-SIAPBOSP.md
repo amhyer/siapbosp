@@ -375,7 +375,7 @@ watermark semua cetak, tab sumber dana, filter arsip seragam). Yang masih berbed
 
 Rupa seluruh halaman diatur dari satu tempat: `resources/css/app.css` (token `@theme` +
 kelas komponen `@layer components`) dan `resources/views/layouts/_gaya-darurat.blade.php`
-(jalur tanpa build). Palet ARKAS (biru `#1a56db`, sudut tegas, kartu pipih) dipasang
+(jalur tanpa build). Palet ARKAS (biru `#0b5fef`, sudut tegas, kartu pipih) dipasang
 sebagai pemetaan token sehingga satu perubahan berlaku untuk semua halaman.
 Rincian, aturan menambah UI, dan cara build ulang aset: [`SISTEM-TAMPILAN.md`](SISTEM-TAMPILAN.md).
 

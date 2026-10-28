@@ -12,6 +12,8 @@
   .tbl{width:100%;border-collapse:collapse;font-size:.78rem}
   .tbl th,.tbl td{border:1px solid #94a3b8;padding:.32rem .5rem;text-align:left;vertical-align:top}
   .tbl th{background:#f1f5f9}
+  /* Baris nomor kolom BKU ala ARKAS 4 (1–8). */
+  .tbl tr.bku-nomor th{background:#e2e8f0;text-align:center;font-size:.68rem;color:#475569;padding:.15rem .3rem}
   .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .pg{break-before:page}
   .toolbar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}

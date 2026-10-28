@@ -8,7 +8,7 @@ use Tests\TestCase;
  * Kontrak tampilan global ala ARKAS 4.
  *
  * Semua halaman memakai utilitas `indigo-*` dan kelas komponen di
- * `resources/css/app.css`. Palet ARKAS (biru #1a56db) dipasang sekali di
+ * `resources/css/app.css`. Palet ARKAS (biru #0b5fef = --color-action-default) dipasang sekali di
  * blok `@theme`, jadi satu perubahan di sana harus mengubah SELURUH halaman.
  *
  * Tes ini menjaga tiga hal yang mudah rusak tanpa disadari:
@@ -62,7 +62,8 @@ class ArkasTampilanTest extends TestCase
         }
 
         $this->assertStringContainsString('--color-brand-600: '.$biru, $sumber);
-        $this->assertSame('#1a56db', $biru, 'Biru ARKAS berubah tanpa memperbarui dokumentasi tampilan.');
+        // #0b5fef = token --color-action-default ARKAS 4.3.1 (design token resmi).
+        $this->assertSame('#0b5fef', $biru, 'Biru ARKAS berubah tanpa memperbarui dokumentasi tampilan.');
     }
 
     public function test_aset_build_memakai_palet_dan_bentuk_arkas(): void

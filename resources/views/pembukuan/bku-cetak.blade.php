@@ -7,6 +7,10 @@
   $tglAwal = $awal->format('d-m-Y');
   $tglAkhir = $akhir->format('d-m-Y');
   $gayaPilih = 'border:1px solid #cbd5e1;border-radius:.5rem;padding:.35rem .5rem;font-size:.82rem;background:#fff;font-family:inherit';
+  // ARKAS 4 mencetak angka kolom tanpa awalan "Rp" (hanya pemisah ribuan titik),
+  // sedangkan blok penutup memakai awalan "Rp.". Kedua bentuk disediakan di sini.
+  $angka = fn ($v) => number_format((int) $v, 0, ',', '.');
+  $rpTitik = fn ($v) => 'Rp. '.number_format((int) $v, 0, ',', '.');
 @endphp
 {{-- Pemilih Format + Periode ala ARKAS 4 (tampil di layar, tidak ikut tercetak). --}}
 <div class="toolbar nonprint">
@@ -48,9 +52,13 @@
   Format : <b>{{ $formatPilihan[$format] ?? $format }}</b> · {{ $catatan }}
 </div>
 <table class="tbl">
-  <thead><tr><th>Tanggal</th><th>Kegiatan</th><th>Rekening</th><th>No. Bukti</th><th>Uraian</th><th class="num">Penerimaan (Rp)</th><th class="num">Pengeluaran (Rp)</th><th class="num">Saldo (Rp)</th></tr></thead>
+  {{-- Kolom BKU mengikuti urutan & penomoran ARKAS 4: 8 kolom bernomor 1–8. --}}
+  <thead>
+    <tr class="bku-nomor"><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th class="num">6</th><th class="num">7</th><th class="num">8</th></tr>
+    <tr><th>Tanggal</th><th>Kode Kegiatan</th><th>Kode Rekening</th><th>No. Bukti</th><th>Uraian</th><th class="num">Penerimaan</th><th class="num">Pengeluaran</th><th class="num">Saldo</th></tr>
+  </thead>
   <tbody>
-    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAwal }}</td><td></td><td></td><td></td><td>{{ $labelSaldoAwal }}</td><td class="num"></td><td class="num"></td><td class="num">{{ rp($saldoAwal) }}</td></tr>
+    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAwal }}</td><td></td><td></td><td></td><td>{{ $labelSaldoAwal }}</td><td class="num"></td><td class="num"></td><td class="num">{{ $angka($saldoAwal) }}</td></tr>
     @foreach($rows as $row)
     @php
       $t = $row['trx'];
@@ -62,29 +70,32 @@
       <td style="font-family:monospace;font-size:11px">{{ $rek }}</td>
       <td>{{ $t->arkas_bku ?? ($t->no_bku ? 'BKU#' . $t->no_bku : '') }}</td>
       <td>{{ $t->keterangan }}</td>
-      <td class="num">{{ $row['masuk'] ? rp($row['masuk']) : '' }}</td><td class="num">{{ $row['keluar'] ? rp($row['keluar']) : '' }}</td>
-      <td class="num">{{ rp($row['saldo']) }}</td></tr>
+      <td class="num">{{ $row['masuk'] ? $angka($row['masuk']) : '' }}</td><td class="num">{{ $row['keluar'] ? $angka($row['keluar']) : '' }}</td>
+      <td class="num">{{ $angka($row['saldo']) }}</td></tr>
     @endforeach
-    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAkhir }}</td><td></td><td></td><td></td><td>Pajak Bunga</td><td class="num"></td><td class="num"></td><td class="num">{{ rp($saldoAkhir) }}</td></tr>
+    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAkhir }}</td><td></td><td></td><td></td><td>Pajak Bunga</td><td class="num"></td><td class="num"></td><td class="num">{{ $angka($saldoAkhir) }}</td></tr>
   </tbody>
   <tfoot>
-    <tr style="font-weight:700"><td colspan="5" style="text-align:right">JUMLAH</td><td class="num">{{ rp(collect($rows)->sum('masuk')) }}</td><td class="num">{{ rp(collect($rows)->sum('keluar')) }}</td><td class="num">{{ rp($saldoAkhir) }}</td></tr>
+    <tr style="font-weight:700"><td colspan="5" style="text-align:right">Jumlah</td><td class="num">{{ $angka(collect($rows)->sum('masuk')) }}</td><td class="num">{{ $angka(collect($rows)->sum('keluar')) }}</td><td class="num">{{ $angka($saldoAkhir) }}</td></tr>
   </tfoot>
 </table>
 
 <div style="font-size:12px;margin-top:1rem">Pada hari ini {{ $hariIniTeks }} Buku Kas Umum Ditutup dengan keadaan/posisi buku sebagai berikut :</div>
-<div style="font-size:13px;margin-top:.3rem">Saldo Buku Kas Umum : <b>{{ rp($saldoAkhir) }}</b><br>Terdiri Dari :<br>— Saldo Bank : <b>{{ rp($bankAkhir) }}</b><br>— Saldo Kas Tunai : <b>{{ rp($tunaiAkhir) }}</b><br>Jumlah : <b>{{ rp($bankAkhir + $tunaiAkhir) }}</b></div>
+<div style="font-size:13px;margin-top:.3rem">Saldo Buku Kas Umum : <b>{{ $rpTitik($saldoAkhir) }}</b><br>Terdiri Dari :<br>- Saldo Bank : <b>{{ $rpTitik($bankAkhir) }}</b><br>- Saldo Kas Tunai : <b>{{ $rpTitik($tunaiAkhir) }}</b><br>Jumlah : <b>{{ $rpTitik($bankAkhir + $tunaiAkhir) }}</b></div>
 
 @php
   $kepsek = $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'kepala') !== false);
   $bendahara = $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'bendahara') !== false);
-  $namaKomite = $penandatangan->first(fn($p) => stripos($p->jabatan ?? '', 'komite') !== false)?->nama ?? $sekolah->nama_komite ?? '( ……………………… )';
+  // ARKAS 4 mencetak dua kolom tanda tangan: Menyetujui/Kepala Sekolah dan
+  // Bendahara, dengan tempat-tanggal memakai KECAMATAN (bukan kabupaten/kota).
+  $tempatTtd = trim((string) ($sekolah->kecamatan ?? '')) !== ''
+    ? 'Kec. '.$sekolah->kecamatan
+    : (string) ($sekolah->kab_kota ?? '');
 @endphp
 <div class="ttd">
-  <div class="ttd-grid" style="grid-template-columns:1fr 1fr 1fr">
+  <div class="ttd-grid" style="grid-template-columns:1fr 1fr">
     <div><div style="margin-bottom:4rem">Menyetujui,<br>Kepala Sekolah</div><div style="font-weight:700;text-decoration:underline">{{ $kepsek->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $kepsek->nip ?? '…' }}</div></div>
-    <div><div style="margin-bottom:4rem">{{ $sekolah->kab_kota ?? '' }}, {{ $tglAkhirTeks }}<br>Bendahara</div><div style="font-weight:700;text-decoration:underline">{{ $bendahara->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $bendahara->nip ?? '…' }}</div></div>
-    <div><div style="margin-bottom:4rem"><br>Komite Sekolah</div><div style="font-weight:700;text-decoration:underline">{{ $namaKomite }}</div><div>&nbsp;</div></div>
+    <div><div style="margin-bottom:4rem">{{ $tempatTtd }}, {{ $tglAkhirTeks }}<br>Bendahara</div><div style="font-weight:700;text-decoration:underline">{{ $bendahara->nama ?? '( ……………………… )' }}</div><div>NIP. {{ $bendahara->nip ?? '…' }}</div></div>
   </div>
 </div>
 @endsection
