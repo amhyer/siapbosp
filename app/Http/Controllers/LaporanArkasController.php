@@ -254,27 +254,35 @@ class LaporanArkasController extends Controller
 
     // ==================== 2b. Kertas Kerja RAPBS per Tahap ====================
 
+    /** Angka Romawi untuk label tahap/triwulan (ARKAS memakai I, II, III, IV). */
+    private static function romawi(int $n): string
+    {
+        return ['I', 'II', 'III', 'IV'][$n - 1] ?? (string) $n;
+    }
+
     /**
-     * Kertas Kerja RAPBS — dua varian cetak ARKAS 4.3.1:
+     * Kertas Kerja RAPBS — tiga varian cetak ARKAS 4.3.1:
      *
-     *  - per Tahap (baku): "KERTAS KERJA RENCANA KEGIATAN DAN ANGGARAN SEKOLAH
-     *    (RKAS) PER TAHAP" — blok A. PENERIMAAN + pohon belanja dengan kolom
-     *    per tahap, ditutup Jumlah; tanpa tanda tangan (sama seperti ARKAS).
-     *  - per Bulan (?format=bulan): "RINCIAN KERTAS KERJA PERBULAN" — angka
-     *    kolom Jumlah = rencana bulan terpilih, ditutup tanda tangan 3 kolom
+     *  - per Tahap (baku): "KERTAS KERJA … (RKAS) PER TAHAP", kolom Tahap 1..n,
+     *    tanpa tanda tangan (sama seperti rapbs-tahap-output.pdf).
+     *  - per Triwulan (?format=triwulan): judul "… PER TRIWULAN", kolom I–IV
+     *    (rapbs-tri-output.pdf).
+     *  - per Bulan (?format=bulan): "RINCIAN KERTAS KERJA PERBULAN", satu kolom
+     *    Jumlah berisi rencana bulan terpilih, ditutup tanda tangan 3 kolom
      *    (Komite Sekolah / Kepala Sekolah / Bendahara Sekolah).
      *
-     * Angka bulanan memakai RkasDetail::nominalPerBulan() — sumber yang sama
-     * dengan Kertas Kerja ARKAS 4 (bulan_volumes, fallback periode_volume).
+     * Angka periode memakai RkasDetail::nominalPerBulan() untuk triwulan/bulan,
+     * dan proporsi `periode_volume` untuk tahap (aturan layar Rincian RKAS).
      */
     public function rapbsCetak(Request $r)
     {
         [$sid, $tahun, $bulan] = $this->ctx($r);
-        $format = $r->query('format') === 'bulan' ? 'bulan' : 'tahap';
+        $format = in_array($r->query('format'), ['bulan', 'triwulan'], true) ? (string) $r->query('format') : 'tahap';
         $kop = $this->kop($sid, $tahun);
         $kodeNama = ArkasKode::peta($sid, $tahun);
         $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
         $nTahap = max(2, $tahaps->count());
+        $nPeriode = $format === 'tahap' ? $nTahap : ($format === 'triwulan' ? 4 : 0);
 
         // A. Penerimaan per sumber dana (alokasi resmi tahun anggaran).
         $kodeRef = collect(RkasHeader::SUMBER_DANA_REF_ARKAS)->pluck('kode', 'nama');
@@ -291,25 +299,35 @@ class LaporanArkasController extends Controller
         $baris = [];
         $ringkas = [];
         $total = 0;
-        $totalTahap = array_fill(1, $nTahap, 0);
+        $totalPeriode = array_fill(1, max(1, $nPeriode), 0);
         $totalBulan = 0;
 
         foreach ($kop['rkas']?->details()->with('rekening')->orderBy('kode_kegiatan')->orderBy('id')->get() ?? [] as $d) {
             $keg = preg_replace('/\s+/', '', (string) $d->kode_kegiatan);
             $seg = $keg === '' ? [] : array_values(array_filter(explode('.', trim($keg, '.'))));
             $jumlah = (int) $d->jumlah;
-            $nilaiBulan = (int) ($d->nominalPerBulan()[$bulan] ?? 0);
+            $bulanan = $d->nominalPerBulan();
+            $nilaiBulan = (int) ($bulanan[$bulan] ?? 0);
 
-            // Pembagian per tahap: proporsi periode_volume, jika tidak ada dibagi rata
-            // (aturan yang sama dengan layar Rincian RKAS per Tahap).
-            $vol = json_decode((string) ($d->periode_volume ?? '[]'), true);
-            $vol = is_array($vol) ? array_map('floatval', $vol) : [];
-            $totVol = array_sum($vol);
-            $tahapNilai = [];
-            for ($i = 1; $i <= $nTahap; $i++) {
-                $tahapNilai[$i] = ($totVol > 0 && (float) ($vol[$i] ?? 0) > 0)
-                    ? (int) round($jumlah * (float) $vol[$i] / $totVol)
-                    : (int) floor($jumlah / max(1, $nTahap));
+            // Kolom periode: tahap (proporsi periode_volume) atau triwulan (3 bulan).
+            $periodeNilai = [];
+            if ($format === 'tahap') {
+                $vol = json_decode((string) ($d->periode_volume ?? '[]'), true);
+                $vol = is_array($vol) ? array_map('floatval', $vol) : [];
+                $totVol = array_sum($vol);
+                for ($i = 1; $i <= $nTahap; $i++) {
+                    $periodeNilai[$i] = ($totVol > 0 && (float) ($vol[$i] ?? 0) > 0)
+                        ? (int) round($jumlah * (float) $vol[$i] / $totVol)
+                        : (int) floor($jumlah / max(1, $nTahap));
+                }
+            } elseif ($format === 'triwulan') {
+                for ($t = 1; $t <= 4; $t++) {
+                    $nilai = 0;
+                    for ($m = ($t - 1) * 3 + 1; $m <= $t * 3; $m++) {
+                        $nilai += (int) ($bulanan[$m] ?? 0);
+                    }
+                    $periodeNilai[$t] = $nilai;
+                }
             }
 
             $prefix = '';
@@ -321,44 +339,68 @@ class LaporanArkasController extends Controller
                     $baris[] = ['tipe' => $tipe, 'kode' => $prefix.'.',
                         'uraian' => (string) ($kodeNama[$prefix.'.'] ?? ($kodeNama[$prefix] ?? '')),
                         'rek' => '', 'volume' => null, 'satuan' => '', 'tarif' => null,
-                        'jumlah' => 0, 'bulan' => 0, 'tahap' => array_fill(1, $nTahap, 0)];
+                        'jumlah' => 0, 'bulan' => 0, 'periode' => array_fill(1, max(1, $nPeriode), 0)];
                 }
                 $baris[$ringkas[$prefix]]['jumlah'] += $jumlah;
                 $baris[$ringkas[$prefix]]['bulan'] += $nilaiBulan;
-                foreach ($tahapNilai as $i2 => $v) {
-                    $baris[$ringkas[$prefix]]['tahap'][$i2] += $v;
+                foreach ($periodeNilai as $i2 => $v) {
+                    $baris[$ringkas[$prefix]]['periode'][$i2] += $v;
                 }
             }
 
             $baris[] = ['tipe' => 'rincian', 'kode' => '', 'uraian' => (string) $d->uraian,
                 'rek' => (string) ($d->rekening->kode ?? '—'), 'volume' => $d->banyak,
                 'satuan' => (string) $d->satuan, 'tarif' => (int) $d->harga_satuan,
-                'jumlah' => $jumlah, 'bulan' => $nilaiBulan, 'tahap' => $tahapNilai];
+                'jumlah' => $jumlah, 'bulan' => $nilaiBulan, 'periode' => $periodeNilai];
 
             $total += $jumlah;
             $totalBulan += $nilaiBulan;
-            foreach ($tahapNilai as $i2 => $v) {
-                $totalTahap[$i2] += $v;
+            foreach ($periodeNilai as $i2 => $v) {
+                $totalPeriode[$i2] += $v;
             }
         }
 
-        $labelTahap = $tahaps->pluck('nama')->implode(' dan ');
         $namaBulanTeks = self::BULAN[$bulan];
-        $penandatangan = Penandatangan::orderBy('id')->get();
+        $romawiTahap = [];
+        foreach ($tahaps->values() as $i => $t) {
+            $romawiTahap[] = self::romawi((int) ($t->urutan ?: $i + 1));
+        }
+        if ($romawiTahap === []) {
+            $romawiTahap = ['I', 'II'];
+        }
+        $labelPeriode = match ($format) {
+            'bulan' => $namaBulanTeks.' '.$tahun,
+            'triwulan' => self::daftarRomawi(4),
+            default => self::daftarRomawi(count($romawiTahap), $romawiTahap),
+        };
+
         $sekolah = $r->user()->school;
 
         return view('laporan-arkas.rapbs-cetak', [
             'format' => $format, 'baris' => $baris, 'penerimaan' => $penerimaan,
             'totalPenerimaan' => array_sum(array_column($penerimaan, 'nilai')),
-            'total' => $total, 'totalTahap' => $totalTahap, 'totalBulan' => $totalBulan, 'nTahap' => $nTahap,
+            'total' => $total, 'totalPeriode' => $totalPeriode, 'totalBulan' => $totalBulan,
+            'nTahap' => $nTahap, 'nPeriode' => $nPeriode,
             'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun, 'bulan' => $bulan,
             'namaBulan' => self::BULAN, 'labelBulan' => $namaBulanTeks,
-            'labelTahap' => $labelTahap !== '' ? $labelTahap : ('I s/d '.$nTahap),
-            'penandatangan' => $penandatangan,
+            'labelKopPeriode' => ['bulan' => 'Bulan', 'triwulan' => 'Triwulan'][$format] ?? 'Tahap',
+            'labelPeriode' => $labelPeriode,
+            'penandatangan' => Penandatangan::orderBy('id')->get(),
             'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
                 ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
             'tanggalTtd' => now()->translatedFormat('d F Y'),
         ]);
+    }
+
+    /** Label daftar angka Romawi ala ARKAS: "I,II,III dan IV" atau "I dan II". */
+    private static function daftarRomawi(int $n, array $romawi = []): string
+    {
+        $romawi = $romawi !== [] ? $romawi : array_map(fn ($i) => self::romawi($i), range(1, $n));
+        if (count($romawi) === 1) {
+            return $romawi[0];
+        }
+
+        return implode(',', array_slice($romawi, 0, -1)).' dan '.end($romawi);
     }
 
     // ==================== 2c. RKA / DPA Unit Kerja ====================

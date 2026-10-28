@@ -153,8 +153,9 @@ rekapitulasi per rekening per semester (konsep SiapBOSP sendiri, dipertahankan).
 
 | Dokumen ARKAS | di SiapBOSP | Catatan |
 |---|---|---|
-| Kertas Kerja RAPBS per Tahap | **ada (baru)** | rute baku, uji `RapbsCetakTest` |
-| Kertas Kerja RAPBS per Bulan | **ada (baru)** | `?format=bulan`; uji `RapbsCetakTest` |
+| Kertas Kerja RAPBS per Tahap | **ada** | rute baku, uji `RapbsCetakTest` |
+| Kertas Kerja RAPBS per Triwulan | **ada (baru)** | `?format=triwulan`; uji `RapbsCetakTest` |
+| Kertas Kerja RAPBS per Bulan | **ada** | `?format=bulan`; uji `RapbsCetakTest` |
 | RKA Unit Kerja (triwulan) | **ada (baru)** | `laporan-arkas.rka-unit`; uji `RkaUnitCetakTest` |
 | DPA / RKAS Unit Kerja (per Tahap) | **ada (baru)** | `?varian=dpa&format=tahap` |
 | DPA Unit Kerja 2.2 (rekap) | belum | butuh lokasi kegiatan + target kinerja |
@@ -164,3 +165,19 @@ Tidak ada satu pun angka di dokumen ini yang diverifikasi lewat peramban: yang
 diuji CI adalah HTML yang dikirim (judul, kolom, baris, total, kaki halaman).
 Berkas PDF acuan tidak disimpan di repo — isinya data keuangan sekolah nyata;
 yang masuk repo hanya susunan/labelnya.
+
+---
+
+## Pembaruan: banding langsung dengan PDF acuan
+
+Banding baris-per-baris dengan 13 PDF ARKAS (RAPBS per Tahap/Triwulan/Bulan,
+RKA Unit 2 varian, DPA Unit 3 varian, RPD K7) dicatat terpisah di
+[`ARKAS-CETAK-PARITAS.md`](ARKAS-CETAK-PARITAS.md) — termasuk daftar selisih yang
+masih tersisa dan sebab dokumen yang belum dibuat.
+
+Perubahan susunan RAPBS yang mengikuti hasil banding itu: kop memakai label ARKAS
+(`Nama Sekolah` / `Alamat` / `Kabupaten` / `Provinsi` / `Tahap|Triwulan|Bulan`,
+`NPSN` di kanan), kepala tabel memakai blok `Rincian Perhitungan` di atas
+Volume/Satuan/Tarif Harga + `Tahap`/`Triwulan` di atas kolom periode, label
+periode memakai angka Romawi, dan keterangan tambahan di bawah tabel dihapus
+karena ARKAS tidak mencetaknya.
