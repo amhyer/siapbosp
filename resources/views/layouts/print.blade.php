@@ -43,7 +43,12 @@
   .text-\[10px\]{font-size:10px}
   @media print{
     .nonprint{display:none !important}
-    @page{size:A4;margin:1.5cm}
+    /* Kaki halaman bernomor ala ARKAS 4 ("Halaman X dari Y"). Margin box CSS
+       didukung Chromium 131+ dan Safari 18.2+; peramban lain mengabaikannya
+       tanpa merusak halaman. Tiap view boleh menambah @bottom-left sendiri. */
+    @page{size:A4;margin:1.5cm;
+      @bottom-right{content:"Halaman " counter(page) " dari " counter(pages);font-size:8pt;color:#334155}
+    }
     body{padding:0;max-width:none}
     a{color:inherit;text-decoration:none}
   }
