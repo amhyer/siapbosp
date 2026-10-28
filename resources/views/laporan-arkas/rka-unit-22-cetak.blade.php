@@ -12,6 +12,8 @@
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'rka', 'format' => 'triwulan']) }}">RKA Unit (ringkas)</a>
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'rka22']) }}">RKA 2.2</a>
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'dpa22']) }}">DPA 2.2</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'rka221']) }}">RKA 2.2.1</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'dpa221']) }}">DPA 2.2.1</a>
   <a href="{{ route('laporan-arkas.rkas-tahap') }}">← Rincian RKAS per Tahap</a>
 </div>
 
