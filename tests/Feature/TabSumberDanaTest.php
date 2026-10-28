@@ -175,8 +175,10 @@ class TabSumberDanaTest extends TestCase
     /** Pemetaan tab -> jenis BOS tersedia dan tidak kosong untuk 6 tab. */
     public function test_pemetaan_tab_ke_jenis_bos(): void
     {
-        $this->assertSame([$this->bosReguler->id], RkasHeader::bosTypeIds('reguler'));
-        $this->assertSame([$this->bosKinerja->id], RkasHeader::bosTypeIds('kinerja'));
+        // Tab Reguler memuat BOS Reguler DAN SiLPA BOS Reguler (ARKAS tidak
+        // memisahkan tab SiLPA Reguler), jadi pencocokan memakai assertContains.
+        $this->assertContains($this->bosReguler->id, RkasHeader::bosTypeIds('reguler'));
+        $this->assertContains($this->bosKinerja->id, RkasHeader::bosTypeIds('kinerja'));
         $this->assertSame([], RkasHeader::bosTypeIds('tidak-ada'));
     }
 }

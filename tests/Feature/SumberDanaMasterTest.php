@@ -89,10 +89,12 @@ class SumberDanaMasterTest extends TestCase
     /** Migrasi mengubah ejaan lama pada data yang sudah ada. */
     public function test_migrasi_mengganti_ejaan_lama_pada_dokumen(): void
     {
-        DB::table('bos_types')->insert([
-            ['kode' => 'bosda', 'nama' => 'BOSP Daerah', 'created_at' => now(), 'updated_at' => now()],
-            ['kode' => 'afirmasi', 'nama' => 'BOSP Afirmasi', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // Baris ini sudah dibuat migrasi lama dengan ejaan lama; kita hanya
+        // memastikan keadaannya benar-benar ejaan lama sebelum migrasi diuji.
+        DB::table('bos_types')->updateOrInsert(['kode' => 'bosda'],
+            ['nama' => 'BOSP Daerah', 'updated_at' => now()]);
+        DB::table('bos_types')->updateOrInsert(['kode' => 'afirmasi'],
+            ['nama' => 'BOSP Afirmasi', 'updated_at' => now()]);
 
         $sekolah = \App\Models\School::create(['npsn' => '90000303', 'nama' => 'SD Migrasi',
             'jenjang' => 'SD', 'kecamatan' => 'X', 'kab_kota' => 'Y', 'provinsi' => 'Z']);
