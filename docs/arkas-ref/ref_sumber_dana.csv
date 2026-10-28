@@ -1,0 +1,10 @@
+id_ref_sumber_dana,kode,nama_sumber_dana
+1,4.3.1.01.,BOS Reguler
+3,4.3.1.03.,BOS Daerah
+5,4.3.1.05.,Lainnya
+11,4.3.1.11,BOS Afirmasi
+12,4.3.1.12,BOS Kinerja
+33,4.3.1.33.,SiLPA BOS Reguler
+34,4.3.1.34,SiLPA BOS Afirmasi
+35,4.3.1.35,SiLPA BOS Kinerja
+99,0,Saldo Awal
