@@ -51,6 +51,8 @@ agen-arkas/gui/dist/
 /storage/*.key
 /storage/pail
 /storage/framework/views/*.php
+# Hot file sementara yang ditulis Aset::arahkanVite() saat normalisasi host.
+/storage/framework/vite-hot
 /vendor
 _ide_helper.php
 Homestead.json

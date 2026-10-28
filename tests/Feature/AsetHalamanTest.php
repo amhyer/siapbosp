@@ -6,6 +6,7 @@ use App\Http\Middleware\KeamananHeader;
 use App\Support\Aset;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Vite;
 use Tests\TestCase;
 
 /**
@@ -35,6 +36,10 @@ class AsetHalamanTest extends TestCase
     {
         Aset::pakaiDirektori(null);
         Aset::pakaiPenguji(null);
+        Aset::pakaiPengujiHttp(null);
+        // arahkanVite() memindahkan hot file Laravel Vite; kembalikan ke bawaan
+        // agar tes lain tidak mewarisi alamat dev server dari tes ini.
+        Vite::useHotFile(public_path('hot'));
         // Tes yang memalsukan server dev mati memicu buangHotBasi() pada
         // `public/hot` sungguhan — pulihkan agar sesi `npm run dev` yang
         // sedang berjalan tidak kehilangan file hot-nya.
@@ -74,9 +79,12 @@ class AsetHalamanTest extends TestCase
      * Ganti penguji koneksi dev server supaya tes tidak bergantung pada soket
      * nyata (port bisa saja dipakai proses lain di mesin CI).
      */
-    private function anggapServerDev(bool $hidup): void
+    private function anggapServerDev(bool $hidup, ?bool $vite = null): void
     {
         Aset::pakaiPenguji(fn (string $url): bool => $hidup);
+        // Sejak ada tahap kedua, "port terbuka" saja tidak cukup: pemeriksaan
+        // HTTP juga harus dijawab. Bawaannya dianggap Vite yang sah.
+        Aset::pakaiPengujiHttp(fn (string $url): ?bool => $vite ?? $hidup);
     }
 
     /** Buat manifest tiruan; $berkasAda = berkas keluaran yang benar-benar ditulis. */
@@ -132,6 +140,223 @@ class AsetHalamanTest extends TestCase
             'connect-src harus mengizinkan WebSocket HMR.');
         $this->assertStringContainsString("'self'", $csp);
         $this->assertStringNotContainsString("'unsafe-inline'", $this->direktif($csp, 'script-src'));
+    }
+
+    /**
+     * Akar masalahnya di sisi Vite: tanpa `server.host`, `public/hot` berisi
+     * `http://[::1]:5173` (Windows menyelesaikan `localhost` ke ::1 lebih dulu).
+     */
+    public function test_konfigurasi_vite_mengikat_ipv4(): void
+    {
+        $isi = (string) file_get_contents(base_path('vite.config.js'));
+
+        $this->assertMatchesRegularExpression(
+            "/host:\s*'127\.0\.0\.1'/",
+            $isi,
+            'vite.config.js harus mengikat 127.0.0.1; tanpa itu public/hot berisi [::1] '
+            .'yang tidak sah menurut CSP.'
+        );
+    }
+
+    /**
+     * Invarian yang mencegah seluruh kelas bug ini terulang: origin yang
+     * DICETAK `@vite` di HTML harus muncul di CSP, dan CSP tidak boleh memuat
+     * sumber yang akan diabaikan peramban. Kalau kelak normalisasi diterapkan
+     * di satu sisi saja, tes ini gagal.
+     */
+    public function test_alamat_vite_dan_csp_selalu_sepakat(): void
+    {
+        foreach (['http://[::1]:5173', 'http://127.0.0.1:5173', 'http://localhost:5173'] as $hot) {
+            $dir = $this->dirPublik();
+            $this->anggapServerDev(true, true);
+            file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', $hot);
+            // Setiap putaran mulai dari keadaan bersih: @vite memakai hot file
+            // yang dipasang putaran sebelumnya bila tidak dikembalikan.
+            Vite::useHotFile($dir.DIRECTORY_SEPARATOR.'hot');
+            Aset::arahkanVite();
+
+            $tanggapan = $this->get('/login')->assertOk();
+            $html = (string) $tanggapan->getContent();
+            $csp = (string) $tanggapan->headers->get('Content-Security-Policy');
+
+            // Origin yang benar-benar diminta peramban.
+            $this->assertSame(1, preg_match('#(https?://[^/]+)/@vite/client#', $html, $cocok),
+                'HTML tidak memuat @vite/client untuk hot='.$hot);
+            $origin = $cocok[1];
+
+            $this->assertStringContainsString($origin, $this->direktif($csp, 'script-src'),
+                'script-src harus memuat origin yang dicetak @vite (hot='.$hot.').');
+            $this->assertStringContainsString($origin, $this->direktif($csp, 'style-src'),
+                'style-src harus memuat origin yang sama.');
+            $this->assertStringContainsString(
+                preg_replace('#^http#', 'ws', $origin),
+                $this->direktif($csp, 'connect-src'),
+                'connect-src butuh WebSocket HMR dari origin yang sama.'
+            );
+            $this->assertStringNotContainsString('[', $csp,
+                'CSP memuat literal IPv6 yang akan diabaikan peramban (hot='.$hot.').');
+
+            $this->hapusDir($dir);
+            $this->tmp = array_values(array_diff($this->tmp, [$dir]));
+            Aset::pakaiDirektori(null);
+        }
+    }
+
+    /**
+     * Mode LAN (`npm run dev -- --host 0.0.0.0`) tidak boleh ikut dinormalkan:
+     * `0.0.0.0` sah bagi CSP, dan menggantinya dengan localhost membuat
+     * peramban di komputer lain mencari dev server di mesinnya sendiri.
+     */
+    public function test_mode_lan_tidak_dinormalkan(): void
+    {
+        $dir = $this->dirPublik();
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://0.0.0.0:5173');
+
+        $this->assertSame('http://0.0.0.0:5173', Aset::hotUrlNormal());
+        $this->assertFalse(Aset::arahkanVite(), 'Tidak ada yang perlu dialihkan untuk mode LAN.');
+    }
+
+    /**
+     * Jaring pengaman: apa pun isi `public/hot`, header CSP tidak boleh memuat
+     * literal IPv6 ber-kurung — peramban membuangnya dan aset tetap diblokir.
+     */
+    public function test_header_csp_tidak_pernah_memuat_literal_ipv6(): void
+    {
+        // Kasus terburuk: Aset tidak dipakai sama sekali, sumber ditulis langsung.
+        $csp = KeamananHeader::sumberSah(
+            "default-src 'self'; script-src 'self' http://[::1]:5173; "
+            ."style-src 'self' http://[::1]:5173; connect-src 'self' http://[::1]:5173 ws://[::1]:5173"
+        );
+
+        $this->assertStringNotContainsString('[', $csp, 'Header CSP masih memuat literal IPv6.');
+        $this->assertStringContainsString('http://localhost:5173', $csp);
+        $this->assertStringContainsString('ws://localhost:5173', $csp);
+        $this->assertStringContainsString("default-src 'self'", $csp);
+
+        // IPv6 non-loopback tidak punya padanan localhost: dibuang, bukan diteruskan.
+        $lain = KeamananHeader::sumberSah("img-src 'self' http://[2001:db8::1]:8080");
+        $this->assertStringNotContainsString('[', $lain);
+        $this->assertStringNotContainsString('2001:db8', $lain);
+    }
+
+    /**
+     * Nonce pada atribut `<script>` harus sama dengan nonce di header; bila
+     * berbeda, skrip inline di halaman ditolak `script-src`.
+     */
+    public function test_nonce_atribut_sama_dengan_header_csp(): void
+    {
+        $this->anggapServerDev(false); // apa pun jalurnya, nonce harus konsisten
+        $tanggapan = $this->get('/login')->assertOk();
+        $html = (string) $tanggapan->getContent();
+        $csp = (string) $tanggapan->headers->get('Content-Security-Policy');
+
+        $this->assertSame(1, preg_match("/'nonce-([^']+)'/", $csp, $dariHeader),
+            'Header CSP harus memuat nonce.');
+        $this->assertSame(1, preg_match('/<script nonce="([^"]+)">/', $html, $dariHtml),
+            'Skrip inline halaman harus memakai atribut nonce.');
+
+        $this->assertSame($dariHeader[1], $dariHtml[1],
+            'Nonce pada atribut harus sama dengan nonce di header, kalau tidak skrip inline diblokir.');
+    }
+
+    /**
+     * Laporan lapangan: CSP sudah memuat `http://[::1]:5173`, tetapi peramban
+     * TETAP memblokir aset dev server. Sebabnya literal IPv6 ber-kurung bukan
+     * host-source yang sah menurut grammar CSP — Chromium membuangnya saat
+     * mem-parse ("contains an invalid source … It will be ignored"), sehingga
+     * `script-src`/`style-src` tidak pernah cocok dengan http://[::1]:5173.
+     */
+    public function test_hot_beralamat_ipv6_dinormalkan_ke_localhost(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://[::1]:5173');
+
+        $this->assertSame('http://localhost:5173', Aset::hotUrlNormal(),
+            'Literal IPv6 harus dieja ulang menjadi localhost agar sah bagi CSP.');
+        $this->assertSame('http://localhost:5173', Aset::hotAsal());
+
+        $csp = $this->csp();
+        $this->assertStringContainsString('http://localhost:5173', $csp);
+        $this->assertStringNotContainsString('[::1]', $csp,
+            'Literal IPv6 di CSP diabaikan peramban — jangan dicetak sama sekali.');
+        $this->assertStringContainsString('ws://localhost:5173', $csp,
+            'connect-src butuh ejaan yang sama untuk WebSocket HMR.');
+    }
+
+    /** Alamat yang sudah hostname biasa tidak boleh diubah. */
+    public function test_hot_beralamat_localhost_tidak_diubah(): void
+    {
+        $dir = $this->dirPublik();
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame('http://127.0.0.1:5173', Aset::hotUrlNormal());
+        $this->assertStringNotContainsString('localhost', (string) Aset::hotUrlNormal());
+    }
+
+    /**
+     * `@vite` membaca `public/hot` sendiri; normalisasi di Aset saja tidak
+     * mengubah alamat yang dicetak. `arahkanVite()` menulis hot file sementara
+     * dan mengarahkan Vite ke situ, sehingga HTML memakai localhost.
+     */
+    public function test_vite_mencetak_alamat_localhost_bukan_ipv6(): void
+    {
+        $dir = $this->dirPublik();
+        $this->anggapServerDev(true, true);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://[::1]:5173');
+
+        $this->assertTrue(Aset::arahkanVite(), 'Pengalihan @vite seharusnya terpasang.');
+
+        $html = (string) $this->get('/login')->assertOk()->getContent();
+        $this->assertStringContainsString('http://localhost:5173/@vite/client', $html);
+        $this->assertStringNotContainsString('[::1]', $html,
+            'HTML tidak boleh memuat literal IPv6 yang akan diblokir CSP.');
+    }
+
+    /**
+     * Port dev server terbuka tetapi yang menjawab BUKAN Vite (mis. sisa
+     * `npm run dev` proyek lain yang menahan port 5173). Dulu `Aset` hanya
+     * menguji koneksi TCP, sehingga `@vite` tetap dipakai dan CSS-nya 404 —
+     * halaman tampil polos TOTAL tanpa penjelasan.
+     */
+    public function test_port_dev_dipakai_aplikasi_lain_bukan_vite(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        // TCP menjawab, tetapi /@vite/client tidak memuat penanda Vite.
+        $this->anggapServerDev(true, false);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame(Aset::BUILD, Aset::sumber(),
+            'Port yang menjawab tetapi bukan Vite harus diabaikan; pakai aset build.');
+        $this->assertFalse(Aset::viteAktif(), '@vite tidak boleh dipakai bila Vite tidak terbukti.');
+        $this->assertFileDoesNotExist($dir.DIRECTORY_SEPARATOR.'hot',
+            'Berkas hot yang menunjuk proses asing harus dibuang agar tidak dipakai lagi.');
+        $this->assertSame(false, Aset::viteMenjawab('http://127.0.0.1:5173'));
+
+        // CSP juga tidak boleh membuka origin asing itu.
+        $this->assertStringNotContainsString('127.0.0.1:5173', $this->csp(),
+            'Origin proses asing tidak boleh dimasukkan ke CSP.');
+    }
+
+    /**
+     * Lingkungan tanpa `allow_url_fopen` tidak bisa membuktikan Vite. Jangan
+     * sampai dev server yang sah ikut dimatikan hanya karena pemeriksaan
+     * tambahan tidak bisa dijalankan.
+     */
+    public function test_bila_vite_tak_bisa_diperiksa_dev_server_tetap_dipakai(): void
+    {
+        $dir = $this->dirPublik();
+        $this->buatBuild($dir);
+        $this->anggapServerDev(true, null);
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'hot', 'http://127.0.0.1:5173');
+
+        $this->assertSame(Aset::HOT, Aset::sumber(),
+            'Pemeriksaan yang tidak bisa dilakukan tidak boleh mematikan dev server.');
+        $this->assertTrue(Aset::viteAktif());
     }
 
     public function test_tanpa_hot_csp_tidak_membuka_origin_asing(): void
@@ -368,6 +593,28 @@ class AsetHalamanTest extends TestCase
         $this->assertMatchesRegularExpression('/build\/assets|raw\.githubusercontent/', $isi);
 
         $this->assertStringContainsString('Perbaiki-Tampilan.ps1', (string) file_get_contents($bat));
+    }
+
+    /**
+     * Dokumen audit sempat menyebut nama berkas CSS ber-hash yang sudah basi
+     * (`app-BWZe9esl.css`) pada tabel "perbaikan manual"; pembaca yang
+     * mengunduhnya akan mendapat 404 dan halaman tetap polos. Nama ber-hash
+     * hanya boleh hidup di manifest, bukan di dokumen.
+     */
+    public function test_dokumen_tidak_menulis_nama_berkas_aset_yang_sudah_basi(): void
+    {
+        $dokumen = base_path('docs/AUDIT-CSS-HALAMAN.md');
+        $this->assertFileExists($dokumen);
+
+        $isi = (string) file_get_contents($dokumen);
+        $this->assertNotSame('', trim($isi), 'Dokumen audit aset tidak boleh kosong.');
+
+        preg_match_all('/assets\/app-[A-Za-z0-9_-]+\.(?:css|js)/', $isi, $cocok);
+        foreach (array_unique($cocok[0]) as $sebutan) {
+            $berkas = base_path('public/build/'.str_replace('assets/', 'assets/', $sebutan));
+            $this->assertFileExists($berkas,
+                'Dokumen menyebut '.$sebutan.' yang tidak ada di build — hash basi menyesatkan pembaca.');
+        }
     }
 
     /** Nilai satu direktif CSP tanpa tertukar dengan direktif berawalan sama. */
