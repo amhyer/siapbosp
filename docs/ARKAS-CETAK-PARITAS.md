@@ -36,7 +36,7 @@ Sumber acuan (19 berkas) — yang relevan untuk empat dokumen yang diminta:
 | DPA (RKAS) Unit Kerja per Tahap | `…rka-unit?varian=dpa&format=tahap` | **sama susunannya** | Judul `LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)` + isi RKA Unit |
 | DPA Unit Kerja 2.2 / 2.2.1 | — | **belum** | Sebab sama dengan RKA Unit 2.2 (lokasi + target kinerja) |
 | RPD K7 | `laporan-arkas.rpd-k7` | **sama susunannya** (baru) | Nama 12 sub program dicetak sebagai baris teks di bawah nomor kolom (ARKAS mencetaknya vertikal); sel matriks bergantung konvensi kode kegiatan `SS.SP.KK` |
-| APBS | — | **belum diperiksa** | Belum dibaca pada sesi ini |
+| APBS (RKAS) | — | **belum** | Matriks `RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)` dengan 6 kelompok sumber dana (BOSP Reguler, BOSP Daerah, Afirmasi, SiLPA, BOSP Lainnya, Kinerja) × kolom Belanja Operasi/Belanja Modal + `Uraian Kegiatan`/`Kode Kegiatan`; pohon kode kegiatan sampai rincian rekening. Belum dibuat — perlu satu tabel lebar dengan pengelompokan kolom per sumber dana |
 | BKU / BKU Bank / BKU Pajak / BHM | `pembukuan.bku-cetak`, `…bku-pajak`, `laporan-arkas.bhm` | **sama susunannya** (PR #46–#48) | Kolom `SSPD` (BKU Pajak) dan `ID Barang` (BHM) tidak dicetak; baris `Saldo Awal Tahun (SILPA)` adalah tambahan SiapBOSP |
 
 ## Rincian yang sudah disamakan pada RAPBS (PR ini)
