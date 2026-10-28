@@ -635,7 +635,7 @@ class LaporanArkasController extends Controller
         return view('laporan-arkas.rpd-k7-cetak', [
             'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
             'subProgram' => self::SUB_PROGRAM_RPD, 'baris' => $baris,
-            'totalKolom' => $totalKolom, 'jumlah' => $penggunaan,
+            'totalKolom' => $totalKolom, 'jumlah' => $penggunaan, 'penggunaan' => $penggunaan,
             'saldoAwal' => $saldoAwal, 'penerimaan' => $penerimaan,
             'saldoAkhir' => $saldoAwal + $penerimaan - $penggunaan,
             'periodeTeks' => '01 Januari '.$tahun.' s/d 31 Desember '.$tahun,

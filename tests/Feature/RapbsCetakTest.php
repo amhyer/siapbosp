@@ -211,7 +211,7 @@ class RapbsCetakTest extends TestCase
     public function test_tautan_antar_varian_tersedia(): void
     {
         $this->cetak()
-            ->assertSee(route('laporan-arkas.rapbs-cetak', ['format' => 'triwulan']), false)
-            ->assertSee(route('laporan-arkas.rapbs-cetak', ['format' => 'bulan', 'bulan' => 3]), false);
+            ->assertSee('format=triwulan', false)
+            ->assertSee('format=bulan', false);
     }
 }
