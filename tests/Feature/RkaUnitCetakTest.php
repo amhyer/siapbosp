@@ -153,8 +153,9 @@ class RkaUnitCetakTest extends TestCase
         $this->cetak(['format' => 'tahap'])
             ->assertSee('Unit Kerja per Tahap')
             ->assertDontSee('Unit Kerja per Triwulan')
-            ->assertSee('<th class="num" style="width:6.5rem">1</th>', false)
-            ->assertSee('<th class="num" style="width:6.5rem">2</th>', false);
+            // ARKAS tetap memakai angka Romawi untuk kolom tahap (I, II, ...).
+            ->assertSee('<th class="num" style="width:6.5rem">I</th>', false)
+            ->assertSee('<th class="num" style="width:6.5rem">II</th>', false);
     }
 
     /** Tanda tangan kepala sekolah + tempat/tanggal seperti lembar ARKAS. */
