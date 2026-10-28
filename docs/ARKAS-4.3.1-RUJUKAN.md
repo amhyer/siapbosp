@@ -157,6 +157,50 @@ yang dikirim (kelas, label, dan isi margin box).
 Dijaga oleh `tests/Feature/BkuCetakParitasArkasTest.php` dan
 `tests/Feature/BkuCetakFormatTest.php`.
 
+## 6b. Dua dokumen cetak baru (belum ada di SiapBOSP)
+
+Acuan teks: `bku-pajak-output.pdf` (1 halaman, Maret 2026) dan `bhm-output.pdf`
+(1 halaman, Juli 2026), keduanya diekstrak `pypdf` mode layout.
+
+### BKU Pajak — `/pembukuan/bku-pajak` (rute `bku.pajak`)
+ARKAS menamainya `B U K U   P E M B A N T U   P A J A K` dengan penanda
+`BKU - PAJAK` di kanan kop.
+
+| Butir | ARKAS 4.3.1 | SiapBOSP |
+|---|---|---|
+| Kop | judul + `BULAN : … TAHUN : …` + identitas NPSN…Sumber Dana | sama (partial `partials._kop-dokumen-cetak`) |
+| Kolom | `TANGGAL · NO. KODE · URAIAN · PENERIMAAN/DEBIT (PPN, PPh 21, PPh 23, PPh 4, SSPD) · PENGELUARAN/KREDIT · SALDO` | `TANGGAL · NO. KODE · URAIAN · PENERIMAAN/DEBIT (kolom per jenis pajak) · PENGELUARAN/KREDIT · SALDO` |
+| Isi baris | pajak dipungut & disetor | pungutan dari transaksi belanja (kolom jenisnya) + setoran dari transaksi setor pajak (kolom kredit); `SALDO` = utang pajak berjalan |
+| Tanda tangan | Kepala Sekolah (kiri), `Kec. …, <tgl>` + Bendahara (kanan) | sama, 2 kolom |
+
+Selisih yang disengaja:
+- **Kolom SSPD tidak dicetak** — SiapBOSP tidak punya konsep SSPD/pajak daerah;
+  jenis pajak yang tersedia hanya `ppn`, `pph21`, `pph22`, `pph23`, `pph42`.
+  Kolom dibangun dari jenis yang benar-benar ada di periode itu, jadi tabel
+  tidak pernah menampilkan kolom kosong.
+- ARKAS menaruh semua jenis pajak sebagai kolom tetap; SiapBOSP memakai kolom
+  dinamis agar `pph22` (yang tidak ada di sampel ARKAS) tetap bisa tampil.
+
+### BHM — `/laporan-arkas/bhm` (rute `laporan-arkas.bhm`)
+`REKAPITULASI REALISASI BELANJA DANA BOSP ( BARANG MODAL / ASET )`, penanda `BHM`.
+
+| Butir | ARKAS 4.3.1 | SiapBOSP |
+|---|---|---|
+| Kolom | `Tanggal · Kode Kegiatan · Kode Rekening · No. Bukti · ID Barang · Uraian · Jumlah Barang · Harga Satuan · Realisasi` | `TANGGAL · KODE KEGIATAN · KODE REKENING · NO. BUKTI · URAIAN · JUMLAH BARANG · SATUAN · HARGA SATUAN · REALISASI` |
+| Sumber baris | belanja barang modal/aset | `kas_details` dengan rekening `5.2.%` pada bulan terpilih |
+| Harga satuan | dari master barang | `nilai ÷ volume` (jika volume terisi; selain itu `—`) |
+| Kaki halaman | `BHM <Bulan> <Tahun> - NPSN : …, Nama Sekolah : …` + `Halaman X dari Y` | sama (layouts.print + `@page` margin box) |
+
+Selisih yang disengaja:
+- **`ID Barang` tidak dicetak** — SiapBOSP belum punya master barang/aset
+  (`asets`), jadi kolom itu akan selalu kosong. Diganti kolom `SATUAN` yang
+  memang tersimpan di `kas_details`.
+- Tanggal tanda tangan memakai **akhir bulan** (31 Juli 2026 pada contoh ARKAS
+  tercetak `01 Juli 2026`, kemungkinan tanggal cetak). Dipilih akhir bulan agar
+  konsisten dengan BKU.
+
+Dijaga oleh `tests/Feature/BkuPajakBhmCetakTest.php`.
+
 ## 7. Privasi
 
 - `Arkas/arkas.db` dan PDF di `Arkas/output/` berisi data keuangan sekolah nyata.

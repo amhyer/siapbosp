@@ -216,6 +216,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan-arkas/penerimaan-belanja', [LaporanArkasController::class, 'penerimaanBelanja'])->name('laporan-arkas.penerimaan-belanja');
         Route::get('/laporan-arkas/habis-pakai', [LaporanArkasController::class, 'habisPakai'])->name('laporan-arkas.habis-pakai');
         Route::get('/laporan-arkas/modal', [LaporanArkasController::class, 'modal'])->name('laporan-arkas.modal');
+        // BHM: Rekapitulasi Realisasi Belanja Barang Modal / Aset (cetak ARKAS).
+        Route::get('/laporan-arkas/bhm', [LaporanArkasController::class, 'bhm'])->name('laporan-arkas.bhm');
         Route::get('/laporan-arkas/daftar-kas-umum', [LaporanArkasController::class, 'kasUmum'])->name('laporan-arkas.kas-umum');
         Route::get('/laporan-arkas/daftar-nota', [LaporanArkasController::class, 'nota'])->name('laporan-arkas.nota');
         Route::get('/laporan-arkas/penutupan-kas', [LaporanArkasController::class, 'penutupanKas'])->name('laporan-arkas.penutupan-kas');
@@ -272,6 +274,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/pembukuan/bku', [PembukuanController::class, 'bku'])->name('bku');
         Route::get('/pembukuan/bku/cetak', [PembukuanController::class, 'bkuCetak'])->name('bku.cetak');
+        // Buku Pembantu Pajak (ARKAS 4: "Buku Pembantu Pajak").
+        Route::get('/pembukuan/bku-pajak', [PembukuanController::class, 'bkuPajak'])->name('bku.pajak');
         Route::get('/pembukuan/bku.csv', [PembukuanController::class, 'bkuCsv'])->name('bku.csv');
         Route::get('/pembukuan/buku-pembantu', [PembukuanController::class, 'bukuPembantu'])->name('pembukuan.bukuPembantu');
         Route::get('/pembukuan/rekap-realisasi', [PembukuanController::class, 'rekapRealisasi'])->name('pembukuan.rekapRealisasi');

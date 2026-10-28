@@ -53,36 +53,20 @@
   // SILPA tahun lalu tidak terbagi bank/tunai di KasService, jadi sisanya
   // dicetak sebagai baris sendiri supaya jumlah kolom Saldo tetap utuh.
   $silpaAwal = (int) $saldoAwal - ((int) $bankAwal + (int) $tunaiAwal);
-  $provinsi = trim((string) ($sekolah->provinsi ?? ''));
-  $provinsiTeks = $provinsi === '' ? '' : (stripos($provinsi, 'prov') === 0 ? $provinsi : 'Prov. '.$provinsi);
-  $desaKec = trim((string) ($sekolah->desa ?? '')) !== ''
-    ? $sekolah->desa.', Kec. '.($sekolah->kecamatan ?? '')
-    : (string) ($sekolah->kecamatan ?? '');
 @endphp
 
-<div style="text-align:center;font-weight:700;font-size:14px;letter-spacing:.45em;padding-left:.45em">B U K U   K A S   U M U M</div>
-<div style="text-align:center;font-size:12px;margin-top:.15rem">
-  @if($format === 'bulanan')
-    BULAN : {{ strtoupper($BULAN_ID[(int) $awal->format('n')]) }} TAHUN : {{ $tahun }}
-  @else
-    PERIODE : {{ $labelPeriode }}
-  @endif
-</div>
+@include('partials._kop-dokumen-cetak', [
+  'judul' => 'B U K U   K A S   U M U M',
+  'periode' => $format === 'bulanan'
+    ? 'BULAN : '.strtoupper($BULAN_ID[(int) $awal->format('n')]).' TAHUN : '.$tahun
+    : 'PERIODE : '.$labelPeriode,
+  'penanda' => 'BKU',
+  'sekolah' => $sekolah,
+  'sumberDana' => $kopSumber,
+  'revisiKe' => $revisiKe,
+  'catatan' => 'Format : <b>'.($formatPilihan[$format] ?? $format).'</b> · '.$catatan,
+])
 
-<div style="display:flex;justify-content:space-between;gap:1rem;margin:.7rem 0 .5rem;font-size:11.5px;line-height:1.55">
-  <div>
-    <div>NPSN : {{ $sekolah->npsn }}</div>
-    <div>Nama Sekolah : {{ $sekolah->nama }}</div>
-    <div>Desa/Kecamatan : {{ $desaKec !== '' ? $desaKec : '—' }}</div>
-    <div>Kabupaten / Kota : {{ $sekolah->kab_kota }}</div>
-    <div>Provinsi : {{ $provinsiTeks }}</div>
-    <div>Sumber Dana : {{ $kopSumber }}{{ $revisiKe > 1 ? ' Perubahan Revisi Ke ' . ($revisiKe - 1) : '' }}</div>
-  </div>
-  <div style="font-weight:700;font-size:13px">BKU</div>
-</div>
-<div style="font-size:10.5px;color:#475569;margin-bottom:.5rem">
-  Format : <b>{{ $formatPilihan[$format] ?? $format }}</b> · {{ $catatan }}
-</div>
 <table class="tbl">
   {{-- Susunan cetak ARKAS 4: baris JUDUL kolom lebih dulu, lalu baris nomor 1–8. --}}
   <thead>
