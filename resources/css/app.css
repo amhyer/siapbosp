@@ -18,16 +18,19 @@
        halaman mengikuti palet ARKAS tanpa menyentuh view satu per satu.
        =================================================================== */
 
-    /* Biru ARKAS (blue-5 … blue-100). blue-70 #0b5fef = warna aksi utama. */
+    /* Biru ARKAS (blue-5 … blue-100), dipetakan apa adanya:
+       600 = blue-60, 700 = blue-70, 800 = blue-80. Warna aksi utama
+       (#0b5fef = --color-action-default) dipakai lewat token semantik
+       --arkas-action di bawah, bukan dengan menggeser skala ini. */
     --color-indigo-50: #ecf5fe;
     --color-indigo-100: #e1effe;
     --color-indigo-200: #cfe3fc;
     --color-indigo-300: #b1d1fb;
     --color-indigo-400: #91bcfd;
     --color-indigo-500: #4c8df6;
-    --color-indigo-600: #0b5fef;
-    --color-indigo-700: #054bcc;
-    --color-indigo-800: #103178;
+    --color-indigo-600: #2c70e5;
+    --color-indigo-700: #0b5fef;
+    --color-indigo-800: #054bcc;
     --color-indigo-900: #103178;
     --color-indigo-950: #0e1c39;
 
@@ -83,7 +86,7 @@
     --color-amber-900: #5f4212;
 
     /* sky-* dipakai untuk kas bank: tetap keluarga biru ARKAS. */
-    --color-sky-50: #f6fafe;
+    --color-sky-50: #ecf5fe;
     --color-sky-100: #e1effe;
     --color-sky-200: #cfe3fc;
     --color-sky-300: #b1d1fb;
@@ -119,9 +122,17 @@
     --arkas-warning: #ffc453;           /* --color-warning */
     --arkas-informational: #4c8df6;     /* --color-informational */
     --arkas-text-default: #2f3031;      /* --color-text-default */
+    --arkas-text-subdued: #65696c;      /* --color-text-subdued */
+    --arkas-background-default: #fafafa; /* --color-background-default */
     --arkas-gray-5: #f5f5f5;
+    --arkas-gray-10: #efefef;
     --arkas-gray-20: #d9dbdd;
     --arkas-gray-90: #2f3031;
+    --arkas-surface-neutral-high: #efeff0; /* --color-surface-neutral-high */
+    --arkas-border-default: #808489;       /* --color-border-default */
+    --arkas-border-subdued: #c9cbcf;       /* --color-border-subdued */
+    --arkas-weight-action: 600;            /* --font-weight-action */
+    --arkas-radius: 0.25rem;               /* sudut komponen ARKAS (0.25–0.3rem) */
     /* --elevation-01 (belum dipakai: kartu sengaja tetap rata tanpa bayangan) */
     --arkas-shadow-card: 0px 1px 1px rgba(0, 0, 0, 0.08), 0px 2px 1px -1px rgba(0, 0, 0, 0.02), 0px 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -142,7 +153,8 @@
         @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 transition;
     }
     .inp:focus {
-        @apply border-indigo-600 outline-none ring-2 ring-indigo-100;
+        @apply outline-none ring-2 ring-indigo-100;
+        border-color: var(--arkas-action);
     }
     .inp-sm {
         @apply px-2.5 py-1.5 text-[13px];
@@ -156,13 +168,28 @@
 
     /* ===== Tombol ===== */
     .btn {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 active:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-[13px] text-white transition focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60;
+        background-color: var(--arkas-action);
+        border-radius: var(--arkas-radius);
+        font-weight: var(--arkas-weight-action);
+    }
+    .btn:hover {
+        background-color: var(--arkas-action-hovered);
+    }
+    .btn:active {
+        background-color: var(--arkas-action-pressed);
     }
     .btn2 {
         @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-200;
     }
     .btn-danger {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3.5 py-2 text-[13px] font-semibold text-white transition hover:bg-rose-700;
+        @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-[13px] text-white transition;
+        background-color: var(--arkas-critical); /* --color-critical #c82236 */
+        border-radius: var(--arkas-radius);
+        font-weight: var(--arkas-weight-action);
+    }
+    .btn-danger:hover {
+        background-color: #af182c; /* red-80 */
     }
     .btn-sm {
         @apply px-3 py-1.5 text-xs;
@@ -182,7 +209,9 @@
         @apply w-full min-w-[640px] border-collapse text-[12.5px];
     }
     .tbl th {
-        @apply border-b border-slate-200 bg-slate-50 px-2.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+        @apply border-b border-slate-200 px-2.5 py-2 text-left text-[11px] uppercase tracking-wide text-slate-500;
+        background-color: var(--arkas-surface-neutral-high);
+        font-weight: var(--arkas-weight-action);
     }
     .tbl td {
         @apply border-b border-slate-100 px-2.5 py-2 align-top text-slate-700;
@@ -256,7 +285,8 @@
         @apply bg-white/10 text-white no-underline;
     }
     .navw a.on {
-        @apply bg-indigo-600 font-semibold text-white;
+        @apply font-semibold text-white;
+        background-color: var(--arkas-action);
     }
     .navw .menu-btn {
         @apply font-semibold text-slate-200;

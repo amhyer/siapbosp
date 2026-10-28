@@ -9,6 +9,11 @@
     (<b>Penganggaran</b>, <b>Penatausahaan</b>, <b>Arsip</b>), sedangkan data sekolah ada di
     <b>dropdown nama sekolah</b> di kanan atas — sama seperti menu <i>Profil</i> di ARKAS 4.
   </p>
+  <p class="text-xs text-slate-500 mt-2">
+    Ingin melihat warna, tombol, dan tabel yang dipakai aplikasi?
+    Buka <a class="font-semibold text-indigo-700 no-underline hover:underline" href="{{ route('gaya') }}">etalase gaya</a>
+    — nilainya dibaca langsung dari design token ARKAS 4.3.1.
+  </p>
 </div>
 
 <div class="grid gap-4 md:grid-cols-2">

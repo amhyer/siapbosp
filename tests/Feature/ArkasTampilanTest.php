@@ -20,16 +20,20 @@ class ArkasTampilanTest extends TestCase
 {
     private const HEX_LAMA = ['#4f46e5', '#4338ca', '#6366f1', '#e0e7ff', '#c7d2fe', '#eef2ff'];
 
-    /** Nilai biru ARKAS yang dipasang di app.css. */
+    /**
+     * Biru aksi ARKAS (--color-action-default) yang dipasang di app.css.
+     * Sejak skala indigo dipetakan apa adanya (600 = blue-60), warna aksi
+     * tidak lagi dibaca dari indigo-600 melainkan dari token semantiknya.
+     */
     private function biruSumber(): string
     {
         $sumber = (string) file_get_contents(resource_path('css/app.css'));
         $this->assertMatchesRegularExpression(
-            '/--color-indigo-600:\s*(#[0-9a-fA-F]{6})/',
+            '/--arkas-action:\s*(#[0-9a-fA-F]{6})/',
             $sumber,
-            'app.css harus memetakan indigo-600 ke biru ARKAS.'
+            'app.css harus memasang token --arkas-action untuk biru aksi ARKAS.'
         );
-        preg_match('/--color-indigo-600:\s*(#[0-9a-fA-F]{6})/', $sumber, $m);
+        preg_match('/--arkas-action:\s*(#[0-9a-fA-F]{6})/', $sumber, $m);
 
         return strtolower($m[1]);
     }
@@ -72,7 +76,7 @@ class ArkasTampilanTest extends TestCase
         $css = $this->cssBuild();
 
         // 1. Token biru ikut ter-build (kalau lupa `npm run build`, ini gagal).
-        $this->assertMatchesRegularExpression('/--color-indigo-600:\s*'.preg_quote($biru, '/').'/', $css);
+        $this->assertMatchesRegularExpression('/--arkas-action:\s*'.preg_quote($biru, '/').'/', $css);
 
         // 2. Sudut tegas: kartu tidak lagi membulat besar dan tanpa bayangan.
         $this->assertStringContainsString('--radius-2xl:10px', $css);
@@ -85,8 +89,11 @@ class ArkasTampilanTest extends TestCase
         // 4. Tabel lebih rapat: padding sel 0.5rem/0.625rem.
         $this->assertMatchesRegularExpression('/\.tbl th\{[^}]*padding-block:calc\(var\(--spacing\) \* 2\)/', $css);
 
-        // 5. Tombol utama memakai token biru ARKAS.
-        $this->assertMatchesRegularExpression('/\.btn\{[^}]*background-color:var\(--color-indigo-600\)/', $css);
+        // 5. Tombol utama memakai token biru ARKAS (bukan kelas utilitas).
+        // Tailwind memecah blok @apply dan deklarasi mentah menjadi dua aturan
+        // .btn, jadi yang diperiksa keberadaan deklarasinya di CSS hasil build.
+        $this->assertStringContainsString('background-color:var(--arkas-action)', $css);
+        $this->assertStringContainsString('border-radius:var(--arkas-radius)', $css);
     }
 
     public function test_jalur_darurat_tanpa_build_memakai_palet_yang_sama(): void
