@@ -101,7 +101,7 @@
     </tr>
     <tr>
       @for($p = 1; $p <= $nPeriode; $p++)
-        <th class="num" style="width:6.5rem">{{ $labelPeriode === 'Tahap' ? $p : $romawi[$p] }}</th>
+        <th class="num" style="width:6.5rem">{{ $romawi[$p] }}</th>
       @endfor
     </tr>
   </thead>

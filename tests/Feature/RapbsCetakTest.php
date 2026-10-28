@@ -84,7 +84,11 @@ class RapbsCetakTest extends TestCase
             ->assertSee('Sumber Dana :')
             ->assertSee('Total Penerimaan')
             ->assertSee('NPSN : 40305555')
-            ->assertSee('Tahap : Tahap 1 dan Tahap 2');
+            ->assertSee('Alamat')
+            ->assertSee('Kabupaten')
+            ->assertSee('Provinsi')
+            // ARKAS menulis tahap dengan angka Romawi: "Tahap : I dan II".
+            ->assertSee('I dan II');
 
         // Kaki halaman ARKAS.
         $r->assertSee('content: "Kertas Kerja perTahap - NPSN : 40305555, Nama Sekolah : ', false);
@@ -123,11 +127,13 @@ class RapbsCetakTest extends TestCase
         $html = $this->cetak()->getContent();
 
         $this->assertStringContainsString('>Jumlah</td>', $html);
-        // Total belanja 6.000.000 + 4.000.000.
-        $this->assertStringContainsString('Jumlah Belanja : <b>Rp. 10.000.000</b>', $html);
         // Tanpa periode_volume: dibagi rata ke 2 tahap → 3.000.000 + 2.000.000.
         $this->assertStringContainsString('<td class="num">3.000.000</td>', $html);
         $this->assertStringContainsString('<td class="num">2.000.000</td>', $html);
+        // Baris Jumlah menutup tabel: 6.000.000 + 4.000.000.
+        $this->assertStringContainsString('<td class="num">10.000.000</td>', $html);
+        // Kepala kolom ARKAS: "Rincian Perhitungan" di atas Volume/Satuan/Tarif.
+        $this->assertStringContainsString('Rincian Perhitungan', $html);
     }
 
     /** Tanpa RKAS halaman tetap terbuka (tidak 500) dan menjelaskan keadaannya. */
@@ -156,9 +162,10 @@ class RapbsCetakTest extends TestCase
             ->assertOk();
 
         $r->assertSee('RINCIAN KERTAS KERJA PERBULAN')
-            ->assertSee('Bulan : Maret 2026')
-            // Hanya rincian dengan volume bulan Maret yang menghasilkan angka.
-            ->assertSee('Rencana belanja Maret 2026 : <b>Rp. 6.000.000</b>', false)
+            ->assertSee('Maret 2026')
+            // Hanya rincian dengan volume bulan Maret yang menghasilkan angka;
+            // baris Jumlah memakai rencana bulan itu, bukan pagu setahun.
+            ->assertSee('<td class="num">6.000.000</td>', false)
             // Tanda tangan 3 kolom seperti ARKAS.
             ->assertSee('Komite Sekolah')
             ->assertSee('Bendahara Sekolah')
@@ -176,5 +183,35 @@ class RapbsCetakTest extends TestCase
         $this->assertStringNotContainsString('RINCIAN KERTAS KERJA PERBULAN', $html);
         $this->assertStringNotContainsString('Komite Sekolah', $html, 'ARKAS tidak menandatangani varian per Tahap.');
         $this->assertStringNotContainsString('Kertas Kerja perBulan', $html);
+    }
+
+    /** Varian per Triwulan: kolom I–IV dari rencana bulanan. */
+    public function test_rapbs_triwulan_memakai_empat_kolom(): void
+    {
+        $html = $this->withSession(['tahun' => 2026])
+            ->get(route('laporan-arkas.rapbs-cetak', ['format' => 'triwulan']))
+            ->assertOk()
+            ->assertSee('PER TRIWULAN')
+            ->assertSee('Kertas Kerja perTriwulan - NPSN : 40305555', false)
+            ->assertDontSee('RINCIAN KERTAS KERJA PERBULAN')
+            ->getContent();
+
+        // Super-kepala "Triwulan" dengan empat sub-kolom 1..4.
+        $this->assertStringContainsString('Triwulan</th>', $html);
+        foreach (range(1, 4) as $kolom) {
+            $this->assertStringContainsString('>'.$kolom.'</th>', $html, 'Kolom triwulan '.$kolom.' hilang');
+        }
+        // Honor (Maret) + buku (Januari) keduanya triwulan I = 10.000.000.
+        $this->assertStringContainsString('<td class="num">10.000.000</td>', $html);
+        // ARKAS tidak menandatangani lembar per Triwulan pada sampel.
+        $this->assertStringNotContainsString('Komite Sekolah', $html);
+    }
+
+    /** Tiga varian bisa dicapai dari halaman cetak yang sama. */
+    public function test_tautan_antar_varian_tersedia(): void
+    {
+        $this->cetak()
+            ->assertSee('format=triwulan', false)
+            ->assertSee('format=bulan', false);
     }
 }
