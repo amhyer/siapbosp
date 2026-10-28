@@ -32,11 +32,17 @@ class TokenArkasTest extends TestCase
         return strtolower($m[1]);
     }
 
-    public function test_aksi_utama_memakai_biru_arkas(): void
+    /**
+     * Skala indigo dipetakan apa adanya ke skala biru ARKAS:
+     * 600 = blue-60, 700 = blue-70 (warna aksi), 800 = blue-80.
+     */
+    public function test_skala_biru_mengikuti_token_arkas(): void
     {
-        // blue-70 #0b5fef: tombol aksi utama ARKAS. View memakai indigo-600.
-        $this->assertSame('#0b5fef', $this->nilai('color-indigo-600'));
+        $this->assertSame('#2c70e5', $this->nilai('color-indigo-600'));
+        $this->assertSame('#0b5fef', $this->nilai('color-indigo-700'));
+        $this->assertSame('#054bcc', $this->nilai('color-indigo-800'));
         $this->assertSame('#0b5fef', $this->nilai('color-brand-600'));
+        $this->assertSame('#ecf5fe', $this->nilai('color-sky-50'));
     }
 
     public function test_status_memakai_warna_semantik_arkas(): void

@@ -44,7 +44,7 @@ menyentuh view. Tidak ada `indigo` yang ditulis manual sebagai hex di view mana 
 
 | Hal | Sebelum | Sesudah (ARKAS 4) |
 |---|---|---|
-| Warna utama | indigo `#4f46e5` | biru ARKAS `#0b5fef` |
+| Warna utama | indigo `#4f46e5` | biru aksi ARKAS `#0b5fef` (`--arkas-action`); merek `#0b5ae2` |
 | Hover tombol | `#4338ca` | `#1e429f` |
 | Latar chip | `#e0e7ff` | `#dbeafe` |
 | Garis fokus input | `#c7d2fe` | `#dbeafe` |
@@ -57,6 +57,45 @@ menyentuh view. Tidak ada `indigo` yang ditulis manual sebagai hex di view mana 
 
 Warna grafik ikut diselaraskan di `dashboard`, `dinas/dashboard`, dan `laporan/tahap`
 (kuningan/garis grafik serta tombol kirim LPJ yang ditulis inline).
+
+### 2a. Token yang dibaca dari aplikasi ARKAS 4.3.1
+
+Sejak 28 Okt 2026 palet tidak lagi disimpulkan dari tangkapan layar: nilai di
+bawah dibaca langsung dari bundel renderer ARKAS Desktop 4.3.1 (18 modul CSS,
+pustaka `@wartek-id/design-tokens`, Tailwind 2.2.19). Token dipasang di
+`resources/css/app.css` (`:root`) dan dipakai lewat `var(--arkas-*)`.
+
+| Token SiapBOSP | Nilai | Token ARKAS asal |
+|---|---|---|
+| `--arkas-action` | `#0b5fef` | `--color-action-default` |
+| `--arkas-action-hovered` | `#054bcc` | `--color-action-hovered` |
+| `--arkas-action-pressed` | `#103178` | `--color-action-pressed` |
+| `--arkas-primary` | `#0b5ae2` | `--color-primary` |
+| `--arkas-text-default` | `#2f3031` | `--color-text-default` |
+| `--arkas-text-subdued` | `#65696c` | `--color-text-subdued` |
+| `--arkas-border-subdued` | `#c9cbcf` | `--color-border-subdued` |
+| `--arkas-surface-neutral-high` | `#efeff0` | `--color-surface-neutral-high` |
+| `--arkas-background-default` | `#fafafa` | `--color-background-default` |
+| `--arkas-success` | `#35825a` | `--color-success` |
+| `--arkas-warning` | `#ffc453` | `--color-warning` |
+| `--arkas-critical` | `#c82236` | `--color-critical` |
+| `--arkas-radius` | `0,25rem` | sudut tombol/badge ARKAS (0,25–0,3rem) |
+| `--arkas-weight-action` | `600` | `--font-weight-action` |
+
+Catatan pemetaan:
+
+- Skala biru dipetakan **apa adanya**: `indigo-600` = blue-60 `#2c70e5`,
+  `indigo-700` = blue-70 `#0b5fef`, `indigo-800` = blue-80 `#054bcc`. Warna aksi
+  tombol diambil dari token semantik, bukan dari menggeser skala.
+- `.btn`, `.btn-danger`, `.inp:focus`, `.navw a.on`, dan kepala `.tbl th`
+  memakai token di atas; kartu tetap **tanpa bayangan** (garis 1 px) seperti
+  keputusan tampilan sebelumnya.
+- Tipografi ARKAS memakai **Inter**; SiapBOSP tetap Instrument Sans agar tidak
+  bergantung font berjaringan (tidak ada perubahan di sini).
+
+Halaman **`/gaya`** menampilkan seluruh token, tombol, badge, formulir, tabel,
+dan tab sehingga hasilnya bisa diperiksa tanpa membuka ARKAS. Halaman itu
+sengaja tanpa JavaScript (CSP `script-src-attr 'none'`) dan tanpa data sekolah.
 
 ## 3. Dua jalur pemuatan CSS yang harus tetap sama
 

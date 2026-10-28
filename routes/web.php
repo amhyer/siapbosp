@@ -170,6 +170,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         // Bantuan & panduan (padanan Tutorial/Pertanyaan Umum di sidebar ARKAS 4).
         Route::view('/bantuan', 'bantuan')->name('bantuan');
+        // Etalase gaya: memeriksa token & komponen ARKAS 4.3.1 yang dipakai aplikasi.
+        Route::view('/gaya', 'gaya')->name('gaya');
 
         // ---- Hulu Pra-ARKAS: PBD/Rapor Pendidikan -> RKM -> RKT + Standar Harga (SSH/SBU) ----
         Route::get('/perencanaan', [PerencanaanController::class, 'index'])->name('perencanaan.index');
