@@ -221,6 +221,9 @@ Route::middleware('auth')->group(function () {
         // Kertas Kerja RAPBS per Tahap (cetak ARKAS 4).
         Route::get('/laporan-arkas/rapbs-cetak', [LaporanArkasController::class, 'rapbsCetak'])
             ->name('laporan-arkas.rapbs-cetak');
+        // RKA / DPA (RKAS) Unit Kerja: per Triwulan atau per Tahap.
+        Route::get('/laporan-arkas/rka-unit', [LaporanArkasController::class, 'rkaUnit'])
+            ->name('laporan-arkas.rka-unit');
         Route::get('/laporan-arkas/daftar-kas-umum', [LaporanArkasController::class, 'kasUmum'])->name('laporan-arkas.kas-umum');
         Route::get('/laporan-arkas/daftar-nota', [LaporanArkasController::class, 'nota'])->name('laporan-arkas.nota');
         Route::get('/laporan-arkas/penutupan-kas', [LaporanArkasController::class, 'penutupanKas'])->name('laporan-arkas.penutupan-kas');

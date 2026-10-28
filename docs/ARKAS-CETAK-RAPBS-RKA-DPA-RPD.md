@@ -67,7 +67,7 @@ seakurat data rencana bulanan** yang tersimpan; ARKAS memakai rencana bulanan
 dari basis datanya sendiri. Tanggal tanda tangan memakai tanggal cetak
 (`now()`), sama seperti sampel ARKAS (dokumen Maret, ttd 25 Juni 2026).
 
-## 3. RKA Unit Kerja — **belum dibuat**
+## 3. RKA Unit Kerja — **dibuat** (`laporan-arkas.rka-unit`)
 
 Literal: `LEMBAR KERTAS KERJA` / `UNIT KERJA`, `PEMERINTAH <KOTA/…>`,
 `TAHUN ANGGARAN 2026`, baris `Urusan Pemerintahan : 1.01 - PENDIDIKAN`,
@@ -81,9 +81,27 @@ isi: `JUMLAH PENDAPATAN`, `5 BELANJA`, `5.1 BELANJA OPERASI`, … sampai
 `Kec. Makasar, <tgl>` / `Mengetahui,` / `Kepala Sekolah` + nama + `NIP : …`.
 Kaki halaman: **tidak ada** pada sampel 1 halaman.
 
-Sebab belum dibuat: butuh (a) hierarki kode rekening 5 / 5.1 / 5.1.02 / … dengan
-subtotal, (b) rencana **per triwulan**. SiapBOSP belum menyimpan rencana
-triwulan; hanya tahap.
+Status SiapBOSP: **dibuat** — rute `laporan-arkas.rka-unit`, varian baku
+`format=triwulan` (kolom I–IV) dan `format=tahap`. Uji: `RkaUnitCetakTest`.
+
+Cara angka disusun:
+
+- Bagian 1 (Rincian Anggran) = subtotal per akun dari prefix `rekenings.kode`
+  sampai **4 segmen** — batas yang sama dengan ARKAS di lembar ini (ARKAS tidak
+  mencetak rincian sampai level barang). Nama akun 5 / 5.1 / 5.1.02 / 5.1.02.0x /
+  5.2 / 5.2.02 / 5.2.05 diambil dari sampel acuan (`AKUN_RKA` di controller);
+  `rekenings` SiapBOSP hanya menyimpan nama di level rincian. Akun di luar peta
+  itu tidak dicetak.
+- Bagian 2 (Rencana Pelaksanaan Anggaran) = rencana per periode dari
+  `RkasDetail::nominalPerBulan()`: triwulan = 3 bulan, tahap = 6 bulan. Belanja
+  operasi = rekening 5.1, modal = 5.2.
+- **Asumsi yang perlu diketahui**: ARKAS punya jadwal pencairan pendapatan
+  sendiri. SiapBOSP hanya menyimpan tahap pada `allocations`, jadi pendapatan
+  per triwulan dihitung Tahap 1 → triwulan I dan Tahap 2 → triwulan III; alokasi
+  tanpa tahap dibagi rata. Ini bisa berbeda dari ARKAS bila jadwal pencairan
+  sekolah berbeda.
+- `JUMLAH PENDAPATAN` / `DEFISIT` dicetak kosong bila belum ada angka, seperti
+  sampel ARKAS 2026 (sampel 2024 yang berisi angka tetap menghasilkan baris itu).
 
 ## 4. DPA Unit Kerja — **belum dibuat**
 
@@ -93,6 +111,9 @@ Dua varian dalam sampel:
   SEKOLAH (RKAS)` / `UNIT KERJA`; isi & tabel **sama persis** dengan RKA Unit
   (`Rincian Anggran …`, `Rencana Pelaksanaan Anggaran / Unit Kerja per Tahap`),
   berbeda pada judul dan tanggal tanda tangan.
+  Status: **dibuat** lewat rute yang sama, `?varian=dpa&format=tahap`
+  (`?varian=dpa` saja = DPA per triwulan, bentuk yang tidak ada di sampel tapi
+  mengikuti sumbu yang sama).
 - `dpa-unit-22-output.pdf` (6 halaman): judul sama, isi
   `Rekapitulasi Belanja Langsung Berdasarkan Program dan Kegiatan` dengan kolom
   `Kode Rekening | Kode Program | Kode Sub Program | Kode Kegiatan | Uraian |
@@ -101,10 +122,10 @@ Dua varian dalam sampel:
   `Tahun 2023` walau kop `TAHUN ANGGARAN 2026` — quirk ARKAS). Kaki halaman:
   `RKAS Unit Kerja 2.2 - NPSN : … Halaman X dari 6`.
 
-Sebab belum dibuat: butuh kolom `lokasi kegiatan` dan `target kinerja
-(kuantitatif)` per rincian — tidak ada di `rkas_details` SiapBOSP. Menambah
-dokumen tanpa dua kolom itu akan menghasilkan lembar yang berbeda bentuknya
-dari ARKAS, jadi belum dikerjakan.
+Sebab `dpa-unit-22-output.pdf` belum dibuat: butuh kolom `lokasi kegiatan` dan
+`target kinerja (kuantitatif)` per rincian — tidak ada di `rkas_details`
+SiapBOSP. Menambah dokumen tanpa dua kolom itu akan menghasilkan lembar yang
+berbeda bentuknya dari ARKAS, jadi belum dikerjakan.
 
 ## 5. RPD K7 — **belum dibuat**
 
@@ -134,8 +155,9 @@ rekapitulasi per rekening per semester (konsep SiapBOSP sendiri, dipertahankan).
 |---|---|---|
 | Kertas Kerja RAPBS per Tahap | **ada (baru)** | rute baku, uji `RapbsCetakTest` |
 | Kertas Kerja RAPBS per Bulan | **ada (baru)** | `?format=bulan`; uji `RapbsCetakTest` |
-| RKA Unit Kerja (triwulan) | belum | butuh rencana triwulan |
-| DPA / RKAS Unit Kerja | belum | butuh lokasi kegiatan + target kinerja |
+| RKA Unit Kerja (triwulan) | **ada (baru)** | `laporan-arkas.rka-unit`; uji `RkaUnitCetakTest` |
+| DPA / RKAS Unit Kerja (per Tahap) | **ada (baru)** | `?varian=dpa&format=tahap` |
+| DPA Unit Kerja 2.2 (rekap) | belum | butuh lokasi kegiatan + target kinerja |
 | RPD K7 (8 standar) | belum | butuh pemetaan sub-program |
 
 Tidak ada satu pun angka di dokumen ini yang diverifikasi lewat peramban: yang
