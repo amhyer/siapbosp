@@ -421,6 +421,62 @@ class LaporanArkasController extends Controller
             'bulan' => $bulan, 'namaBulan' => self::BULAN]);
     }
 
+    // ==================== 6b. BHM (Barang Modal / Aset) ====================
+
+    /**
+     * BHM — Rekapitulasi Realisasi Belanja Dana BOSP (Barang Modal / Aset),
+     * bentuk mengikuti bhm-output.pdf ARKAS 4.3.1. Kolom "ID Barang" milik
+     * ARKAS tidak dicetak: SiapBOSP belum punya master barang/aset, jadi kolom
+     * itu akan selalu kosong (dicatat sebagai selisih di docs).
+     */
+    public function bhm(Request $r)
+    {
+        [$sid, $tahun, $bulan, $bulanStr] = $this->ctx($r);
+        $kop = $this->kop($sid, $tahun);
+        $kodeNama = ArkasKode::peta($sid, $tahun);
+
+        $raw = DB::table('kas_details as d')
+            ->join('kas_transactions as t', 't.id', '=', 'd.kas_transaction_id')
+            ->join('rekenings as r', 'r.id', '=', 'd.rekening_id')
+            ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
+            ->whereRaw('substr(CAST(t.tanggal AS VARCHAR),1,7) = ?', [$bulanStr])
+            ->where('r.kode', 'like', '5.2.%')
+            ->orderBy('t.tanggal')->orderBy('d.id')
+            ->get(['r.kode', 'r.nama', 't.tanggal', 't.no_bukti', 'd.kode_kegiatan', 'd.uraian',
+                'd.volume', 'd.satuan', 'd.nilai']);
+
+        $rows = [];
+        foreach ($raw as $x) {
+            $vol = (float) $x->volume;
+            $nilai = (int) $x->nilai;
+            $keg = trim((string) ($x->kode_kegiatan ?? ''));
+            $rows[] = [
+                'tanggal' => (string) $x->tanggal,
+                'no_bukti' => (string) ($x->no_bukti ?? ''),
+                'kegiatan' => $keg === '' ? '' : trim($keg.' '.($kodeNama[$keg] ?? '')),
+                'rekening' => (string) $x->kode,
+                'uraian' => (string) ($x->uraian ?: $x->nama),
+                'volume' => $vol > 0 ? $vol : null,
+                'satuan' => (string) ($x->satuan ?? ''),
+                'harga' => $vol > 0 ? (int) round($nilai / $vol) : null,
+                'jumlah' => $nilai,
+            ];
+        }
+
+        $namaBulanTeks = self::BULAN[$bulan];
+        $tglTeks = date('t', mktime(0, 0, 0, $bulan, 1, $tahun)).' '.$namaBulanTeks.' '.$tahun;
+
+        return view('laporan-arkas.bhm-cetak', [
+            'rows' => $rows, 'kop' => $kop, 'sekolah' => $r->user()->school,
+            'penandatangan' => Penandatangan::orderBy('id')->get(),
+            'bulan' => $bulan, 'tahun' => $tahun, 'namaBulan' => self::BULAN,
+            'labelPeriode' => 'BULAN : '.strtoupper($namaBulanTeks).' TAHUN : '.$tahun,
+            'tglAkhirTeks' => $tglTeks,
+            'total' => array_sum(array_column($rows, 'jumlah')),
+            'totalVolume' => array_sum(array_column($rows, 'volume')),
+        ]);
+    }
+
     // ==================== 7. Daftar Kas Umum ====================
 
     public function kasUmum(Request $r)

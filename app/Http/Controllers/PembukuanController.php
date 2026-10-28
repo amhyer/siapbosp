@@ -6,6 +6,7 @@ use App\Models\Allocation;
 use App\Models\ArkasKode;
 use App\Models\BkuTutupBulan;
 use App\Models\BosType;
+use App\Models\KasTax;
 use App\Models\KasTransaction;
 use App\Models\Penandatangan;
 use App\Models\Rekening;
@@ -20,6 +21,36 @@ use Illuminate\Support\Facades\DB;
 
 class PembukuanController extends Controller
 {
+    /** Label kolom jenis pajak (kode rekening_pajaks → judul kolom ARKAS). */
+    private const LABEL_PAJAK = [
+        'ppn' => 'PPN', 'pph21' => 'PPh 21', 'pph22' => 'PPh 22',
+        'pph23' => 'PPh 23', 'pph42' => 'PPh 4 Ayat 2', 'sspd' => 'SSPD',
+    ];
+
+    /** Sumber dana dominan + revisi RKAS terakhir untuk kop dokumen cetak. */
+    private function kopDana(int $sid, int $tahun): array
+    {
+        $domBos = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
+            ->selectRaw('bos_type_id, sum(total) j')->groupBy('bos_type_id')->orderByDesc('j')->first();
+        $sumber = $domBos?->bosType?->nama ?? 'BOSP Reguler';
+        $revisi = (int) RkasHeader::where('school_id', $sid)->where('tahun', $tahun)->max('revisi_ke');
+
+        return [$sumber, $revisi];
+    }
+
+    /** Tempat tanda tangan memakai kecamatan (kebiasaan ARKAS), bukan kabupaten. */
+    private function pihakTtd($sekolah): array
+    {
+        $penandatangan = Penandatangan::orderBy('id')->get();
+        $kepsek = $penandatangan->first(fn ($p) => stripos($p->jabatan ?? '', 'kepala') !== false);
+        $bendahara = $penandatangan->first(fn ($p) => stripos($p->jabatan ?? '', 'bendahara') !== false);
+        $tempat = trim((string) ($sekolah->kecamatan ?? '')) !== ''
+            ? 'Kec. '.$sekolah->kecamatan
+            : (string) ($sekolah->kab_kota ?? '');
+
+        return [$penandatangan, $kepsek, $bendahara, $tempat];
+    }
+
     private function hitungBulan(string $bulan): array
     {
         $tahun = (int) session('tahun', now()->year);
@@ -230,10 +261,7 @@ class PembukuanController extends Controller
         }
 
         $penandatangan = Penandatangan::orderBy('id')->get();
-        $domBos = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
-            ->selectRaw('bos_type_id, sum(total) j')->groupBy('bos_type_id')->orderByDesc('j')->first();
-        $kopSumber = $domBos?->bosType?->nama ?? 'BOSP Reguler';
-        $revisiKe = (int) RkasHeader::where('school_id', $sid)->where('tahun', $tahun)->max('revisi_ke');
+        [$kopSumber, $revisiKe] = $this->kopDana($sid, $tahun);
         $kodeNama = ArkasKode::peta($sid, $tahun);
         $formatPilihan = self::FORMAT_CETAK;
         $tglAkhirTeks = $akhir->format('d').' '.$namaBulanAkhir.' '.$akhir->format('Y');
@@ -243,6 +271,103 @@ class PembukuanController extends Controller
             'tunaiAwal', 'bankAwal', 'tunaiAkhir', 'bankAkhir', 'kopSumber', 'revisiKe', 'kodeNama', 'isDraft',
             'format', 'formatPilihan', 'labelPeriode', 'labelSaldoAwal', 'catatan', 'draftPesan',
             'awal', 'akhir', 'saldoAkhir', 'stages', 'tahap', 'tglAkhirTeks', 'hariIniTeks'));
+    }
+
+    /**
+     * Buku Pembantu Pajak — "B U K U   P E M B A N T U   P A J A K" (ARKAS 4).
+     *
+     * Bentuk & kolom mengikuti bku-pajak-output.pdf: pajak yang dipungut dari
+     * belanja masuk kolom jenisnya (PENERIMAAN/DEBIT), penyetoran masuk
+     * PENGELUARAN/KREDIT, kolom SALDO = utang pajak berjalan.
+     */
+    public function bkuPajak(Request $r)
+    {
+        $sid = auth()->user()->school_id;
+        $tahun = (int) session('tahun', now()->year);
+        $masukan = (string) $r->query('bulan', now()->format('Y-m'));
+        $acuan = preg_match('/^\d{4}-\d{2}$/', $masukan) === 1 ? $masukan : now()->format('Y-m');
+        $bulan = $tahun.'-'.substr($acuan, 5, 2);
+
+        $awal = Carbon::parse($bulan.'-01')->startOfMonth();
+        $akhir = $awal->copy()->endOfMonth();
+        $rentang = [$awal->toDateString(), $akhir->toDateString()];
+
+        // Pungutan: pajak yang menempel pada transaksi belanja bulan ini.
+        $pungut = KasTax::with(['transaksi', 'rekeningPajak'])
+            ->whereHas('transaksi', fn ($q) => $q->where('school_id', $sid)->where('tahun', $tahun)
+                ->where('type', 'belanja')->whereBetween('tanggal', $rentang))
+            ->get();
+
+        // Setoran: transaksi setor pajak beserta rincian pajak yang dibayar.
+        $setor = KasTransaction::with(['taxes.rekeningPajak'])
+            ->where('school_id', $sid)->where('tahun', $tahun)
+            ->whereIn('type', ['setor_pajak', 'setor_utang_pajak'])
+            ->whereBetween('tanggal', $rentang)
+            ->orderBy('tanggal')->orderBy('id')->get();
+
+        // Kolom mengikuti jenis pajak yang benar-benar ada di periode ini;
+        // ARKAS mencetak semua kolom, di sini kolom kosong tidak dipaksakan.
+        $adaJenis = [];
+        foreach ($pungut as $t) {
+            $adaJenis[$t->rekeningPajak->kode ?? 'lain'] = true;
+        }
+        foreach ($setor as $s) {
+            foreach ($s->taxes as $t) {
+                $adaJenis[$t->rekeningPajak->kode ?? 'lain'] = true;
+            }
+        }
+        $kolom = array_values(array_filter(array_keys(self::LABEL_PAJAK), fn ($k) => isset($adaJenis[$k])));
+        foreach (array_keys($adaJenis) as $k) {
+            if (! in_array($k, $kolom, true)) {
+                $kolom[] = $k;
+            }
+        }
+
+        $rows = [];
+        foreach ($pungut as $t) {
+            $rows[] = ['tanggal' => $t->transaksi->tanggal,
+                'no' => (string) ($t->kode_billing ?: ($t->transaksi->no_bukti ?? '')),
+                'uraian' => (string) $t->transaksi->keterangan,
+                'jenis' => $t->rekeningPajak->kode ?? 'lain',
+                'nilai' => (int) $t->nilai, 'keluar' => 0];
+        }
+        foreach ($setor as $s) {
+            foreach ($s->taxes as $t) {
+                $rows[] = ['tanggal' => $s->tanggal,
+                    'no' => (string) ($t->ntpn ?: ($t->kode_billing ?: ($s->no_bukti ?? ''))),
+                    'uraian' => (string) $s->keterangan,
+                    'jenis' => $t->rekeningPajak->kode ?? 'lain',
+                    'nilai' => 0, 'keluar' => (int) $t->nilai];
+            }
+        }
+        usort($rows, fn ($a, $b) => [$a['tanggal']->timestamp, $a['uraian']]
+            <=> [$b['tanggal']->timestamp, $b['uraian']]);
+
+        $saldo = 0;
+        $totalJenis = array_fill_keys($kolom, 0);
+        $totalKeluar = 0;
+        foreach ($rows as $i => $row) {
+            $saldo += $row['nilai'] - $row['keluar'];
+            $rows[$i]['saldo'] = $saldo;
+            $totalJenis[$row['jenis']] = ($totalJenis[$row['jenis']] ?? 0) + $row['nilai'];
+            $totalKeluar += $row['keluar'];
+        }
+
+        [$kopSumber, $revisiKe] = $this->kopDana($sid, $tahun);
+        $sekolah = auth()->user()->school;
+        [$penandatangan, $kepsek, $bendahara, $tempatTtd] = $this->pihakTtd($sekolah);
+        $label = self::BULAN_ID[(int) $awal->format('n')];
+
+        return view('pembukuan.bku-pajak-cetak', [
+            'rows' => $rows, 'kolom' => $kolom, 'labelPajak' => self::LABEL_PAJAK,
+            'totalJenis' => $totalJenis, 'totalKeluar' => $totalKeluar, 'saldoAkhir' => $saldo,
+            'bulan' => $bulan, 'tahun' => $tahun, 'sekolah' => $sekolah, 'kopSumber' => $kopSumber,
+            'revisiKe' => $revisiKe, 'penandatangan' => $penandatangan, 'kepsek' => $kepsek,
+            'bendahara' => $bendahara, 'tempatTtd' => $tempatTtd,
+            'labelPeriode' => 'BULAN : '.strtoupper($label).' TAHUN : '.$tahun,
+            'labelBulan' => $label,
+            'tglAkhirTeks' => $akhir->format('d').' '.$label.' '.$tahun,
+        ]);
     }
 
     public function bkuCsv()

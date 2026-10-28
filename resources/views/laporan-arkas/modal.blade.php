@@ -1,6 +1,10 @@
 @extends('layouts.app', ['title' => 'Realisasi Modal'])
 @section('content')
 @include('laporan-arkas._header', ['judul' => 'Realisasi Modal — ' . ($namaBulan[$bulan] ?? '') . ' ' . $kop['tahun']])
+<div class="flex flex-wrap items-center gap-2 mb-3">
+  <a href="{{ route('laporan-arkas.bhm', ['bulan' => $bulan]) }}" class="btn2 btn" data-cetak="BHM">🖨️ Cetak BHM</a>
+  <span class="text-[12px] text-slate-500">BHM = rekapitulasi realisasi belanja barang modal / aset (format cetak ARKAS).</span>
+</div>
 <div class="card overflow-x-auto">
   <div class="tbl-wrap"><table class="tbl">
     <thead><tr>
