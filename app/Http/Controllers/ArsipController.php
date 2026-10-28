@@ -83,8 +83,15 @@ class ArsipController extends Controller
                 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
 
             foreach ($bku as $b) {
-                $bulanInt = (int) $b->bulan;
-                $ym = sprintf('%04d-%02d', (int) $b->tahun, $bulanInt);
+                // Kolom `bulan` menyimpan 'YYYY-MM' (lihat migrasi bku_tutup_bulans),
+                // jadi nomor bulannya diambil dari 2 digit terakhir. Dulu di-cast
+                // langsung: (int) '2025-03' = 2025, sehingga nama dokumen menjadi
+                // "BKU 2025 2025" dan tautannya ?bulan=2025-2025.
+                $ym = (string) $b->bulan;
+                $bulanInt = (int) substr($ym, 5, 2);
+                if (preg_match('/^\d{4}-\d{2}$/', $ym) !== 1) {
+                    $ym = sprintf('%04d-%02d', (int) $b->tahun, $bulanInt);
+                }
 
                 // Sumber dana pada BKU: sekolah ini memakai satu BKU per tahun,
                 // jadi labelnya "Semua sumber dana" agar tidak menyesatkan.
