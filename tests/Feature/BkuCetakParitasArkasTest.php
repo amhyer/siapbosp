@@ -165,9 +165,11 @@ class BkuCetakParitasArkasTest extends TestCase
     {
         $html = $this->cetak();
 
-        $this->assertStringContainsString('@bottom-left', $html);
+        $this->assertStringContainsString('@bottom-left', $html, 'Kaki kiri ARKAS hilang.');
+        // Nomor halaman dipasang layouts.print untuk semua dokumen cetak.
         $this->assertStringContainsString('@bottom-right', $html);
-        $this->assertStringContainsString('content: "Halaman " counter(page) " dari " counter(pages)', $html);
+        $this->assertStringContainsString('counter(page)', $html);
+        $this->assertStringContainsString('counter(pages)', $html);
 
         // Teks kaki kiri: BKU <Bulan Akhir> <Tahun> - NPSN : …, Nama Sekolah : …
         $this->assertStringContainsString('content: "BKU Januari 2026 - NPSN : 40313912, Nama Sekolah : ', $html);

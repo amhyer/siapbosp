@@ -210,4 +210,14 @@ class CssHalamanTest extends TestCase
             'Halaman cetak memakai kelas tanpa definisi CSS (tambahkan aturannya pada blok <style> '
             .'layouts/print.blade.php atau <style> lokal view): '.implode(', ', array_unique($bermasalah)));
     }
+
+    public function test_kaki_halaman_cetak_bernomor_ala_arkas(): void
+    {
+        // ARKAS mencetak "Halaman X dari Y" di kaki setiap dokumen cetak.
+        $cetak = (string) file_get_contents(resource_path('views/layouts/print.blade.php'));
+
+        $this->assertStringContainsString('@bottom-right', $cetak);
+        $this->assertStringContainsString('counter(page)', $cetak);
+        $this->assertStringContainsString('counter(pages)', $cetak);
+    }
 }

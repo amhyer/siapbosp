@@ -145,8 +145,10 @@ Januari 2026, BOSP Reguler Perubahan Revisi Ke 1) — teksnya dibaca dengan
 | Tanda tangan | 3 kolom (+ Komite Sekolah), tempat = kabupaten/kota | 2 kolom: Menyetujui/Kepala Sekolah dan Bendahara; tempat = **Kec. <kecamatan>** |
 | Kaki halaman | jejak cetak SiapBOSP saja | `BKU <Bulan> <Tahun> - NPSN : …, Nama Sekolah : …` di kiri, `Halaman X dari Y` di kanan, lewat `@page` margin box |
 
-Kaki halaman memakai `@page { @bottom-left/@bottom-right }` + `counter(page)` /
-`counter(pages)`. Dukungan: Chromium 131+ dan Safari 18.2+ (margin box CSS),
+Kaki halaman memakai `@page` margin box: `layouts/print.blade.php` memasang
+`@bottom-right` berisi `Halaman X dari Y` (`counter(page)` / `counter(pages)`)
+untuk **semua** dokumen cetak, sedangkan `bku-cetak` menambah `@bottom-left`
+berisi identitas BKU. Dukungan: Chromium 131+ dan Safari 18.2+ (margin box CSS),
 Firefox belum — di peramban tanpa dukungan aturan itu diabaikan dan dokumen
 tetap utuh (footer jejak cetak "bukan dokumen resmi ARKAS" tetap ada). Ini
 belum pernah dilihat hasil cetaknya di lingkungan agen; yang diuji hanya HTML

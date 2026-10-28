@@ -125,9 +125,9 @@
 </table>
 
 @php
-  // Teks kaki halaman ARKAS: "BKU <Bulan> <Tahun> - NPSN : …, Nama Sekolah : …"
-  // di kiri dan "Halaman X dari Y" di kanan. Isi margin box tidak boleh memuat
-  // tanda kutip ganda karena ditulis sebagai string CSS.
+  // Teks kaki kiri halaman ARKAS: "BKU <Bulan> <Tahun> - NPSN : …, Nama Sekolah : …".
+  // Nomor "Halaman X dari Y" di kanan sudah dipasang layouts.print untuk semua
+  // dokumen cetak. Isi margin box tidak boleh memuat kutip ganda (string CSS).
   // Nama sekolah dibersihkan ke karakter aman agar tetap valid di dalam string CSS.
   $kakiKiri = 'BKU '.$BULAN_ID[(int) $akhir->format('n')].' '.$akhir->format('Y')
     .' - NPSN : '.$sekolah->npsn.', Nama Sekolah : '.$sekolah->nama;
@@ -137,7 +137,6 @@
   @media print {
     @page {
       @bottom-left { content: "{!! $kakiKiri !!}"; font-size: 8pt; color: #334155; }
-      @bottom-right { content: "Halaman " counter(page) " dari " counter(pages); font-size: 8pt; color: #334155; }
     }
   }
 </style>
