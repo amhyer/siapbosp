@@ -18,6 +18,8 @@
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => $varian, 'format' => 'tahap']) }}">Per Tahap</a>
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'rka', 'format' => $format]) }}">RKA</a>
   <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'dpa', 'format' => $format]) }}">DPA (RKAS)</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'rka22']) }}">RKA 2.2</a>
+  <a href="{{ route('laporan-arkas.rka-unit', ['varian' => 'dpa22']) }}">DPA 2.2</a>
   <a href="{{ route('laporan-arkas.rkas-tahap') }}">← Rincian RKAS per Tahap</a>
 </div>
 

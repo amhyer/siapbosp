@@ -443,12 +443,19 @@ class LaporanArkasController extends Controller
     {
         [$sid, $tahun] = $this->ctx($r);
         $format = $r->query('format') === 'tahap' ? 'tahap' : 'triwulan';
-        $varian = $r->query('varian') === 'dpa' ? 'dpa' : 'rka';
+        $varian = in_array($r->query('varian'), ['dpa', 'rka22', 'dpa22'], true)
+            ? (string) $r->query('varian') : 'rka';
         $kop = $this->kop($sid, $tahun);
         $sekolah = $r->user()->school;
         $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
 
         $details = $kop['rkas']?->details()->with('rekening')->get() ?? collect();
+
+        // Varian 2.2: "Rincian Anggaran Belanja Langsung Berdasarkan Program dan
+        // Kegiatan" — tabel yang sama sekali berbeda (lihat rka-unit-22-output.pdf).
+        if (in_array($varian, ['rka22', 'dpa22'], true)) {
+            return $this->rkaUnit22($r, $varian, $kop, $sekolah, $tahun, $details);
+        }
 
         // Bagian 1 — subtotal per akun sampai 4 segmen kode rekening.
         $nilaiAkun = array_fill_keys(array_keys(self::AKUN_RKA), 0);
@@ -531,6 +538,94 @@ class LaporanArkasController extends Controller
             'barisPeriode' => $barisPeriode, 'nPeriode' => $nPeriode,
             'labelPeriode' => $format === 'tahap' ? 'Tahap' : 'Triwulan',
             'tahaps' => $tahaps, 'kepsek' => $kepsek,
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
+    /**
+     * RKA/DPA Unit Kerja 2.2 — "Rincian Anggaran Belanja Langsung Berdasarkan
+     * Program dan Kegiatan" (rka-unit-22-output.pdf, dpa-unit-22-output.pdf).
+     *
+     * Tiga tingkat baris seperti ARKAS: program (`03.`), sub program (`03.01.`),
+     * lalu rincian dengan uraian = nama kegiatan (`03.01.01.`) beserta kolom
+     * `Lokasi Kegiatan`, `Target Kinerja (Kuantitatif)`, `Barang & Jasa`, `Modal`,
+     * dan `Jumlah (9 = 7 + 8)`.
+     *
+     * `lokasi_kegiatan`/`target_kinerja` di rincian bersifat opsional; bila kosong
+     * dipakai nilai yang sama dengan sampel ARKAS: lokasi = nama sekolah,
+     * target = volume + satuan rincian.
+     */
+    private function rkaUnit22(Request $r, string $varian, array $kop, $sekolah, int $tahun, $details)
+    {
+        $kodeNama = ArkasKode::peta((int) $sekolah->id, $tahun);
+        $lokasiDefault = (string) $sekolah->nama;
+
+        $baris = [];
+        $ringkas = [];
+        $total = 0;
+        $totalBarangJasa = 0;
+        $totalModal = 0;
+
+        foreach ($details->sortBy('kode_kegiatan') as $d) {
+            $keg = preg_replace('/\s+/', '', (string) $d->kode_kegiatan);
+            $seg = $keg === '' ? [] : array_values(array_filter(explode('.', trim($keg, '.'))));
+            $jumlah = (int) $d->jumlah;
+            $kodeRek = trim((string) ($d->rekening->kode ?? ''));
+            $modal = str_starts_with($kodeRek, '5.2');
+            $barangJasa = $modal ? 0 : $jumlah;
+
+            // Baris ringkasan program (1 segmen) dan sub program (2 segmen).
+            foreach ([1, 2] as $level) {
+                if (count($seg) < $level) {
+                    break;
+                }
+                $prefix = implode('.', array_slice($seg, 0, $level));
+                if (! isset($ringkas[$prefix])) {
+                    $ringkas[$prefix] = count($baris);
+                    $baris[] = ['tipe' => $level === 1 ? 'program' : 'subprogram',
+                        'kode' => $prefix.'.',
+                        'uraian' => (string) ($kodeNama[$prefix.'.'] ?? ''),
+                        'rekening' => '', 'kegiatan' => '', 'lokasi' => '', 'target' => '',
+                        'barang_jasa' => 0, 'modal' => 0, 'jumlah' => 0];
+                }
+                $baris[$ringkas[$prefix]]['barang_jasa'] += $barangJasa;
+                $baris[$ringkas[$prefix]]['modal'] += $modal ? $jumlah : 0;
+                $baris[$ringkas[$prefix]]['jumlah'] += $jumlah;
+            }
+
+            $baris[] = ['tipe' => 'rincian',
+                'kode' => $keg !== '' ? $keg : '',
+                'uraian' => (string) ($kodeNama[$keg] ?? ($kodeNama[trim($keg, '.').'.'] ?? '')),
+                'rekening' => $kodeRek,
+                'program' => $seg[0] ?? '',
+                'subprogram' => $seg[1] ?? '',
+                'kegiatan' => $seg[2] ?? '',
+                'lokasi' => trim((string) ($d->lokasi_kegiatan ?? '')) !== ''
+                    ? (string) $d->lokasi_kegiatan : $lokasiDefault,
+                'target' => trim((string) ($d->target_kinerja ?? '')) !== ''
+                    ? (string) $d->target_kinerja
+                    : trim($d->banyak.' '.(string) $d->satuan),
+                'barang_jasa' => $barangJasa, 'modal' => $modal ? $jumlah : 0, 'jumlah' => $jumlah];
+
+            $total += $jumlah;
+            $totalBarangJasa += $barangJasa;
+            $totalModal += $modal ? $jumlah : 0;
+        }
+
+        return view('laporan-arkas.rka-unit-22-cetak', [
+            'varian' => $varian, 'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun,
+            'baris' => $baris, 'total' => $total, 'totalBarangJasa' => $totalBarangJasa,
+            'totalModal' => $totalModal,
+            'judulVarian' => $varian === 'dpa22'
+                ? 'LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)'
+                : 'LEMBAR KERTAS KERJA',
+            'pemerintah' => trim((string) ($sekolah->kab_kota ?? '')) !== ''
+                ? 'PEMERINTAH '.strtoupper((string) $sekolah->kab_kota)
+                : 'PEMERINTAH '.strtoupper((string) ($sekolah->provinsi ?? '')),
+            'kepsek' => Penandatangan::where('jabatan', 'like', '%kepala%')->orderBy('id')->first()
+                ?? Penandatangan::orderBy('id')->first(),
             'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
                 ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
             'tanggalTtd' => now()->translatedFormat('d F Y'),

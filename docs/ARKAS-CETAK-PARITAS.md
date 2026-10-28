@@ -32,9 +32,11 @@ Sumber acuan (19 berkas) — yang relevan untuk empat dokumen yang diminta:
 | RAPBS per Bulan | `…rapbs-cetak?format=bulan` | **sama susunannya** | Nama Komite/Kepala/Bendahara diambil dari master `penandatangans`; ARKAS memakai data pegawai internalnya |
 | RKA Unit per Triwulan | `laporan-arkas.rka-unit` | **sama susunannya** | Pendapatan triwulan: SiapBOSP hanya menyimpan **tahap**, jadi Tahap 1 → triwulan I dan Tahap 2 → triwulan III (asumsi, ditulis di lembar tidak, hanya di kode/dokumen) |
 | RKA Unit per Tahap | `…rka-unit?format=tahap` | **sama susunannya** | — |
-| RKA Unit 2.2 / 2.2.1 | — | **belum** | Butuh kolom `Lokasi Kegiatan` + `Target Kinerja (Kuantitatif)`; tidak ada di `rkas_details` |
+| RKA Unit 2.2 | `…rka-unit?varian=rka22` | **sama susunannya** | Tabel `Rincian Anggaran Belanja Langsung Berdasarkan Program dan Kegiatan`: 3 tingkat baris (program `03.` → sub program `03.01.` → rincian), kolom Kode Rekening / Kode Program / Kode Sub Prog / Kode Kegiatan / Uraian / Lokasi Kegiatan / Target Kinerja (Kuantitatif) / Barang & Jasa / Modal / Jumlah (9 = 7 + 8). `lokasi_kegiatan` + `target_kinerja` kini tersimpan per rincian RKAS (opsional; turunan = nama sekolah dan volume + satuan) |
+| RKA Unit 2.2.1 | — | **belum** | Sub-rincian 2.2.1 (baris per `standar_harga`) belum dibangun; baru 2.2 |
 | DPA (RKAS) Unit Kerja per Tahap | `…rka-unit?varian=dpa&format=tahap` | **sama susunannya** | Judul `LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)` + isi RKA Unit |
-| DPA Unit Kerja 2.2 / 2.2.1 | — | **belum** | Sebab sama dengan RKA Unit 2.2 (lokasi + target kinerja) |
+| DPA Unit Kerja 2.2 | `…rka-unit?varian=dpa22` | **sama susunannya** | Isi sama dengan RKA 2.2, judul `LEMBAR RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)` |
+| DPA Unit Kerja 2.2.1 | — | **belum** | Sebab sama dengan RKA 2.2.1 |
 | RPD K7 | `laporan-arkas.rpd-k7` | **sama susunannya** (baru) | Nama 12 sub program dicetak sebagai baris teks di bawah nomor kolom (ARKAS mencetaknya vertikal); sel matriks bergantung konvensi kode kegiatan `SS.SP.KK` |
 | APBS (RKAS) | — | **belum** | Matriks `RENCANA KEGIATAN DAN ANGGARAN SEKOLAH (RKAS)` dengan 6 kelompok sumber dana (BOSP Reguler, BOSP Daerah, Afirmasi, SiLPA, BOSP Lainnya, Kinerja) × kolom Belanja Operasi/Belanja Modal + `Uraian Kegiatan`/`Kode Kegiatan`; pohon kode kegiatan sampai rincian rekening. Belum dibuat — perlu satu tabel lebar dengan pengelompokan kolom per sumber dana |
 | BKU (Kas Umum) | `pembukuan.bku-cetak` | **sama susunannya** (PR #46) | Baris `Saldo Awal Tahun (SILPA)` adalah tambahan SiapBOSP |
