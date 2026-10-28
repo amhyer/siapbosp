@@ -173,7 +173,7 @@ sendiri, dipertahankan).
 | DPA / RKAS Unit Kerja (per Tahap) | **ada (baru)** | `?varian=dpa&format=tahap` |
 | RKA Unit Kerja 2.2 | **ada (baru)** | `?varian=rka22`; uji `RkaUnit22CetakTest` |
 | DPA Unit Kerja 2.2 (rekap) | **ada (baru)** | `?varian=dpa22`; judul tabel `Rekapitulasi …` |
-| RKA/DPA Unit Kerja 2.2.1 | belum | rincian per standar harga |
+| RKA/DPA Unit Kerja 2.2.1 | **ada (baru)** | `?varian=rka221` / `?varian=dpa221`; uji `RkaUnit221CetakTest` |
 | RPD K7 (8 standar) | **ada** | `laporan-arkas.rpd-k7`; uji `RpdK7CetakTest` |
 | APBS / RKAS semua sumber dana | **ada (baru)** | `laporan-arkas.apbs`; uji `ApbsCetakTest` |
 

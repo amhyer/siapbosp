@@ -203,8 +203,11 @@ class RapbsCetakTest extends TestCase
         }
         // Honor (Maret) + buku (Januari) keduanya triwulan I = 10.000.000.
         $this->assertStringContainsString('<td class="num">10.000.000</td>', $html);
-        // ARKAS tidak menandatangani lembar per Triwulan pada sampel.
-        $this->assertStringNotContainsString('Komite Sekolah', $html);
+        // rapbs-tri-output.pdf hlm. 11: tiga kolom tanda tangan + tanggal,
+        // sama seperti lembar per Bulan.
+        $this->assertStringContainsString('Komite Sekolah', $html);
+        $this->assertStringContainsString('Kepala Sekolah', $html);
+        $this->assertStringContainsString('Bendahara Sekolah', $html);
     }
 
     /** Tiga varian bisa dicapai dari halaman cetak yang sama. */
