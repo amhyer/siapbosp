@@ -112,8 +112,10 @@ class BkuCetakFormatTest extends TestCase
     {
         $r = $this->cetak(['bulan' => '2026-02']);
 
-        $r->assertSee('PERIODE : BULAN FEBRUARI TAHUN 2026')
-            ->assertSee('Saldo Bulan Lalu')
+        // Format Bulanan memakai penulisan ARKAS: "BULAN : … TAHUN : …".
+        $r->assertSee('BULAN : FEBRUARI TAHUN : 2026')
+            ->assertSee('Saldo Bank Bulan Januari 2026')
+            ->assertSee('Saldo Tunai Bulan Januari 2026')
             ->assertSee('05-02-2026')
             ->assertSee('20-02-2026')
             ->assertDontSee('15-03-2026')
@@ -203,7 +205,8 @@ class BkuCetakFormatTest extends TestCase
     public function test_format_tak_dikenal_jatuh_ke_bulanan(): void
     {
         $this->cetak(['bulan' => '2026-02', 'format' => 'ngawur'])
-            ->assertSee('PERIODE : BULAN FEBRUARI TAHUN 2026')
+            // Format tak dikenal jatuh ke Bulanan → penulisan ARKAS "BULAN : … TAHUN : …".
+            ->assertSee('BULAN : FEBRUARI TAHUN : 2026')
             ->assertDontSee('15-03-2026');
     }
 

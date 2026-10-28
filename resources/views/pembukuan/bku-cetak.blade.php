@@ -37,28 +37,73 @@
   <a href="{{ route('bku', ['bulan' => $bulan]) }}">← Kembali ke BKU</a>
 </div>
 
-<div class="kop">
-  <div style="font-weight:800;letter-spacing:.35em">BUKU KAS UMUM</div>
-  <div style="font-size:11px">Nama Sekolah : {{ $sekolah->nama }}</div>
-  <div style="font-size:11px">Desa/Kecamatan : {{ trim(($sekolah->desa ?? '' ? $sekolah->desa . ', ' : '') . ($sekolah->kecamatan ?? ''), ', ') ?: '—' }}</div>
-  <div style="font-size:11px">Kabupaten / Kota : {{ $sekolah->kab_kota }} &nbsp; Provinsi : {{ $sekolah->provinsi }}</div>
+@php
+  // Judul & blok identitas mengikuti cetakan BKU ARKAS 4.3.1: judul berjarak
+  // lebar di tengah, baris periode di bawahnya, lalu label : nilai rata kiri
+  // (NPSN … Sumber Dana) dengan tanda "BKU" di kanan.
+  $BULAN_ID = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+    7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
+  $bulanSebelum = $awal->copy()->subMonth();
+  $labelBankAwal = $format === 'bulanan'
+    ? 'Saldo Bank Bulan '.$BULAN_ID[(int) $bulanSebelum->format('n')].' '.$bulanSebelum->format('Y')
+    : 'Saldo Bank ('.$labelSaldoAwal.')';
+  $labelTunaiAwal = $format === 'bulanan'
+    ? 'Saldo Tunai Bulan '.$BULAN_ID[(int) $bulanSebelum->format('n')].' '.$bulanSebelum->format('Y')
+    : 'Saldo Tunai ('.$labelSaldoAwal.')';
+  // SILPA tahun lalu tidak terbagi bank/tunai di KasService, jadi sisanya
+  // dicetak sebagai baris sendiri supaya jumlah kolom Saldo tetap utuh.
+  $silpaAwal = (int) $saldoAwal - ((int) $bankAwal + (int) $tunaiAwal);
+  $provinsi = trim((string) ($sekolah->provinsi ?? ''));
+  $provinsiTeks = $provinsi === '' ? '' : (stripos($provinsi, 'prov') === 0 ? $provinsi : 'Prov. '.$provinsi);
+  $desaKec = trim((string) ($sekolah->desa ?? '')) !== ''
+    ? $sekolah->desa.', Kec. '.($sekolah->kecamatan ?? '')
+    : (string) ($sekolah->kecamatan ?? '');
+@endphp
+
+<div style="text-align:center;font-weight:700;font-size:14px;letter-spacing:.45em;padding-left:.45em">B U K U   K A S   U M U M</div>
+<div style="text-align:center;font-size:12px;margin-top:.15rem">
+  @if($format === 'bulanan')
+    BULAN : {{ strtoupper($BULAN_ID[(int) $awal->format('n')]) }} TAHUN : {{ $tahun }}
+  @else
+    PERIODE : {{ $labelPeriode }}
+  @endif
 </div>
-<div style="font-size:11px;margin-bottom:.4rem">NPSN : {{ $sekolah->npsn }}</div>
-<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:.4rem;flex-wrap:wrap;gap:.4rem">
-  <span>PERIODE : {{ $labelPeriode }}</span>
-  <span>Sumber Dana : {{ $kopSumber }}{{ $revisiKe > 1 ? ' Perubahan Revisi Ke ' . ($revisiKe - 1) : '' }}</span>
+
+<div style="display:flex;justify-content:space-between;gap:1rem;margin:.7rem 0 .5rem;font-size:11.5px;line-height:1.55">
+  <div>
+    <div>NPSN : {{ $sekolah->npsn }}</div>
+    <div>Nama Sekolah : {{ $sekolah->nama }}</div>
+    <div>Desa/Kecamatan : {{ $desaKec !== '' ? $desaKec : '—' }}</div>
+    <div>Kabupaten / Kota : {{ $sekolah->kab_kota }}</div>
+    <div>Provinsi : {{ $provinsiTeks }}</div>
+    <div>Sumber Dana : {{ $kopSumber }}{{ $revisiKe > 1 ? ' Perubahan Revisi Ke ' . ($revisiKe - 1) : '' }}</div>
+  </div>
+  <div style="font-weight:700;font-size:13px">BKU</div>
 </div>
 <div style="font-size:10.5px;color:#475569;margin-bottom:.5rem">
   Format : <b>{{ $formatPilihan[$format] ?? $format }}</b> · {{ $catatan }}
 </div>
 <table class="tbl">
-  {{-- Kolom BKU mengikuti urutan & penomoran ARKAS 4: 8 kolom bernomor 1–8. --}}
+  {{-- Susunan cetak ARKAS 4: baris JUDUL kolom lebih dulu, lalu baris nomor 1–8. --}}
   <thead>
+    <tr>
+      <th>TANGGAL</th>
+      <th>KODE<br>KEGIATAN</th>
+      <th>KODE<br>REKENING</th>
+      <th>NO. BUKTI</th>
+      <th>URAIAN</th>
+      <th class="num">PENERIMAAN</th>
+      <th class="num">PENGELUARAN</th>
+      <th class="num">SALDO</th>
+    </tr>
     <tr class="bku-nomor"><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th class="num">6</th><th class="num">7</th><th class="num">8</th></tr>
-    <tr><th>Tanggal</th><th>Kode Kegiatan</th><th>Kode Rekening</th><th>No. Bukti</th><th>Uraian</th><th class="num">Penerimaan</th><th class="num">Pengeluaran</th><th class="num">Saldo</th></tr>
   </thead>
   <tbody>
-    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAwal }}</td><td></td><td></td><td></td><td>{{ $labelSaldoAwal }}</td><td class="num"></td><td class="num"></td><td class="num">{{ $angka($saldoAwal) }}</td></tr>
+    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAwal }}</td><td></td><td></td><td></td><td>{{ $labelBankAwal }}</td><td class="num">0</td><td class="num">0</td><td class="num">{{ $angka($bankAwal) }}</td></tr>
+    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAwal }}</td><td></td><td></td><td></td><td>{{ $labelTunaiAwal }}</td><td class="num">0</td><td class="num">0</td><td class="num">{{ $angka($tunaiAwal) }}</td></tr>
+    @if($silpaAwal !== 0)
+      <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAwal }}</td><td></td><td></td><td></td><td>Saldo Awal Tahun (SILPA)</td><td class="num">0</td><td class="num">0</td><td class="num">{{ $angka($silpaAwal) }}</td></tr>
+    @endif
     @foreach($rows as $row)
     @php
       $t = $row['trx'];
@@ -70,15 +115,32 @@
       <td style="font-family:monospace;font-size:11px">{{ $rek }}</td>
       <td>{{ $t->arkas_bku ?? ($t->no_bku ? 'BKU#' . $t->no_bku : '') }}</td>
       <td>{{ $t->keterangan }}</td>
-      <td class="num">{{ $row['masuk'] ? $angka($row['masuk']) : '' }}</td><td class="num">{{ $row['keluar'] ? $angka($row['keluar']) : '' }}</td>
+      <td class="num">{{ $angka($row['masuk']) }}</td><td class="num">{{ $angka($row['keluar']) }}</td>
       <td class="num">{{ $angka($row['saldo']) }}</td></tr>
     @endforeach
-    <tr style="font-weight:600;background:#f8fafc"><td>{{ $tglAkhir }}</td><td></td><td></td><td></td><td>Pajak Bunga</td><td class="num"></td><td class="num"></td><td class="num">{{ $angka($saldoAkhir) }}</td></tr>
   </tbody>
   <tfoot>
     <tr style="font-weight:700"><td colspan="5" style="text-align:right">Jumlah</td><td class="num">{{ $angka(collect($rows)->sum('masuk')) }}</td><td class="num">{{ $angka(collect($rows)->sum('keluar')) }}</td><td class="num">{{ $angka($saldoAkhir) }}</td></tr>
   </tfoot>
 </table>
+
+@php
+  // Teks kaki halaman ARKAS: "BKU <Bulan> <Tahun> - NPSN : …, Nama Sekolah : …"
+  // di kiri dan "Halaman X dari Y" di kanan. Isi margin box tidak boleh memuat
+  // tanda kutip ganda karena ditulis sebagai string CSS.
+  // Nama sekolah dibersihkan ke karakter aman agar tetap valid di dalam string CSS.
+  $kakiKiri = 'BKU '.$BULAN_ID[(int) $akhir->format('n')].' '.$akhir->format('Y')
+    .' - NPSN : '.$sekolah->npsn.', Nama Sekolah : '.$sekolah->nama;
+  $kakiKiri = trim(preg_replace('/[^\p{L}\p{N} .,\-\/:()]/u', ' ', $kakiKiri));
+@endphp
+<style>
+  @media print {
+    @page {
+      @bottom-left { content: "{!! $kakiKiri !!}"; font-size: 8pt; color: #334155; }
+      @bottom-right { content: "Halaman " counter(page) " dari " counter(pages); font-size: 8pt; color: #334155; }
+    }
+  }
+</style>
 
 <div style="font-size:12px;margin-top:1rem">Pada hari ini {{ $hariIniTeks }} Buku Kas Umum Ditutup dengan keadaan/posisi buku sebagai berikut :</div>
 <div style="font-size:13px;margin-top:.3rem">Saldo Buku Kas Umum : <b>{{ $rpTitik($saldoAkhir) }}</b><br>Terdiri Dari :<br>- Saldo Bank : <b>{{ $rpTitik($bankAkhir) }}</b><br>- Saldo Kas Tunai : <b>{{ $rpTitik($tunaiAkhir) }}</b><br>Jumlah : <b>{{ $rpTitik($bankAkhir + $tunaiAkhir) }}</b></div>
