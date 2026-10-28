@@ -192,7 +192,8 @@
     .navw-utama {
         @apply mb-1 flex flex-col gap-[2px];
     }
-    .navw-utama > .grp > .menu-btn {
+    .navw-utama > .grp > .menu-btn,
+    .navw-utama > a {
         @apply py-2.5 text-[14.5px] font-bold text-white;
     }
     .navw-utama > .grp.open > .menu-btn {

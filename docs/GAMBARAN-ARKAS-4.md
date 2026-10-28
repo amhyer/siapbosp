@@ -295,3 +295,31 @@ anti-duplikat/tautan mati. Suite penuh: **149 test hijau (820 asersi)**.
 
 > Audit jalur tarik data (agen → impor) dan cara memeriksanya di laptop:
 > lihat `docs/AUDIT-TARIK-ARKAS.md`.
+
+## 20. Penatausahaan: satu menu, rincian di halaman (28 Okt 2026)
+
+ARKAS 4.3.x hanya menaruh **satu** item "Penatausahaan" di sidebar; seluruh rincian
+(BKU, kas, pajak, dst.) dibuka dari dalam halaman. SiapBOSP sebelumnya menaruh 11 tautan
+penatausahaan di sidebar, sehingga sidebar jauh lebih panjang daripada ARKAS.
+
+Sekarang (khusus area **Penatausahaan**; Penganggaran dan Arsip tidak diubah):
+
+- **Sidebar** — satu tautan `Penatausahaan` (tidak lagi berupa grup yang bisa dibuka).
+  Rute: `GET /penatausahaan` (`penatausahaan.index`, `PenatausahaanController@index`).
+- **Halaman** — mengikuti tata letak ARKAS:
+  - kepala halaman: judul + "x dari 12 bulan sudah ditutup" + tombol **Cetak BKU**,
+    **+ Tambah Penerimaan**, **+ Tambah Belanja**;
+  - empat kartu ringkasan: saldo kas tunai, saldo kas bank, penerimaan, belanja;
+  - **grid status BKU 12 bulan** (Januari–Desember) dengan label ARKAS
+    *Sudah Selesai* / *Selesai, Pajak Belum* / *Draf* / *Belum Dibuat*; setiap kotak
+    adalah tautan ke `/pembukuan/bku?bulan=YYYY-MM`;
+  - tabel **pagu & realisasi per sumber dana** (pagu, penerimaan, belanja, sisa pagu);
+  - kartu jalan masuk ke seluruh fitur penatausahaan, sehingga tidak ada tautan yang
+    hilang dari aplikasi.
+- **Satu sumber status.** Perhitungan status 12 bulan dipindah dari
+  `PembukuanController::bku()` ke `App\Services\BkuBulan::grid()`. Halaman BKU dan
+  halaman Penatausahaan kini memakai fungsi yang sama, jadi tidak mungkin berbeda
+  kesimpulan. Aturan statusnya tidak berubah.
+
+Catatan jujur: verifikasi dilakukan lewat suite CI (sqlite + pgsql) dan pemeriksaan
+parser PHP; tampilan sesungguhnya tidak dapat dirender di lingkungan kerja agen.
