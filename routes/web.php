@@ -218,6 +218,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan-arkas/modal', [LaporanArkasController::class, 'modal'])->name('laporan-arkas.modal');
         // BHM: Rekapitulasi Realisasi Belanja Barang Modal / Aset (cetak ARKAS).
         Route::get('/laporan-arkas/bhm', [LaporanArkasController::class, 'bhm'])->name('laporan-arkas.bhm');
+        // Kertas Kerja RAPBS per Tahap (cetak ARKAS 4).
+        Route::get('/laporan-arkas/rapbs-cetak', [LaporanArkasController::class, 'rapbsCetak'])
+            ->name('laporan-arkas.rapbs-cetak');
         Route::get('/laporan-arkas/daftar-kas-umum', [LaporanArkasController::class, 'kasUmum'])->name('laporan-arkas.kas-umum');
         Route::get('/laporan-arkas/daftar-nota', [LaporanArkasController::class, 'nota'])->name('laporan-arkas.nota');
         Route::get('/laporan-arkas/penutupan-kas', [LaporanArkasController::class, 'penutupanKas'])->name('laporan-arkas.penutupan-kas');
