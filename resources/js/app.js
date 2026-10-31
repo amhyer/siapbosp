@@ -6,7 +6,10 @@
         if (!sb) return;
         const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
         if (isDesktop) {
-            sb.classList.toggle('lg:-ml-72', open === false);
+            const willCollapse = open === undefined
+                ? !sb.classList.contains('sidebar-collapsed')
+                : open === false;
+            sb.classList.toggle('sidebar-collapsed', willCollapse);
             return;
         }
         const willOpen = open === undefined ? sb.classList.contains('-translate-x-full') : open;
@@ -29,7 +32,7 @@
         const grp = btn.closest('.grp');
         if (!grp) return;
         grp.classList.toggle('open');
-        const sub = grp.querySelector('.sub');
+        const sub = grp.querySelector('.navw-sub, .sub');
         if (sub) sub.classList.toggle('hidden');
         btn.setAttribute('aria-expanded', grp.classList.contains('open') ? 'true' : 'false');
     };

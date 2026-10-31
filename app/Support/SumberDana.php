@@ -13,12 +13,12 @@ class SumberDana
 {
     /** @var array<string,array{label:string,ikon:string,warna:string}> */
     public const DAFTAR = [
-        'reguler' => ['label' => 'BOS Reguler', 'ikon' => '🏫', 'warna' => 'bg-emerald-100 text-emerald-700'],
-        'afirmasi' => ['label' => 'BOSP Afirmasi', 'ikon' => '🌟', 'warna' => 'bg-violet-100 text-violet-700'],
-        'bosda' => ['label' => 'BOSP Daerah', 'ikon' => '🏛️', 'warna' => 'bg-sky-100 text-sky-700'],
-        'kinerja' => ['label' => 'BOS Kinerja', 'ikon' => '📈', 'warna' => 'bg-amber-100 text-amber-700'],
-        'silpa' => ['label' => 'SILPA', 'ikon' => '💰', 'warna' => 'bg-slate-100 text-slate-600'],
-        'lainnya' => ['label' => 'Lainnya', 'ikon' => '🧾', 'warna' => 'bg-neutral-100 text-neutral-600'],
+        'reguler' => ['label' => 'BOS Reguler', 'ikon' => '', 'warna' => 'bg-emerald-100 text-emerald-700'],
+        'afirmasi' => ['label' => 'BOSP Afirmasi', 'ikon' => '', 'warna' => 'bg-violet-100 text-violet-700'],
+        'bosda' => ['label' => 'BOSP Daerah', 'ikon' => '', 'warna' => 'bg-sky-100 text-sky-700'],
+        'kinerja' => ['label' => 'BOS Kinerja', 'ikon' => '', 'warna' => 'bg-amber-100 text-amber-700'],
+        'silpa' => ['label' => 'SILPA', 'ikon' => '', 'warna' => 'bg-slate-100 text-slate-600'],
+        'lainnya' => ['label' => 'Lainnya', 'ikon' => '', 'warna' => 'bg-neutral-100 text-neutral-600'],
     ];
 
     /** Deteksi kunci sumber dana dari teks bebas. */
@@ -54,7 +54,7 @@ class SumberDana
         if ($kunci === 'lainnya' && ! in_array(mb_strtolower(trim((string) $nama)), ['lainnya', 'lain'], true)) {
             $teks = trim((string) $nama);
 
-            return ['label' => $teks !== '' ? $teks : 'Lainnya', 'ikon' => '🧾', 'warna' => 'bg-neutral-100 text-neutral-600'];
+            return ['label' => $teks !== '' ? $teks : 'Lainnya', 'ikon' => '', 'warna' => 'bg-neutral-100 text-neutral-600'];
         }
 
         return self::DAFTAR[$kunci];
@@ -75,6 +75,6 @@ class SumberDana
     {
         $i = self::info($nama);
 
-        return '<span class="badge '.$i['warna'].'">'.$i['ikon'].' '.$i['label'].'</span>';
+        return '<span class="badge '.$i['warna'].'">'.$i['label'].'</span>';
     }
 }

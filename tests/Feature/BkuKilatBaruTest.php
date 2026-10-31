@@ -112,7 +112,7 @@ class BkuKilatBaruTest extends TestCase
         $this->assertSame(1, substr_count($html, 'class="kilat"'),
             'Hanya satu baris yang boleh dikilatkan.');
         $this->assertMatchesRegularExpression(
-            '/<tr class="kilat">.*?Pencairan 2026-02-10/s', $html,
+            '/<tr[^>]*class="[^"]*kilat[^"]*"[^>]*>.*?Pencairan 2026-02-10/s', $html,
             'Baris yang dikilatkan harus baris transaksi yang baru disimpan.');
 
         // Tanpa penanda, tidak ada baris yang berkilat.
@@ -137,7 +137,7 @@ class BkuKilatBaruTest extends TestCase
             ->assertOk()->getContent();
 
         $this->assertSame(1, substr_count($html, 'class="kilat"'));
-        $this->assertMatchesRegularExpression('/<tr class="kilat">.*?Belanja 2026-03-15/s', $html);
+        $this->assertMatchesRegularExpression('/<tr[^>]*class="[^"]*kilat[^"]*"[^>]*>.*?Belanja 2026-03-15/s', $html);
     }
 
     /**

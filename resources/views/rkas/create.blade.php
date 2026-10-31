@@ -6,60 +6,24 @@
 @endphp
 
 @if($jenis === 'pergeseran')
-<div class="card border-l-4 border-sky-500 bg-sky-50/60 text-xs text-sky-900">
-  🔀 <b>Mode Kertas Kerja Pergeseran (Aturan ARKAS 4 Bab IX):</b> Pergeseran hanya diperbolehkan <b>dalam kelompok akun belanja yang sama</b> (<code>5.1.02</code> Barang &amp; Jasa · <code>5.2.02</code> Modal Peralatan · <code>5.2.05</code> Modal Aset Tetap), total per kelompok akun <b>tidak boleh berubah (Selisih = Rp 0)</b>, dan rincian yang sudah direalisasikan di BKU tidak boleh diturunkan di bawah realisasi.
+<div class="card border-l-4 border-sky-500 bg-sky-50/60 text-xs text-sky-900"> <b>Mode Kertas Kerja Pergeseran (Aturan ARKAS 4 Bab IX):</b> Pergeseran hanya diperbolehkan <b>dalam kelompok akun belanja yang sama</b> (<code>5.1.02</code> Barang &amp; Jasa · <code>5.2.02</code> Modal Peralatan · <code>5.2.05</code> Modal Aset Tetap), total per kelompok akun <b>tidak boleh berubah (Selisih = Rp 0)</b>, dan rincian yang sudah direalisasikan di BKU tidak boleh diturunkan di bawah realisasi.
 </div>
 @elseif($jenis === 'perubahan')
-<div class="card border-l-4 border-amber-500 bg-amber-50/60 text-xs text-amber-900">
-  ♻️ <b>Mode Kertas Kerja Perubahan (Aturan ARKAS 4 Bab XI):</b> Perubahan memperbolehkan realokasi <b>lintas jenis/akun belanja</b> maupun penyesuaian perubahan pagu/SiLPA, namun rincian yang sudah direalisasikan di BKU tetap tidak boleh di bawah nilai realisasi.
+<div class="card border-l-4 border-amber-500 bg-amber-50/60 text-xs text-amber-900"> <b>Mode Kertas Kerja Perubahan (Aturan ARKAS 4 Bab XI):</b> Perubahan memperbolehkan realokasi <b>lintas jenis/akun belanja</b> maupun penyesuaian perubahan pagu/SiLPA, namun rincian yang sudah direalisasikan di BKU tetap tidak boleh di bawah nilai realisasi.
 </div>
 @endif
 
 @if(count($rekomendasi ?? []))
-<div class="card !border-amber-300 !bg-amber-50/60">
-  <h3 class="card-title mb-1">⚠️ Sudah pernah dibelanjakan di BKU — wajib tetap terakomodasi dalam revisi</h3>
-  <p class="page-desc mb-2">Rekening di bawah sudah memiliki realisasi tahun {{ $tahun }}. Klik <b>+ Bawa</b> untuk memasukkannya ke rincian revisi ini.</p>
-  <div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Kode</th><th>Uraian RKAS</th><th class="num">Anggaran</th><th class="num">Realisasi</th><th>Sumber</th><th></th></tr></thead>
-    <tbody>
-      @foreach($rekomendasi as $i => $rc)
-      <tr>
-        <td class="font-mono text-xs">{{ $rc['kode'] }}</td>
-        <td>{{ Str::limit($rc['uraian'], 45) }}</td>
-        <td class="num">{{ rp($rc['anggaran']) }}</td>
-        <td class="num font-semibold text-rose-700">{{ rp($rc['realisasi']) }}</td>
-        <td>@if($rc['siplah'])<span class="badge bg-sky-100 text-sky-700">SIPLah</span>@else<span class="badge bg-slate-100 text-slate-600">langsung</span>@endif</td>
-        <td><button type="button" class="btn btn-sm" data-bawa-rekomendasi="{{ json_encode($rc) }}">+ Bawa</button></td>
-      </tr>
-      @endforeach
-    </tbody>
-  </table></div>
+<div class="card !border-amber-300 !bg-amber-50/60"> <h3 class="card-title mb-1"> Sudah pernah dibelanjakan di BKU — wajib tetap terakomodasi dalam revisi</h3> <p class="page-desc mb-2">Rekening di bawah sudah memiliki realisasi tahun {{ $tahun }}. Klik <b>+ Bawa</b> untuk memasukkannya ke rincian revisi ini.</p> <div class="tbl-wrap"><table class="tbl"> <thead><tr><th>Kode</th><th>Uraian RKAS</th><th class="num">Anggaran</th><th class="num">Realisasi</th><th>Sumber</th><th></th></tr></thead> <tbody> @foreach($rekomendasi as $i => $rc)
+      <tr> <td class="font-mono text-xs">{{ $rc['kode'] }}</td> <td>{{ Str::limit($rc['uraian'], 45) }}</td> <td class="num">{{ rp($rc['anggaran']) }}</td> <td class="num font-semibold text-rose-700">{{ rp($rc['realisasi']) }}</td> <td>@if($rc['siplah'])<span class="badge bg-sky-100 text-sky-700">SIPLah</span>@else<span class="badge bg-slate-100 text-slate-600">langsung</span>@endif</td> <td><button type="button" class="btn btn-sm" data-bawa-rekomendasi="{{ json_encode($rc) }}">+ Bawa</button></td> </tr> @endforeach
+    </tbody> </table></div>
 </div>
 @endif
 
 {{-- Panel Kalkulator Live Kertas Kerja ala ARKAS 4 --}}
-<div class="card bg-slate-900 text-white grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs sticky top-16 z-10 shadow-lg">
-  <div>
-    <div class="text-slate-400">Pagu Sumber Dana</div>
-    <div class="font-bold text-base">{{ rp($pagu) }}</div>
-  </div>
-  <div>
-    <div class="text-slate-400">Sudah Dianggarkan</div>
-    <div class="font-bold text-base text-emerald-400" id="liveTotal">Rp 0</div>
-  </div>
-  <div>
-    <div class="text-slate-400">Belum Dianggarkan (Wajib Rp 0)</div>
-    <div class="font-bold text-base text-amber-300" id="liveSisa">{{ rp($pagu) }}</div>
-  </div>
-  <div>
-    <div class="text-slate-400">Tahap 1 (Jan–Jun · Maks 50%)</div>
-    <div class="font-bold text-base text-sky-300" id="liveTahap1">Rp 0 (0%)</div>
-  </div>
-  <div>
-    <div class="text-slate-400">Tahap 2 (Jul–Des)</div>
-    <div class="font-bold text-base text-indigo-300" id="liveTahap2">Rp 0 (0%)</div>
-  </div>
-</div>
+<div class="card bg-slate-900 text-white grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs sticky top-16 z-10 shadow-lg"> <div> <div class="text-slate-400">Pagu Sumber Dana</div> <div class="font-bold text-base">{{ rp($pagu) }}</div> </div> <div> <div class="text-slate-400">Sudah Dianggarkan</div> <div class="font-bold text-base text-emerald-400" id="liveTotal">Rp 0</div> </div> <div> <div class="text-slate-400">Belum Dianggarkan (Wajib Rp 0)</div> <div class="font-bold text-base text-amber-300" id="liveSisa">{{ rp($pagu) }}</div> </div> <div> <div class="text-slate-400">Tahap 1 (Jan–Jun · Maks 50%)</div> <div class="font-bold text-base text-sky-300" id="liveTahap1">Rp 0 (0%)</div> </div> <div> <div class="text-slate-400">Tahap 2 (Jul–Des)</div> <div class="font-bold text-base text-indigo-300" id="liveTahap2">Rp 0 (0%)</div> </div>
+</div> <form method="post" action="{{ route('rkas.store') }}" class="space-y-5"> @csrf
+  <input type="hidden" name="tahun" value="{{ $tahun }}"> @if($acuanHeader)<input type="hidden" name="acuan_header_id" value="{{ $acuanHeader->id }}">@endif
 
 <form method="post" action="{{ route('rkas.store') }}" class="space-y-5">
   @csrf
@@ -175,9 +139,7 @@
   <td class="num jml font-semibold whitespace-nowrap">Rp 0</td>
   <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-baris>✖</button></td>
 </tr>
-</template>
-
-<script nonce="{{ request()->attributes->get('csp_nonce') }}">
+</template> <script nonce="{{ request()->attributes->get('csp_nonce') }}">
 const PAGU_ACUAN = {{ (int) $pagu }};
 const PREFILL = @json($prefillRows ?? []);
 

@@ -119,11 +119,13 @@ class SyncPush extends Command
         return 0;
     }
 
-    /** Paket RKAS: header DRAFT tahun berjalan + rinciannya (idempoten via arkas_id). */
+    /** Paket RKAS: header DRAFT (atau terbaru hasil impor ARKAS) tahun berjalan + rinciannya (idempoten via arkas_id). */
     protected function paketRkas(int $tahun): ?array
     {
         $h = RkasHeader::with('details.rekening')->where('tahun', $tahun)
-            ->where('status', 'draft')->orderByDesc('revisi_ke')->first();
+            ->where('status', 'draft')->orderByDesc('revisi_ke')->first()
+            ?? RkasHeader::with('details.rekening')->where('tahun', $tahun)
+                ->orderByDesc('revisi_ke')->first();
         if (! $h || $h->details->isEmpty()) {
             return null;
         }

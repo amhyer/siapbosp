@@ -100,7 +100,7 @@ class RkasDaftarArkasTest extends TestCase
             ->getContent();
 
         foreach (['BOSP Reguler', 'BOSP Daerah', 'BOSP Kinerja', 'SiLPA BOSP Kinerja',
-                  'Lainnya', 'Sumber Dana Tambahan'] as $label) {
+            'Lainnya', 'Sumber Dana Tambahan'] as $label) {
             $this->assertStringContainsString($label, $html, 'Tab '.$label.' tidak ada.');
         }
 
@@ -137,7 +137,7 @@ class RkasDaftarArkasTest extends TestCase
             ->getContent();
 
         // Revisi terbaru jadi representasi baris; revisi lama tidak jadi baris sendiri.
-        $this->assertSame(1, substr_count($html, '📂 Buka'), 'Revisi pada tahun yang sama harus dilipat jadi satu baris.');
+        $this->assertSame(1, substr_count($html, 'data-buka-rkas'), 'Revisi pada tahun yang sama harus dilipat jadi satu baris.');
         $this->assertStringContainsString('Riwayat (2)', $html, 'Tombol riwayat harus menampilkan jumlah revisi.');
         $this->assertStringContainsString('Revisi ke-1', $html, 'Revisi lama harus tetap bisa diakses lewat riwayat.');
         $this->assertStringContainsString('2 revisi', $html);

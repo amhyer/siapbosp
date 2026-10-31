@@ -2,7 +2,7 @@
 @section('subtitle', 'Pagu, rencana, dan realisasi tiap tahun anggaran sekolah ini')
 @section('content')
 <div class="card">
-  <h3 class="card-title mb-3">📅 Tahun Anggaran</h3>
+  <h3 class="card-title mb-3 flex items-center gap-2"><x-icon name="calendar" class="h-4 w-4 text-slate-500"/> Tahun Anggaran</h3>
   <div class="overflow-x-auto">
     <table class="tbl">
       <thead><tr><th>Tahun</th><th class="num">Pagu</th><th class="num">Rencana (RKAS)</th><th class="num">Realisasi</th><th class="num">Sisa Pagu</th><th class="num">Serapan</th><th class="num">Transaksi</th><th>Tahap Tertutup</th></tr></thead>

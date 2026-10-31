@@ -2,14 +2,14 @@
 @section('subtitle', 'Pagu, rencana, dan realisasi per sumber dana sekolah ini')
 @section('content')
 <div class="card">
-  <h3 class="card-title mb-3">💼 Sumber Dana</h3>
+  <h3 class="card-title mb-3 flex items-center gap-2"><x-icon name="bank" class="h-4 w-4 text-slate-500"/> Sumber Dana</h3>
   <div class="overflow-x-auto">
     <table class="tbl">
       <thead><tr><th>Sumber Dana</th><th class="num">Pagu</th><th class="num">Rencana (RKAS)</th><th class="num">Realisasi Belanja</th><th class="num">Sisa</th><th class="num">Rincian</th></tr></thead>
       <tbody>
         @forelse($baris as $b)
           <tr>
-            <td><span class="badge bg-slate-100 text-slate-700">{{ $b['ikon'] }} {{ $b['label'] }}</span></td>
+            <td><span class="badge bg-slate-100 text-slate-700">{{ $b['label'] }}</span></td>
             <td class="num">{{ rp($b['pagu']) }}</td>
             <td class="num">{{ rp($b['rencana']) }}</td>
             <td class="num font-semibold">{{ rp($b['realisasi']) }}</td>

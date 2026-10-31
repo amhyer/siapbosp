@@ -2,7 +2,7 @@
 @section('subtitle', 'Jejak sinkronisasi ke pusat & pencadangan data')
 @section('content')
 <div class="card">
-  <h3 class="card-title mb-3">📤 Riwayat Ekspor & Sinkronisasi</h3>
+  <h3 class="card-title mb-3 flex items-center gap-2"><x-icon name="download" class="h-4 w-4 text-slate-500"/> Riwayat Ekspor &amp; Sinkronisasi</h3>
   @if($sync->isNotEmpty())
     <div class="mb-3 text-[12px] text-slate-600">
       @foreach($sync as $s)
@@ -27,8 +27,8 @@
     </table>
   </div>
   <div class="mt-3 flex gap-2">
-    <a href="{{ route('pengaturan.sinkronisasi') }}" class="btn2 btn-sm">🔄 Status Sinkronisasi</a>
-    <a href="{{ route('pengaturan.backup') }}" class="btn2 btn-sm">💾 Unduh Backup</a>
+    <a href="{{ route('pengaturan.sinkronisasi') }}" class="btn2 btn-sm"><x-icon name="refresh" class="h-4 w-4"/> Status Sinkronisasi</a>
+    <a href="{{ route('pengaturan.backup') }}" class="btn2 btn-sm"><x-icon name="download" class="h-4 w-4"/> Unduh Backup</a>
   </div>
 </div>
 @endsection

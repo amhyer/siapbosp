@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Allocation;
 use App\Models\BosType;
-use App\Models\KasTransaction;
 use App\Models\Rekening;
 use App\Models\RkasHeader;
 use App\Models\School;
@@ -94,10 +93,10 @@ class TabSumberDanaTest extends TestCase
         ])->assertSessionHas('ok');
     }
 
-    /** Tiga halaman itu menampilkan pita tab yang sama dengan ARKAS. */
+    /** Halaman utama penganggaran & penatausahaan menampilkan pita tab yang sama dengan ARKAS. */
     public function test_tiga_halaman_menampilkan_pita_tab_sumber_dana(): void
     {
-        foreach (['/rkas', '/penerimaan/pendapatan', '/pengeluaran/belanja'] as $url) {
+        foreach (['/rkas', '/penatausahaan', '/penerimaan/pendapatan', '/pengeluaran/belanja'] as $url) {
             $html = $this->halaman($url);
 
             $this->assertStringContainsString('role="tablist"', $html, $url.' tanpa pita tab.');

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProsesImporArkas;
 use App\Models\Allocation;
 use App\Models\ArkasImportRun;
 use App\Models\ArkasKode;
@@ -15,6 +16,7 @@ use App\Models\RekeningPajak;
 use App\Models\RkasDetail;
 use App\Models\School;
 use App\Models\Stage;
+use App\Models\SumberDanaSekolah;
 use App\Models\TutupBuku;
 use App\Models\User;
 use App\Services\ArkasImportService;
@@ -248,7 +250,7 @@ class ArkasImportTest extends TestCase
         $operatorB->forceFill(['api_token' => hash('sha256', $tokenLain)])->save();
         $this->withHeader('Authorization', 'Bearer '.$tokenLain)
             ->getJson('/api/v1/arkas-import/'.$runId)->assertNotFound();
-        Queue::assertPushed(\App\Jobs\ProsesImporArkas::class);
+        Queue::assertPushed(ProsesImporArkas::class);
     }
 
     public function test_arkas_push_api_menolak_token_asing_dan_npsn_asing(): void
@@ -343,5 +345,84 @@ class ArkasImportTest extends TestCase
         $this->assertSame(50000000, (int) Allocation::where('school_id', $this->sekolahA->id)
             ->where('tahun', 2025)->firstOrFail()->nilai);
         $this->assertCount(1, $lap['selisih_pagu']);
+    }
+
+    /**
+     * Penerimaan, master sumber dana, nota SIPLah, dan tautan pajak setor
+     * harus terbaca dari satu berkas yang sama — bukan hanya baris kasnya.
+     */
+    public function test_penerimaan_sumber_dana_nota_dan_pajak_tertaut(): void
+    {
+        $this->actingAs($this->operatorA);
+        $lap = $this->imporA();
+
+        $terima = KasTransaction::withoutGlobalScope('school')
+            ->where('school_id', $this->sekolahA->id)->where('type', 'pendapatan')->firstOrFail();
+        $this->assertSame('Terima Dana BOS', $terima->arkas_jenis_bku);
+        $this->assertSame('BBU01', $terima->arkas_bku);
+        $this->assertSame('transfer', $terima->metode_bayar);
+        $this->assertSame(100000000, (int) $terima->total);
+        $this->assertSame('reguler', BosType::findOrFail($terima->bos_type_id)->kode);
+
+        // Ref_Sumber_Dana utuh, termasuk penanda sumber dana tambahan (Banpem).
+        $this->assertSame(3, SumberDanaSekolah::where('school_id', $this->sekolahA->id)->count());
+        $this->assertSame(3, $lap['dibuat']['sumber_dana']);
+        $banpem = SumberDanaSekolah::where('id_ref_sumber_dana', '1005')->firstOrFail();
+        $this->assertSame('Banpem Keterampilan Menulis', $banpem->alias);
+        $this->assertTrue($banpem->is_sumber_dana_tambahan);
+
+        // Nota bertanda SIPLah menandai rincian belanja untuk HPP & revisi.
+        $atk = KasTransaction::withoutGlobalScope('school')
+            ->where('school_id', $this->sekolahA->id)->where('keterangan', 'Belanja ATK')->firstOrFail();
+        $this->assertSame('siplah', $atk->details()->firstOrFail()->sumber);
+
+        // Pajak terima menempel ke belanja; setor menautkan NTPN + transaksi setor.
+        $pajak = KasTax::where('kas_transaction_id', $atk->id)->firstOrFail();
+        $this->assertSame('sudah', $pajak->status);
+        $this->assertSame('1234567890123456', $pajak->ntpn);
+        $this->assertNotNull($pajak->paid_transaction_id);
+        $this->assertSame('setor_pajak', KasTransaction::findOrFail($pajak->paid_transaction_id)->type);
+
+        // Impor ulang memperbarui master, bukan menggandakannya.
+        $lap2 = $this->imporA();
+        $this->assertSame(3, SumberDanaSekolah::where('school_id', $this->sekolahA->id)->count());
+        $this->assertSame(0, $lap2['dibuat']['sumber_dana']);
+        $this->assertSame(3, $lap2['diperbarui']['sumber_dana']);
+    }
+
+    /**
+     * ARKAS menyimpan beberapa revisi RKAS per sumber dana. Hanya revisi
+     * terbaru (last_update paling akhir) yang boleh masuk; baris revisi lama
+     * tidak boleh menambah pagu/rincian.
+     */
+    public function test_revisi_rkas_lama_diabaikan_hanya_revisi_terbaru_dipakai(): void
+    {
+        $this->actingAs($this->operatorA);
+
+        $buku = IOFactory::load($this->mini);
+        $rapbs = $buku->getSheetByName('RAPBS');
+        $rapbs->setCellValue('L2', 'id_anggaran');
+        $rapbs->setCellValue('L3', 'AGG-BARU'); // RAPBS-1 dari revisi terbaru
+        $rapbs->setCellValue('L4', 'AGG-LAMA');
+        $rapbs->setCellValue('L5', 'AGG-LAMA');
+        $rapbs->fromArray([
+            'RAPBS-OLD', 'RK-1', '5.1.02.01.01.0001', 'Honor Revisi Lama',
+            1, 'paket', 70000000, 70000000, 0, 2025, 'BOS Reguler', 'AGG-LAMA',
+        ], null, 'A6');
+
+        $dasar = tempnam(sys_get_temp_dir(), 'arkas-revisi-');
+        $berkas = $dasar.'.xlsx';
+        (new Xlsx($buku))->save($berkas);
+
+        try {
+            $lap = $this->imporA($berkas);
+        } finally {
+            @unlink($dasar);
+            @unlink($berkas);
+        }
+
+        $this->assertSame(1, RkasDetail::count());
+        $this->assertSame('Honor Pengelola', RkasDetail::firstOrFail()->uraian);
+        $this->assertStringContainsString('revisi lama diabaikan', implode(' ', $lap['alasan_lewat']));
     }
 }

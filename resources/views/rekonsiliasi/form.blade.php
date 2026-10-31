@@ -17,13 +17,6 @@
     <button class="btn">🔍 Bandingkan</button>
   </form>
 </div>
-<div class="card max-w-2xl">
-  <h3 class="card-title mb-2">ℹ️ Cara baca hasil</h3>
-  <ul class="list-disc pl-5 text-[13px] text-slate-600 space-y-1">
-    <li><b>Cocok</b>: baris ARKAS ada di SiapBOS dengan nominal sama (kunci id/tanda digital).</li>
-    <li><b>Selisih nominal</b>: baris ketemu tapi nilainya beda — periksa.</li>
-    <li><b>Hilang/Lebih</b>: ada di satu sisi saja.</li>
-    <li><b>Peta BKU</b>: nomor BKU SiapBOS ↔ nomor BKU ARKAS per transaksi cocok.</li>
-  </ul>
+<div class="card max-w-2xl"> <h3 class="card-title mb-2">ℹ Cara baca hasil</h3> <ul class="list-disc pl-5 text-[13px] text-slate-600 space-y-1"> <li><b>Cocok</b>: baris ARKAS ada di SiapBOS dengan nominal sama (kunci id/tanda digital).</li> <li><b>Selisih nominal</b>: baris ketemu tapi nilainya beda — periksa.</li> <li><b>Hilang/Lebih</b>: ada di satu sisi saja.</li> <li><b>Peta BKU</b>: nomor BKU SiapBOS ↔ nomor BKU ARKAS per transaksi cocok.</li> </ul>
 </div>
 @endsection

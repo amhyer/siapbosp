@@ -144,7 +144,7 @@ class BkuBulanTest extends TestCase
             ->getContent();
 
         foreach (['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $nama) {
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $nama) {
             $this->assertStringContainsString($nama, $html, 'Kotak bulan '.$nama.' tidak ada.');
         }
 
@@ -219,7 +219,7 @@ class BkuBulanTest extends TestCase
         // Keduanya harus tautan, bukan tombol ber-onclick (patuh CSP).
         $this->assertDoesNotMatchRegularExpression('/<a[^>]*\son(click|change)=/i', $html);
         $this->assertMatchesRegularExpression(
-            '/<a href="[^"]*penerimaan\/pendapatan\?kembali=bku&amp;bulan=[0-9-]+" class="btn">\s*➕?\s*Tambah Penerimaan Dana/',
+            '/<a href="[^"]*penerimaan\/pendapatan\?kembali=bku&amp;bulan=[0-9-]+" class="btn">\s*Tambah Penerimaan Dana/',
             $html, 'Aksi "Tambah Penerimaan Dana" harus tautan bergaya .btn.');
     }
 

@@ -10,13 +10,13 @@
 ])
 <div class="flex flex-wrap justify-between items-center gap-2">
   <p class="text-sm text-slate-500">Pencatatan belanja Dana BOSP (tahun {{ $tahun }}).</p>
-  <a href="{{ route('belanja.create') }}" class="btn">➕ Input Belanja</a>
+  <a href="{{ route('belanja.create') }}" class="btn"><x-icon name="plus" class="h-4 w-4"/> Input Belanja</a>
 </div>
 <div class="card !py-3 flex flex-wrap gap-2 items-center">
   <form method="get" class="flex gap-2 items-center">
-    <input type="text" name="q" value="{{ $q }}" placeholder="🔍 Cari uraian / no bukti..." class="inp !py-1.5 text-sm w-72">
-    <button class="btn2 btn text-sm">Cari</button>
-    @if($q !== '')<a href="{{ route('belanja.index') }}" class="text-xs text-slate-400 hover:text-rose-500">✖ hapus filter ({{ $items->total() }} hasil)</a>@endif
+    <input type="text" name="q" value="{{ $q }}" placeholder="Cari uraian / no bukti…" class="inp !py-1.5 text-sm w-72">
+    <button class="btn2 btn-sm">Cari</button>
+    @if($q !== '')<a href="{{ route('belanja.index') }}" class="text-xs text-slate-400 hover:text-rose-500">Hapus filter ({{ $items->total() }} hasil)</a>@endif
   </form>
 </div>
 <div class="card overflow-x-auto">
@@ -36,15 +36,15 @@
           @forelse($t->taxes as $p)
             @php $lbl = ($p->rekeningPajak->kode ?? 'Pajak').' '.rp($p->nilai); @endphp
             @if ($p->status === 'sudah')
-              <span class="badge bg-emerald-100 text-emerald-700" title="Sudah disetor & lapor (NTPN sebagai bukti pelaporan)">✓ {{ $lbl }} — sudah lapor</span>
+              <span class="badge bg-emerald-100 text-emerald-700" title="Sudah disetor & lapor (NTPN sebagai bukti pelaporan)">{{ $lbl }} — sudah lapor</span>
             @else
-              <span class="badge bg-rose-100 text-rose-700 ring-1 ring-rose-300" title="Pajak Wajib Lapor — setor & lapor via menu Belanja → Setor Pajak, isi NTPN">⚠ {{ $lbl }} — wajib lapor</span>
+              <span class="badge bg-rose-100 text-rose-700 ring-1 ring-rose-300" title="Pajak Wajib Lapor — setor & lapor via menu Belanja → Setor Pajak, isi NTPN">{{ $lbl }} — wajib lapor</span>
             @endif
           @empty
             @if ($wajibPajak)
               <span class="badge bg-amber-100 text-amber-800" title="Di ARKAS: belanja di atas Rp2 jt (bukan SIPLah) wajib memperhitungkan pajak (PPN 12% sejak 2026)">≥ Rp2 jt — perlu pajak?</span>
             @elseif ($pakaiSiplah)
-              <span class="text-emerald-600" title="Belanja SIPLah — pajak otomatis ditangani vendor">SIPLah ✓</span>
+              <span class="text-emerald-600" title="Belanja SIPLah — pajak otomatis ditangani vendor">SIPLah</span>
             @else
               <span class="text-slate-300">—</span>
             @endif
@@ -55,9 +55,9 @@
           <a href="{{ route('belanja.show', $t) }}" class="badge bdan">lihat</a>
           {{-- Hapus wajib beralasan: alasannya masuk Log Sistem (jejak audit). --}}
           <details class="relative inline-block text-left">
-            <summary class="badge bdel cursor-pointer list-none" title="Hapus &amp; catat alasan">✖</summary>
+            <summary class="badge bdel cursor-pointer list-none" title="Hapus &amp; catat alasan"><x-icon name="trash" class="h-3.5 w-3.5"/></summary>
             <form method="post" action="{{ route('pengeluaran.destroy', $t) }}"
-                  class="absolute right-0 z-40 mt-1 w-60 space-y-1.5 rounded-lg border border-slate-200 bg-white p-2.5 text-xs shadow-xl">
+                  class="absolute right-0 z-40 mt-1 w-60 space-y-1.5 rounded border border-[#d9dbdd] bg-white p-2.5 text-xs shadow-[0_8px_20px_rgba(37,40,43,0.2)]">
               @csrf @method('DELETE')
               <div class="font-bold text-slate-700">Hapus belanja {{ rp($t->total) }}</div>
               <label class="block font-semibold text-slate-600">Alasan (wajib, tercatat di Log Sistem)</label>

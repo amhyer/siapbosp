@@ -16,10 +16,28 @@ use Illuminate\Support\Facades\Http;
  */
 class SinkronisasiService
 {
-    /** Konfigurasi akun sekolah (pusat). */
+    /** Konfigurasi akun sekolah (pusat) dari akun-sekolah.conf atau fallback config.json agen. */
     public static function conf(): array
     {
-        return KonfigLokal::baca(KonfigLokal::absolut('launcher-windows/akun-sekolah.conf'));
+        $conf = KonfigLokal::baca(KonfigLokal::absolut('launcher-windows/akun-sekolah.conf'));
+        if (! empty($conf['PUSAT_URL']) && ! empty($conf['TOKEN'])) {
+            return $conf;
+        }
+
+        $appdata = getenv('APPDATA') ?: (getenv('USERPROFILE') ? rtrim((string) getenv('USERPROFILE'), '\\/').'\\AppData\\Roaming' : '');
+        if ($appdata !== '') {
+            $cfgAgen = rtrim($appdata, '\\/').'\\SiapBOS-Agen\\config.json';
+            if (is_file($cfgAgen)) {
+                $json = json_decode((string) file_get_contents($cfgAgen), true);
+                if (is_array($json)) {
+                    $conf['PUSAT_URL'] = $conf['PUSAT_URL'] ?? ($json['server'] ?? null);
+                    $conf['TOKEN'] = $conf['TOKEN'] ?? ($json['token'] ?? null);
+                    $conf['NPSN'] = $conf['NPSN'] ?? ($json['npsn'] ?? null);
+                }
+            }
+        }
+
+        return $conf;
     }
 
     /** Ringkasan status sinkronisasi untuk halaman Pengaturan. */
@@ -64,13 +82,13 @@ class SinkronisasiService
     }
 
     /** Jalankan sinkronisasi ke pusat (idempoten). */
-    public static function jalan(): array
+    public static function jalan(?int $tahun = null): array
     {
         $conf = self::conf();
         if (empty($conf['PUSAT_URL']) || empty($conf['TOKEN'])) {
             throw new \RuntimeException('Identitas pusat belum ada (akun-sekolah.conf). Unduh "Identitas Sekolah" dari website pusat.');
         }
-        $tahun = (int) session('tahun', now()->year);
+        $tahun = $tahun ?? (int) session('tahun', now()->year);
         $kode = Artisan::call('siapbos:sync-push', ['--tahun' => $tahun]);
         $keluaran = trim(Artisan::output());
         if ($kode !== 0) {
@@ -82,5 +100,59 @@ class SinkronisasiService
         ]);
 
         return ['pesan' => 'Sinkronisasi selesai. '.$keluaran];
+    }
+
+    /**
+     * Dorong otomatis hasil tarikan ARKAS dari aplikasi desktop ke website pusat:
+     * 1. Mengunggah berkas Excel hasil tarikan ARKAS ke /api/v1/arkas-push
+     * 2. Menjalankan siapbos:sync-push (/api/v1/sync-push) untuk transaksi & RKAS lokal
+     *
+     * @return array{terkirim: bool, pesan: string}
+     */
+    public static function dorongOtomatisKeWebsite(string $pathExcel, int $tahun): array
+    {
+        $conf = self::conf();
+        if (empty($conf['PUSAT_URL']) || empty($conf['TOKEN'])) {
+            return [
+                'terkirim' => false,
+                'pesan' => 'belum terhubung ke website (akun-sekolah.conf belum diisi)',
+            ];
+        }
+
+        $pusatUrl = rtrim((string) $conf['PUSAT_URL'], '/');
+        $token = (string) $conf['TOKEN'];
+        $catatan = [];
+        $berhasil = false;
+
+        if (is_file($pathExcel)) {
+            try {
+                $res = Http::timeout(120)
+                    ->withToken($token)
+                    ->attach('berkas', (string) file_get_contents($pathExcel), "arkas-{$tahun}.xlsx")
+                    ->post("{$pusatUrl}/api/v1/arkas-push", ['tahun' => $tahun]);
+
+                if ($res->successful() && ($res->json('ok') ?? false)) {
+                    $berhasil = true;
+                    $catatan[] = 'berkas ARKAS terkirim ke website';
+                }
+            } catch (\Throwable $e) {
+                $catatan[] = 'unggah berkas tertunda ('.$e->getMessage().')';
+            }
+        }
+
+        try {
+            $sync = self::jalan($tahun);
+            $berhasil = true;
+            $catatan[] = $sync['pesan'];
+        } catch (\Throwable $e) {
+            if (! $berhasil) {
+                $catatan[] = 'sinkron transaksi tertunda ('.$e->getMessage().')';
+            }
+        }
+
+        return [
+            'terkirim' => $berhasil,
+            'pesan' => implode(' · ', array_filter($catatan)) ?: 'Sinkron ke website selesai',
+        ];
     }
 }

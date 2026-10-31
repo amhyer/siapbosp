@@ -25,13 +25,22 @@
   $bendahara = $penandatangan->first(fn ($p) => stripos((string) ($p->jabatan ?? ''), 'bendahara') !== false);
   $kakiKiri = trim(preg_replace('/[^\p{L}\p{N} .,\-\/:()]/u', ' ',
     'Kertas Kerja '.$kataKaki.' - NPSN : '.$sekolah->npsn.', Nama Sekolah : '.$sekolah->nama));
+  $statusTeks = $draf ? 'KERTAS KERJA (DRAF) — BELUM DISAHKAN' : 'RKAS — DOKUMEN BUKAN DRAF';
+  $warnaStatus = $draf ? '#b45309' : '#047857';
+  $tautanFormat = fn (string $formatTujuan) => route('laporan-arkas.rapbs-cetak',
+    array_filter(['format' => $formatTujuan, 'bulan' => $formatTujuan === 'bulan' ? $bulan : null,
+      'draf' => $drafDiminta ? 1 : 0], fn ($v) => $v !== null));
 @endphp
 
 <div class="toolbar nonprint">
   <button type="button" data-cetak-halaman>🖨️ Cetak / Simpan PDF</button>
-  <a href="{{ route('laporan-arkas.rapbs-cetak') }}">Per Tahap</a>
-  <a href="{{ route('laporan-arkas.rapbs-cetak', ['format' => 'triwulan']) }}">Per Triwulan</a>
-  <a href="{{ route('laporan-arkas.rapbs-cetak', ['format' => 'bulan', 'bulan' => $bulan]) }}">Per Bulan</a>
+  <a href="{{ $tautanFormat('tahap') }}">Per Tahap</a>
+  <a href="{{ $tautanFormat('triwulan') }}">Per Triwulan</a>
+  <a href="{{ $tautanFormat('bulan') }}">Per Bulan</a>
+  <a href="{{ route('laporan-arkas.rapbs-cetak', ['format' => $format, 'bulan' => $bulan, 'draf' => 1]) }}"
+     class="{{ $drafDiminta ? 'font-bold' : '' }}">Kertas Kerja (Draf)</a>
+  <a href="{{ route('laporan-arkas.rapbs-cetak', ['format' => $format, 'bulan' => $bulan, 'draf' => 0]) }}"
+     class="{{ ! $drafDiminta ? 'font-bold' : '' }}">RKAS Disahkan</a>
   @if($isBulan)
     <form method="get" action="{{ route('laporan-arkas.rapbs-cetak') }}" style="display:flex;gap:.4rem;align-items:center">
       <input type="hidden" name="format" value="bulan">
@@ -52,6 +61,12 @@
      label:nilai (Nama Sekolah / Alamat / Kabupaten / Provinsi / Tahap|Triwulan|
      Bulan) dengan NPSN di sisi kanan. --}}
 <div style="text-align:center;font-weight:700;font-size:13px;letter-spacing:.02em">{{ $judul }}</div>
+<div style="text-align:center;font-size:11px;margin-top:.15rem;font-weight:700;color:{{ $warnaStatus }}">{{ $statusTeks }}</div>
+@if($draf && ! $drafDiminta)
+  <div style="text-align:center;font-size:10px;color:#b45309">
+    Belum ada RKAS disahkan pada tahun {{ $tahun }}; yang ditampilkan adalah kertas kerja draf terakhir.
+  </div>
+@endif
 <div style="text-align:center;font-size:12px;margin-top:.1rem">TAHUN ANGGARAN : {{ $tahun }}</div>
 
 <div style="display:flex;justify-content:space-between;gap:1rem;margin:.55rem 0 .6rem;font-size:11.5px;line-height:1.45">

@@ -60,5 +60,25 @@
       ev.preventDefault();
       window.print();
     });
+
+    // Buka/tutup dialog modal (mis. Data Penanggung Jawab) tanpa atribut onclick.
+    document.addEventListener('click', function (ev) {
+      var buka = ev.target && ev.target.closest ? ev.target.closest('[data-modal-buka]') : null;
+      if (buka) {
+        var modal = document.getElementById(buka.getAttribute('data-modal-buka'));
+        if (modal) {
+          ev.preventDefault();
+          modal.classList.remove('hidden');
+          var det = buka.closest('details');
+          if (det) { det.removeAttribute('open'); }
+        }
+        return;
+      }
+      var tutup = ev.target && ev.target.closest ? ev.target.closest('[data-modal-tutup]') : null;
+      if (tutup) {
+        var target = document.getElementById(tutup.getAttribute('data-modal-tutup'));
+        if (target) { target.classList.add('hidden'); }
+      }
+    });
   })();
 </script>

@@ -110,8 +110,10 @@ class CssHalamanTest extends TestCase
             $relatif = str_replace(resource_path('views').DIRECTORY_SEPARATOR, '', $berkas->getPathname());
             $relatif = str_replace('\\', '/', $relatif);
 
-            // Layout, partial (awalan "_"), dan pengecualian di atas tidak perlu @extends.
-            if (str_starts_with($relatif, 'layouts/') || str_starts_with(basename($relatif), '_')
+            // Layout, komponen, partial (awalan "_"), dan pengecualian di atas
+            // tidak perlu @extends karena dirender di dalam layout beraset.
+            if (str_starts_with($relatif, 'layouts/') || str_starts_with($relatif, 'components/')
+                || str_starts_with(basename($relatif), '_')
                 || in_array($relatif, $dikecualikan, true)) {
                 continue;
             }

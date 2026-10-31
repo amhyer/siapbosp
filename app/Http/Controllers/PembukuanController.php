@@ -100,10 +100,14 @@ class PembukuanController extends Controller
         $terkunciMap = $tutupRecords->keys()->all();
 
         $infoTutup = $tutupRecords[$bulan] ?? null;
+        $rekeningBelanjaList = Rekening::belanja()->orderBy('kode')->limit(40)->get(['id', 'kode', 'nama']);
+        $bosDefaultId = BosType::where('kode', 'reguler')->value('id') ?? BosType::value('id');
+        $stageDefaultId = Stage::where('tahun', $tahun)->orderBy('urutan')->value('id');
 
         return view('pembukuan.bku', compact('rows', 'bulan', 'saldoAwal', 'tahun', 'kodeNama',
             'saldoSekarang', 'pendapatanTh', 'belanjaTh', 'pagu', 'danaTersedia', 'bisaDianggarkanUlang',
-            'bulanGrid', 'terkunciMap', 'bisaBuka', 'silpaTahunLalu', 'infoTutup'));
+            'bulanGrid', 'terkunciMap', 'bisaBuka', 'silpaTahunLalu', 'infoTutup',
+            'rekeningBelanjaList', 'bosDefaultId', 'stageDefaultId'));
     }
 
     /** Nama bulan & hari Indonesia — dokumen cetak tidak boleh bergantung APP_LOCALE. */
@@ -595,14 +599,54 @@ class PembukuanController extends Controller
     /** 📚 Format BKU Semester ala ARKAS: Rekapitulasi Realisasi Belanja per rekening. */
     public function rekapRealisasi(Request $r)
     {
-        [$semester, $tahun, $awal, $akhir] = $this->persiapanSemester($r);
+        $periode = (string) $r->query('periode', 'semester');
+        if (! in_array($periode, ['semester', 'bulanan', 'tahunan', 'tahapan'], true)) {
+            $periode = 'semester';
+        }
+
+        $semester = (int) $r->query('semester', (int) now()->format('m') <= 6 ? 1 : 2);
+        $tahap = null;
+        $bulan = null;
+        $stages = Stage::where('tahun', (int) session('tahun', now()->year))->orderBy('urutan')->orderBy('id')->get();
+
+        if ($periode === 'semester') {
+            [$semester, $tahun, $awal, $akhir] = $this->persiapanSemester($r);
+            $labelPeriode = 'SEMESTER '.$semester.' ('.$this->namaSemester($semester).') TAHUN '.$tahun;
+        } elseif ($periode === 'bulanan') {
+            $tahun = (int) session('tahun', now()->year);
+            $masukan = (string) $r->query('bulan', now()->format('Y-m'));
+            $acuan = preg_match('/^\d{4}-\d{2}$/', $masukan) === 1 ? $masukan : now()->format('Y-m');
+            $bulan = $tahun.'-'.substr($acuan, 5, 2);
+            $awal = $bulan.'-01';
+            $akhir = Carbon::parse($awal)->endOfMonth()->format('Y-m-d');
+            $labelPeriode = 'BULAN '.strtoupper(self::BULAN_ID[(int) substr($bulan, 5, 2)]).' '.$tahun;
+        } elseif ($periode === 'tahunan') {
+            $tahun = (int) session('tahun', now()->year);
+            $awal = $tahun.'-01-01';
+            $akhir = $tahun.'-12-31';
+            $labelPeriode = 'TAHUN ANGGARAN '.$tahun;
+        } else {
+            $tahun = (int) session('tahun', now()->year);
+            $tahap = $stages->firstWhere('id', (int) $r->query('tahap')) ?? $stages->first();
+            $awal = $tahun.'-01-01';
+            $akhir = $tahun.'-12-31';
+            $labelPeriode = 'TAHAPAN '.strtoupper((string) ($tahap->nama ?? '—')).' TAHUN '.$tahun;
+        }
+
         $sid = auth()->user()->school_id;
 
-        $realisasi = DB::table('kas_details as d')
+        $query = DB::table('kas_details as d')
             ->join('kas_transactions as t', 'd.kas_transaction_id', '=', 't.id')
             ->leftJoin('rekenings as rk', 'd.rekening_id', '=', 'rk.id')
-            ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
-            ->where('t.tanggal', '>=', $awal)->where('t.tanggal', '<=', $akhir)
+            ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja');
+
+        if ($periode === 'tahapan' && $tahap) {
+            $query->where('t.stage_id', $tahap->id);
+        } else {
+            $query->where('t.tanggal', '>=', $awal)->where('t.tanggal', '<=', $akhir);
+        }
+
+        $realisasi = $query
             ->select('rk.kode', 'rk.nama', DB::raw('sum(d.nilai) j'))
             ->groupBy('rk.kode', 'rk.nama')->orderBy('rk.kode')->get()
             ->pluck('j', 'kode');
@@ -639,21 +683,175 @@ class PembukuanController extends Controller
         $sekolah = auth()->user()->school;
         $penandatangan = Penandatangan::orderBy('id')->get();
 
-        return view('pembukuan.rekap-realisasi', compact('semester', 'tahun', 'rows', 'sumAnggaran',
+        return view('pembukuan.rekap-realisasi', compact('periode', 'semester', 'tahun', 'bulan',
+            'awal', 'akhir', 'labelPeriode', 'tahap', 'stages', 'rows', 'sumAnggaran',
             'sumRealisasi', 'sekolah', 'penandatangan'));
+    }
+
+    /** Label rentang semester untuk judul dokumen. */
+    private function namaSemester(int $semester): string
+    {
+        return $semester === 1 ? 'JANUARI–JUNI' : 'JULI–DESEMBER';
+    }
+
+    /**
+     * Rentang laporan pembukuan bulanan/tahunan.
+     *
+     * @return array{0: string, 1: int, 2: string, 3: string, 4: string, 5: string}
+     */
+    private function rentangBulanAtauTahun(Request $r): array
+    {
+        $tahun = (int) session('tahun', now()->year);
+        $periode = (string) $r->query('periode', 'bulan');
+        if (! in_array($periode, ['bulan', 'tahun'], true)) {
+            $periode = 'bulan';
+        }
+
+        $masukan = (string) $r->query('bulan', now()->format('Y-m'));
+        if (preg_match('/^\d{4}-\d{2}$/', $masukan) !== 1) {
+            $masukan = sprintf('%d-%02d', $tahun, (int) now()->format('n'));
+        }
+        $bulan = $tahun.'-'.substr($masukan, 5, 2);
+
+        if ($periode === 'tahun') {
+            return [$periode, $tahun, $bulan, $tahun.'-01-01', $tahun.'-12-31', 'TAHUN ANGGARAN '.$tahun];
+        }
+
+        $awal = $bulan.'-01';
+        $akhir = Carbon::parse($awal)->endOfMonth()->format('Y-m-d');
+        $label = 'BULAN '.strtoupper(self::BULAN_ID[(int) substr($bulan, 5, 2)]).' '.$tahun;
+
+        return [$periode, $tahun, $bulan, $awal, $akhir, $label];
+    }
+
+    /** Buku Kas Pembantu Bank — format ARKAS 4. */
+    public function bukuPembantuBank(Request $r)
+    {
+        return $this->bukuPembantuKas($r, 'bank');
+    }
+
+    /** Buku Kas Pembantu Tunai — format ARKAS 4. */
+    public function bukuPembantuTunai(Request $r)
+    {
+        return $this->bukuPembantuKas($r, 'tunai');
+    }
+
+    private function bukuPembantuKas(Request $r, string $jenis)
+    {
+        abort_unless(in_array($jenis, ['bank', 'tunai'], true), 404);
+
+        [$periode, $tahun, $bulan, $awal, $akhir, $labelPeriode] = $this->rentangBulanAtauTahun($r);
+        $sid = auth()->user()->school_id;
+
+        $saldoTahunLalu = KasService::saldo($sid, $tahun - 1);
+        $saldoAwal = (int) ($jenis === 'tunai' ? $saldoTahunLalu['tunai'] : $saldoTahunLalu['bank']);
+        $kunci = $jenis === 'tunai' ? 'dTunai' : 'dBank';
+
+        $rows = [];
+        $mutasi = 0;
+        foreach (KasService::ledger($sid, $tahun)['items'] as $it) {
+            $tgl = $it['trx']->tanggal->format('Y-m-d');
+            $delta = (int) $it[$kunci];
+
+            if ($tgl < $awal) {
+                $saldoAwal += $delta;
+
+                continue;
+            }
+            if ($tgl > $akhir || $delta === 0) {
+                continue;
+            }
+
+            $mutasi += $delta;
+            $rows[] = [
+                'trx' => $it['trx'],
+                'masuk' => max(0, $delta),
+                'keluar' => max(0, -$delta),
+                'saldo' => $saldoAwal + $mutasi,
+            ];
+        }
+
+        $sekolah = auth()->user()->school;
+        $penandatangan = Penandatangan::orderBy('id')->get();
+
+        return view('pembukuan.buku-pembantu-kas', compact('jenis', 'periode', 'tahun', 'bulan',
+            'awal', 'akhir', 'labelPeriode', 'rows', 'saldoAwal', 'sekolah', 'penandatangan'));
+    }
+
+    /** Buku Pembantu Pajak — format ARKAS 4 (rincian potongan & setoran pajak). */
+    public function bukuPembantuPajak(Request $r)
+    {
+        [$periode, $tahun, $bulan, $awal, $akhir, $labelPeriode] = $this->rentangBulanAtauTahun($r);
+        $sid = auth()->user()->school_id;
+
+        $rows = DB::table('kas_taxes as p')
+            ->join('kas_transactions as t', 'p.kas_transaction_id', '=', 't.id')
+            ->join('rekening_pajaks as rp', 'p.rekening_pajak_id', '=', 'rp.id')
+            ->leftJoin('kas_transactions as bayar', 'p.paid_transaction_id', '=', 'bayar.id')
+            ->where('t.school_id', $sid)->where('t.tahun', $tahun)
+            ->where('t.tanggal', '>=', $awal)->where('t.tanggal', '<=', $akhir)
+            ->select('p.nilai', 'p.status', 'p.ntpn', 'p.kode_billing',
+                't.tanggal', 't.no_bukti', 't.arkas_bku', 't.keterangan',
+                'rp.kode as pajak_kode', 'rp.nama as pajak_nama', 'bayar.tanggal as tgl_setor')
+            ->orderBy('t.tanggal')->orderBy('p.id')->get();
+
+        $ringkasan = [];
+        foreach ($rows as $x) {
+            $kunci = trim($x->pajak_kode.' '.$x->pajak_nama);
+            $ringkasan[$kunci] ??= ['nama' => $kunci, 'total' => 0, 'sudah' => 0, 'belum' => 0];
+            $ringkasan[$kunci]['total'] += (int) $x->nilai;
+            if ($x->status === 'sudah') {
+                $ringkasan[$kunci]['sudah'] += (int) $x->nilai;
+            } else {
+                $ringkasan[$kunci]['belum'] += (int) $x->nilai;
+            }
+        }
+        ksort($ringkasan);
+
+        $total = [
+            'nilai' => (int) $rows->sum('nilai'),
+            'sudah' => (int) $rows->where('status', 'sudah')->sum('nilai'),
+            'belum' => (int) $rows->where('status', '!=', 'sudah')->sum('nilai'),
+        ];
+
+        $sekolah = auth()->user()->school;
+        $penandatangan = Penandatangan::orderBy('id')->get();
+
+        return view('pembukuan.buku-pembantu-pajak', compact('periode', 'tahun', 'bulan', 'awal',
+            'akhir', 'labelPeriode', 'rows', 'ringkasan', 'total', 'sekolah', 'penandatangan'));
     }
 
     /** 📄 Format BKU Resmi ke-4 ala ARKAS 4 Bab XXI: Surat Pernyataan Tanggung Jawab Mutlak (SPTJM). */
     public function sptjm(Request $r)
     {
-        [$semester, $tahun, $awal, $akhir] = $this->persiapanSemester($r);
+        $periode = (string) $r->query('periode', 'semester');
+        if (! in_array($periode, ['bulanan', 'semester'], true)) {
+            $periode = 'semester';
+        }
+
+        if ($periode === 'bulanan') {
+            $tahun = (int) session('tahun', now()->year);
+            $masukan = (string) $r->query('bulan', now()->format('Y-m'));
+            $acuan = preg_match('/^\d{4}-\d{2}$/', $masukan) === 1 ? $masukan : now()->format('Y-m');
+            $bulan = $tahun.'-'.substr($acuan, 5, 2);
+            $awal = $bulan.'-01';
+            $akhir = Carbon::parse($awal)->endOfMonth()->format('Y-m-d');
+            $semester = (int) substr($bulan, 5, 2) <= 6 ? 1 : 2;
+            $labelPeriode = 'BULAN '.strtoupper(self::BULAN_ID[(int) substr($bulan, 5, 2)]).' TAHUN ANGGARAN '.$tahun;
+            $nomorDefault = sprintf('421/%03d/SPTJM-BOSP/%d/%s', $semester, $tahun, substr($bulan, 5, 2));
+        } else {
+            [$semester, $tahun, $awal, $akhir] = $this->persiapanSemester($r);
+            $bulan = null;
+            $labelPeriode = 'SEMESTER '.$semester.' ('.$this->namaSemester($semester).') TAHUN ANGGARAN '.$tahun;
+            $nomorDefault = sprintf('421/%03d/SPTJM-BOSP/%d', $semester, $tahun);
+        }
+
         $sid = auth()->user()->school_id;
         $sekolah = auth()->user()->school;
         $penandatangan = Penandatangan::orderBy('id')->get();
         $kepsek = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'kepala'));
         $bendahara = $penandatangan->first(fn ($p) => str_contains(strtolower($p->jabatan), 'bendahara'));
 
-        $ledgerTh = KasService::ledger($sid, $tahun);
         $saldoAwal = 0;
         $penerimaan = 0;
         $pengeluaran = 0;
@@ -671,11 +869,11 @@ class PembukuanController extends Controller
             }
         }
         $sisaKas = $saldoAwal + $penerimaan - $pengeluaran;
-        $nomorSurat = $r->query('nomor', sprintf('421/%03d/SPTJM-BOSP/%d', $semester, $tahun));
+        $nomorSurat = $r->query('nomor', $nomorDefault);
 
         return view('pembukuan.sptjm', compact(
-            'semester', 'tahun', 'awal', 'akhir', 'sekolah', 'kepsek', 'bendahara',
-            'saldoAwal', 'penerimaan', 'pengeluaran', 'sisaKas', 'nomorSurat'
+            'periode', 'semester', 'tahun', 'bulan', 'awal', 'akhir', 'labelPeriode', 'sekolah',
+            'kepsek', 'bendahara', 'saldoAwal', 'penerimaan', 'pengeluaran', 'sisaKas', 'nomorSurat'
         ));
     }
 

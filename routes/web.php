@@ -12,17 +12,19 @@ use App\Http\Controllers\ImportArkasController;
 use App\Http\Controllers\LampiranController;
 use App\Http\Controllers\LaporanArkasController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\LaporanFormatController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PembukuanController;
 use App\Http\Controllers\PenandatanganController;
+use App\Http\Controllers\PenatausahaanController;
 use App\Http\Controllers\PenerimaanController;
+use App\Http\Controllers\PenganggaranController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PerencanaanController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\ReferensiController;
 use App\Http\Controllers\RekonsiliasiController;
-use App\Http\Controllers\PenatausahaanController;
 use App\Http\Controllers\RkasController;
 use App\Http\Controllers\TarikArkasController;
 use App\Http\Controllers\UnduhAplikasiController;
@@ -189,6 +191,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/perencanaan/ssh/{ssh}', [PerencanaanController::class, 'sshDestroy'])->name('perencanaan.ssh.destroy');
 
         // ---- Penganggaran / Kertas Kerja RKAS ala ARKAS 4 ----
+        // Halaman perantara Penganggaran (pola ARKAS 4): satu menu sidebar,
+        // ringkasan pagu & status dokumen, lalu jalan masuk ke setiap fitur.
+        Route::get('/penganggaran', [PenganggaranController::class, 'index'])->name('penganggaran.index');
         Route::get('/rkas', [RkasController::class, 'index'])->name('rkas.index');
         Route::get('/rkas/buat', [RkasController::class, 'create'])->name('rkas.create');
         Route::post('/rkas', [RkasController::class, 'store'])->name('rkas.store');
@@ -230,6 +235,9 @@ Route::middleware('auth')->group(function () {
         // RPD K7: Rekapitulasi Realisasi Penggunaan Dana BOSP (8 standar x sub program).
         Route::get('/laporan-arkas/rpd-k7', [LaporanArkasController::class, 'rpdK7'])
             ->name('laporan-arkas.rpd-k7');
+        // Laporan Penggunaan Hibah Dana (Semester & Tahunan) — format ARKAS `dana-hibah`.
+        Route::get('/laporan-arkas/dana-hibah', [LaporanArkasController::class, 'danaHibah'])
+            ->name('laporan-arkas.dana-hibah');
         Route::get('/laporan-arkas/daftar-kas-umum', [LaporanArkasController::class, 'kasUmum'])->name('laporan-arkas.kas-umum');
         Route::get('/laporan-arkas/daftar-nota', [LaporanArkasController::class, 'nota'])->name('laporan-arkas.nota');
         Route::get('/laporan-arkas/penutupan-kas', [LaporanArkasController::class, 'penutupanKas'])->name('laporan-arkas.penutupan-kas');
@@ -292,6 +300,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembukuan/bku-bank', [PembukuanController::class, 'bkuBank'])->name('bku.bank');
         Route::get('/pembukuan/bku.csv', [PembukuanController::class, 'bkuCsv'])->name('bku.csv');
         Route::get('/pembukuan/buku-pembantu', [PembukuanController::class, 'bukuPembantu'])->name('pembukuan.bukuPembantu');
+        Route::get('/pembukuan/buku-pembantu-bank', [PembukuanController::class, 'bukuPembantuBank'])->name('pembukuan.bukuPembantuBank');
+        Route::get('/pembukuan/buku-pembantu-tunai', [PembukuanController::class, 'bukuPembantuTunai'])->name('pembukuan.bukuPembantuTunai');
+        Route::get('/pembukuan/buku-pembantu-pajak', [PembukuanController::class, 'bukuPembantuPajak'])->name('pembukuan.bukuPembantuPajak');
         Route::get('/pembukuan/rekap-realisasi', [PembukuanController::class, 'rekapRealisasi'])->name('pembukuan.rekapRealisasi');
         Route::get('/pembukuan/sptjm', [PembukuanController::class, 'sptjm'])->name('pembukuan.sptjm');
         Route::post('/pembukuan/bku/tutup', [PembukuanController::class, 'tutupBulan'])->name('bku.tutup');
@@ -299,6 +310,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembukuan/kas', [PembukuanController::class, 'kas'])->name('kas');
         Route::get('/pembukuan/register', [PembukuanController::class, 'register'])->name('pembukuan.register');
 
+        Route::get('/laporan/format', [LaporanFormatController::class, 'index'])->name('laporan.format');
         Route::get('/laporan/tahap', [LaporanController::class, 'tahap'])->name('laporan.tahap');
         Route::get('/laporan/pajak-triwulan', [LaporanController::class, 'pajakTriwulan'])->name('laporan.pajak-tw');
         Route::get('/laporan/lpj', [LaporanController::class, 'lpj'])->name('laporan.lpj');
@@ -315,6 +327,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/utility/sinkron-arkas', [TarikArkasController::class, 'sinkron'])->name('tarik-arkas.sinkron');
         Route::post('/utility/tarik-arkas', [TarikArkasController::class, 'tarik'])->name('tarik-arkas.tarik');
         Route::get('/utility/penandatangan', [PenandatanganController::class, 'index'])->name('penandatangan');
+        Route::post('/utility/penanggung-jawab', [PenandatanganController::class, 'simpanPenanggungJawab'])->name('penandatangan.penanggung-jawab');
         Route::post('/utility/penandatangan', [PenandatanganController::class, 'store'])->name('penandatangan.store');
         Route::post('/utility/penandatangan/{penandatangan}/ttd', [PenandatanganController::class, 'unggahTtd'])->name('penandatangan.ttd');
         Route::delete('/utility/penandatangan/{penandatangan}/ttd', [PenandatanganController::class, 'hapusTtd'])->name('penandatangan.ttd.hapus');

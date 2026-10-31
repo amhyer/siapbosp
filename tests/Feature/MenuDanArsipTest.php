@@ -91,22 +91,32 @@ class MenuDanArsipTest extends TestCase
             'Data Sekolah seharusnya pindah ke dropdown profil, bukan sidebar.');
     }
 
-    /** Dropdown profil di topbar memuat data sekolah + Keluar (pola ARKAS 4). */
-    public function test_dropdown_profil_topbar_memuat_data_sekolah_dan_keluar(): void
+    /** Dropdown profil ARKAS 4 hanya memuat Data Penanggung Jawab + Keluar. */
+    public function test_dropdown_profil_hanya_data_penanggung_jawab_dan_keluar(): void
     {
         $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
 
-        $this->assertStringContainsString('Data Sekolah', $html);
+        $this->assertStringContainsString('href="'.route('penandatangan').'"', $html);
+        $this->assertStringContainsString('Data Penanggung Jawab', $html);
+        $this->assertStringContainsString('action="'.route('logout').'"', $html, 'Keluar harus ada di dropdown profil.');
+
+        // Data sekolah tidak lagi di dropdown — ARKAS 4 hanya punya dua item.
+        foreach ([route('profil.edit'), route('datasekolah.tahun'), route('datasekolah.sumber-dana'), route('datasekolah.sinkronisasi')] as $href) {
+            $this->assertStringNotContainsString('href="'.$href.'"', $html,
+                'Dropdown profil ARKAS 4 tidak memuat tautan data sekolah.');
+        }
+
+        // Pintasan data sekolah ada di halaman Data Penanggung Jawab.
+        $akun = $this->withSession(['tahun' => 2025])->get(route('penandatangan'))->assertOk()->getContent();
+        $this->assertStringContainsString('Data Sekolah', $akun);
         foreach ([
-            route('penandatangan') => 'Data Penanggung Jawab',
             route('profil.edit') => 'Profil Sekolah',
             route('datasekolah.tahun') => 'Tahun Anggaran',
             route('datasekolah.sumber-dana') => 'Sumber Dana',
             route('datasekolah.sinkronisasi') => 'Status Sinkronisasi ke Pusat',
         ] as $href => $label) {
-            $this->assertStringContainsString('href="'.$href.'"', $html, $label.' tidak ada di dropdown profil.');
+            $this->assertStringContainsString('href="'.$href.'"', $akun, $label.' tidak ada di halaman Data Penanggung Jawab.');
         }
-        $this->assertStringContainsString('action="'.route('logout').'"', $html, 'Keluar harus ada di dropdown profil.');
     }
 
     /** Blok utilitas bawah sidebar (padanan Tutorial & Perbarui Aplikasi ARKAS 4). */
@@ -115,8 +125,9 @@ class MenuDanArsipTest extends TestCase
         $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
 
         $this->assertStringContainsString('navw-util', $html);
-        $this->assertStringContainsString('Bantuan &amp; Panduan', $html);
-        $this->assertStringContainsString('Perbarui Aplikasi', $html);
+        foreach (['Tutorial', 'Pertanyaan Umum', 'Hubungi Kami', 'Perbarui Aplikasi'] as $label) {
+            $this->assertStringContainsString($label, $html, 'Utilitas '.$label.' tidak ada di sidebar.');
+        }
 
         $this->withSession(['tahun' => 2025])->get('/bantuan')
             ->assertOk()
@@ -134,12 +145,17 @@ class MenuDanArsipTest extends TestCase
 
         preg_match_all('#<nav class="navw.*?</nav>#s', $html, $blok);
         $nav = $blok[0][0] ?? '';
-        preg_match_all('#<a href="([^"]+)"[^>]*>([^<]+)</a>#', $nav, $link, PREG_SET_ORDER);
+        preg_match_all('#<a href="([^"]+)"([^>]*)>([^<]+)</a>#', $nav, $link, PREG_SET_ORDER);
 
         $target = [];
         foreach ($link as $l) {
+            // Judul area kerja (Penganggaran/Penatausahaan/Arsip) sengaja
+            // menuju halaman pertama submenunya, jadi duplikat itu sah.
+            if (str_contains($l[2], 'navw-area')) {
+                continue;
+            }
             $href = html_entity_decode($l[1]);
-            $label = trim($l[2]);
+            $label = trim($l[3]);
             if ($href === '' || str_starts_with($href, '#')) {
                 continue;
             }

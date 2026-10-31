@@ -12,29 +12,29 @@
 <div class="grid lg:grid-cols-3 gap-5">
 <div class="card">
   <div class="flex justify-between text-xs text-slate-500 mb-3"><span>Saldo Bank:</span><b class="text-sky-700">{{ rp($saldo['bank']) }}</b></div>
-  <h3 class="font-semibold text-slate-700 mb-3">Input Pendapatan</h3>
+  <h3 class="card-title mb-3 flex items-center gap-2"><x-icon name="cash" class="h-4 w-4 text-slate-500"/> Input Pendapatan</h3>
   <form method="post" action="{{ route('pendapatan.store') }}" class="space-y-3">
     @csrf
     {{-- Penanda asal form: bila dibuka dari aksi cepat lembar BKU, setelah
          tersimpan operator kembali ke BKU dengan baris baru dikilatkan. --}}
     <input type="hidden" name="kembali" value="{{ old('kembali', request('kembali')) }}">
-    <div><label class="text-xs font-semibold text-slate-600">Tanggal Transaksi</label><input type="date" name="tanggal" class="inp mt-1" value="{{ date('Y-m-d') }}" required></div>
-    <div><label class="text-xs font-semibold text-slate-600">Jenis BOS</label>
+    <div><label class="lbl">Tanggal Transaksi</label><input type="date" name="tanggal" class="inp mt-1" value="{{ date('Y-m-d') }}" required></div>
+    <div><label class="lbl">Jenis BOS</label>
       <select name="bos_type_id" class="inp mt-1">@foreach($bosTypes as $b)<option value="{{ $b->id }}">{{ $b->nama }}</option>@endforeach</select></div>
-    <div><label class="text-xs font-semibold text-slate-600">Tahap</label>
+    <div><label class="lbl">Tahap</label>
       <select name="stage_id" class="inp mt-1">@foreach($stages as $s)<option value="{{ $s->id }}">{{ $s->nama }}</option>@endforeach</select></div>
-    <div><label class="text-xs font-semibold text-slate-600">Keterangan</label><input name="keterangan" class="inp mt-1" placeholder="mis. Pencairan Tahap 1" required></div>
+    <div><label class="lbl">Keterangan</label><input name="keterangan" class="inp mt-1" placeholder="mis. Pencairan Tahap 1" required></div>
     <div class="border-t pt-3">
       <div class="flex justify-between items-center mb-2"><span class="text-xs font-semibold text-slate-600">Rincian</span>
-        <button type="button" class="badge bdan" data-tambah-rincian>➕ Tambah Rincian</button></div>
+        <button type="button" class="badge bdan" data-tambah-rincian><x-icon name="plus" class="h-3.5 w-3.5"/> Tambah Rincian</button></div>
       <div id="rows" class="space-y-2"></div>
       <div class="flex justify-between text-sm font-bold mt-3"><span>Total</span><span id="grand">Rp 0</span></div>
     </div>
-    <button class="btn w-full justify-center">💾 Simpan (masuk Kas Bank)</button>
+    <button class="btn w-full justify-center"><x-icon name="check" class="h-4 w-4"/> Simpan (masuk Kas Bank)</button>
   </form>
 </div>
 <div class="card">
-  <h3 class="font-semibold text-slate-700 text-sm mb-2">💰 Bunga Bank</h3>
+  <h3 class="card-title mb-2 flex items-center gap-2"><x-icon name="bank" class="h-4 w-4 text-slate-500"/> Bunga Bank</h3>
   <p class="text-[11px] text-slate-400 mb-2 leading-snug">Penerimaan insidental dari bunga rekening sekolah — di luar RKAS, langsung masuk Kas Bank. Ikut mengangkat saldo dan menjadi bagian SiLPA akhir tahun.</p>
   <form method="post" action="{{ route('pendapatan.bunga') }}" class="space-y-2">
     @csrf
@@ -42,7 +42,7 @@
     <select name="bos_type_id" class="inp text-sm">@foreach($bosTypes as $b)<option value="{{ $b->id }}">{{ $b->nama }}</option>@endforeach</select>
     <select name="stage_id" class="inp text-sm">@foreach($stages as $s)<option value="{{ $s->id }}">{{ $s->nama }}</option>@endforeach</select>
     <input type="number" name="nilai" min="1" step="1" class="inp text-sm" placeholder="Nilai bunga (Rp)" required>
-    <button class="btn btn-sm w-full justify-center">💰 Catat Bunga Bank</button>
+    <button class="btn btn-sm w-full justify-center"><x-icon name="plus" class="h-4 w-4"/> Catat Bunga Bank</button>
   </form>
 </div>
 <div class="card lg:col-span-2">
@@ -54,14 +54,14 @@
       <div><div class="text-slate-500">SILPA Tahun Lalu</div><div class="font-bold text-sm">{{ rp($silpa) }}</div></div>
     </div>
     @if ($kelebihan)
-      <div class="mt-2 text-rose-700 font-semibold">⚠️ Total penerimaan melewati pagu — cek penyaluran/konfirmasi dana di Dinas.</div>
+      <div class="mt-2 font-semibold text-rose-700">Total penerimaan melewati pagu — cek penyaluran/konfirmasi dana di Dinas.</div>
     @endif
   </div>
-  <h3 class="font-semibold text-slate-700 mb-3">Riwayat Pendapatan {{ $tahun }}</h3>
+  <h3 class="card-title mb-3">Riwayat Pendapatan {{ $tahun }}</h3>
   <form method="get" class="flex gap-2 mb-3">
-    <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="🔍 Cari keterangan / no bukti..." class="inp !py-1.5 text-sm w-64">
-    <button class="btn2 btn text-sm">Cari</button>
-    @if(!empty($q))<a href="{{ route('pendapatan.index') }}" class="text-xs text-slate-400 hover:text-rose-500 self-center">✖ reset</a>@endif
+    <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Cari keterangan / no bukti…" class="inp !py-1.5 text-sm w-64">
+    <button class="btn2 btn-sm">Cari</button>
+    @if(!empty($q))<a href="{{ route('pendapatan.index') }}" class="self-center text-xs text-slate-400 hover:text-rose-500">Hapus filter</a>@endif
   </form>
   <table class="tbl">
     <thead><tr><th>BKU</th><th>Tanggal</th><th>Uraian</th><th>Rincian</th><th class="num">Nilai</th><th></th></tr></thead>
@@ -74,9 +74,9 @@
         <td>
           {{-- Hapus wajib beralasan: alasannya masuk Log Sistem (jejak audit). --}}
           <details class="relative">
-            <summary class="badge bdel cursor-pointer list-none" title="Hapus &amp; catat alasan">✖</summary>
+            <summary class="badge bdel cursor-pointer list-none" title="Hapus &amp; catat alasan"><x-icon name="trash" class="h-3.5 w-3.5"/></summary>
             <form method="post" action="{{ route('penerimaan.destroy', $t) }}"
-                  class="absolute right-0 z-40 mt-1 w-60 space-y-1.5 rounded-xl border border-slate-200 bg-white p-2.5 text-xs shadow-xl">
+                  class="absolute right-0 z-40 mt-1 w-60 space-y-1.5 rounded border border-[#d9dbdd] bg-white p-2.5 text-xs shadow-[0_8px_20px_rgba(37,40,43,0.2)]">
               @csrf @method('DELETE')
               <div class="font-bold text-slate-700">Hapus pendapatan {{ rp($t->total) }}</div>
               <label class="block font-semibold text-slate-600">Alasan (wajib, tercatat di Log Sistem)</label>
@@ -99,7 +99,7 @@
   <div class="flex gap-2">
     <select name="rekening_id[]" class="inp" required>@foreach($rekenings as $r)<option value="{{ $r->id }}">{{ $r->kode }} · {{ $r->nama }}</option>@endforeach</select>
     <input name="nilai[]" type="number" min="1" value="0" class="inp nilai" style="width:150px">
-    <button type="button" class="badge bdel" data-hapus-rincian>✖</button>
+    <button type="button" class="badge bdel" data-hapus-rincian><x-icon name="x" class="h-3.5 w-3.5"/></button>
   </div>
 </template>
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">

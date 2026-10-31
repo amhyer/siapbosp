@@ -1,81 +1,13 @@
 @extends('layouts.app', ['title' => 'Standar Satuan Harga (SSH / SBU)'])
 @section('subtitle', 'Referensi batas atas harga satuan barang/jasa Dinas & satuan pendidikan ala ARKAS 4')
 @section('content')
-<div class="card grid lg:grid-cols-3 gap-4">
-  <form method="post" action="{{ route('perencanaan.ssh.store') }}" class="lg:col-span-2 grid sm:grid-cols-3 gap-3">
-    @csrf
-    <div class="sm:col-span-3 font-bold text-slate-700 text-sm">➕ Tambah Referensi Barang/Jasa (SSH / SBU)</div>
-    <div class="sm:col-span-2">
-      <label class="text-xs font-semibold text-slate-600">Nama Barang / Jasa</label>
-      <input name="nama_barang" class="inp mt-1" required placeholder="Contoh: Kertas HVS F4 75 gsm">
-    </div>
-    <div>
-      <label class="text-xs font-semibold text-slate-600">Kategori</label>
-      <select name="kategori" class="inp mt-1">
-        <option value="ssh">SSH (Barang Habis Pakai)</option>
-        <option value="sbu">SBU (Jasa / Honor / Konsumsi)</option>
-        <option value="modal">Modal / Aset Peralatan</option>
-      </select>
-    </div>
-    <div>
-      <label class="text-xs font-semibold text-slate-600">Satuan</label>
-      <input name="satuan" value="rim" class="inp mt-1" required>
-    </div>
-    <div>
-      <label class="text-xs font-semibold text-slate-600">Batas Harga Tertinggi (Rp)</label>
-      <input type="number" min="1" name="batas_harga" class="inp mt-1" required placeholder="65000">
-    </div>
-    <div>
-      <label class="text-xs font-semibold text-slate-600">Kode Rekening Terkait</label>
-      <select name="kode_rekening" class="inp mt-1">
-        <option value="">— Opsional —</option>
-        @foreach($rekenings as $rk)<option value="{{ $rk->kode }}">{{ $rk->kode }} · {{ Str::limit($rk->nama, 30) }}</option>@endforeach
-      </select>
-    </div>
-    <div class="sm:col-span-2">
-      <label class="text-xs font-semibold text-slate-600">Spesifikasi</label>
-      <input name="spesifikasi" class="inp mt-1" placeholder="Merk / ukuran / standar mutu">
-    </div>
-    <div class="flex items-end"><button class="btn w-full justify-center">💾 Simpan SSH</button></div>
-  </form>
-
-  <form method="post" action="{{ route('perencanaan.ssh.impor') }}" enctype="multipart/form-data" class="bg-slate-50 rounded-lg border border-slate-200 p-3 flex flex-col justify-between">
-    @csrf
-    <div>
-      <div class="font-bold text-slate-700 text-sm">📥 Impor CSV Standar Harga</div>
-      <p class="text-xs text-slate-500 mt-1">Format kolom CSV: <code>nama_barang;satuan;batas_harga;kode_rekening;spesifikasi</code>. Saat menyusun Kertas Kerja RKAS, harga satuan yang melampaui batas SSH otomatis dicegah.</p>
-      <input type="file" name="berkas" accept=".csv,.txt" class="inp mt-3" required>
-    </div>
-    <button class="btn2 btn mt-3 justify-center">Unggah CSV SSH</button>
-  </form>
-</div>
-
-<div class="card space-y-3">
-  <form class="flex gap-2">
-    <input name="q" value="{{ $q }}" class="inp max-w-sm" placeholder="Cari nama barang / kode rekening...">
-    <button class="btn2 btn">Cari</button>
-  </form>
-  <div class="overflow-x-auto">
-    <table class="tbl">
-      <thead><tr><th>Sumber</th><th>Kategori</th><th>Nama Barang / Jasa</th><th>Spesifikasi</th><th>Rekening</th><th>Satuan</th><th class="num">Batas Harga</th><th></th></tr></thead>
-      <tbody>
-        @forelse($items as $it)
-        <tr>
-          <td>@if($it->school_id)<span class="badge bg-slate-100 text-slate-600">Sekolah</span>@else<span class="badge bg-indigo-100 text-indigo-700">Resmi Dinas</span>@endif</td>
-          <td><span class="uppercase font-mono text-xs">{{ $it->kategori }}</span></td>
-          <td class="font-semibold">{{ $it->nama_barang }}</td>
-          <td class="text-xs text-slate-500">{{ $it->spesifikasi ?? '—' }}</td>
-          <td class="font-mono text-xs">{{ $it->kode_rekening ?? '—' }}</td>
-          <td>{{ $it->satuan }}</td>
-          <td class="num font-bold">{{ rp($it->batas_harga) }}</td>
-          <td>@if($it->school_id)<form method="post" action="{{ route('perencanaan.ssh.destroy', $it) }}">@csrf @method('DELETE')<button class="badge bg-rose-50 text-rose-600">✖</button></form>@endif</td>
-        </tr>
-        @empty
-        <tr><td colspan="8" class="text-center text-slate-400 py-5">Belum ada referensi Standar Harga.</td></tr>
-        @endforelse
-      </tbody>
-    </table>
-  </div>
-  {{ $items->links() }}
+<div class="card grid lg:grid-cols-3 gap-4"> <form method="post" action="{{ route('perencanaan.ssh.store') }}" class="lg:col-span-2 grid sm:grid-cols-3 gap-3"> @csrf
+    <div class="sm:col-span-3 font-bold text-slate-700 text-sm"> Tambah Referensi Barang/Jasa (SSH / SBU)</div> <div class="sm:col-span-2"> <label class="text-xs font-semibold text-slate-600">Nama Barang / Jasa</label> <input name="nama_barang" class="inp mt-1" required placeholder="Contoh: Kertas HVS F4 75 gsm"> </div> <div> <label class="text-xs font-semibold text-slate-600">Kategori</label> <select name="kategori" class="inp mt-1"> <option value="ssh">SSH (Barang Habis Pakai)</option> <option value="sbu">SBU (Jasa / Honor / Konsumsi)</option> <option value="modal">Modal / Aset Peralatan</option> </select> </div> <div> <label class="text-xs font-semibold text-slate-600">Satuan</label> <input name="satuan" value="rim" class="inp mt-1" required> </div> <div> <label class="text-xs font-semibold text-slate-600">Batas Harga Tertinggi (Rp)</label> <input type="number" min="1" name="batas_harga" class="inp mt-1" required placeholder="65000"> </div> <div> <label class="text-xs font-semibold text-slate-600">Kode Rekening Terkait</label> <select name="kode_rekening" class="inp mt-1"> <option value="">— Opsional —</option> @foreach($rekenings as $rk)<option value="{{ $rk->kode }}">{{ $rk->kode }} · {{ Str::limit($rk->nama, 30) }}</option>@endforeach
+      </select> </div> <div class="sm:col-span-2"> <label class="text-xs font-semibold text-slate-600">Spesifikasi</label> <input name="spesifikasi" class="inp mt-1" placeholder="Merk / ukuran / standar mutu"> </div> <div class="flex items-end"><button class="btn w-full justify-center"> Simpan SSH</button></div> </form> <form method="post" action="{{ route('perencanaan.ssh.impor') }}" enctype="multipart/form-data" class="bg-slate-50 rounded-lg border border-slate-200 p-3 flex flex-col justify-between"> @csrf
+    <div> <div class="font-bold text-slate-700 text-sm"> Impor CSV Standar Harga</div> <p class="text-xs text-slate-500 mt-1">Format kolom CSV: <code>nama_barang;satuan;batas_harga;kode_rekening;spesifikasi</code>. Saat menyusun Kertas Kerja RKAS, harga satuan yang melampaui batas SSH otomatis dicegah.</p> <input type="file" name="berkas" accept=".csv,.txt" class="inp mt-3" required> </div> <button class="btn2 btn mt-3 justify-center">Unggah CSV SSH</button> </form>
+</div> <div class="card space-y-3"> <form class="flex gap-2"> <input name="q" value="{{ $q }}" class="inp max-w-sm" placeholder="Cari nama barang / kode rekening..."> <button class="btn2 btn">Cari</button> </form> <div class="overflow-x-auto"> <table class="tbl"> <thead><tr><th>Sumber</th><th>Kategori</th><th>Nama Barang / Jasa</th><th>Spesifikasi</th><th>Rekening</th><th>Satuan</th><th class="num">Batas Harga</th><th></th></tr></thead> <tbody> @forelse($items as $it)
+        <tr> <td>@if($it->school_id)<span class="badge bg-slate-100 text-slate-600">Sekolah</span>@else<span class="badge bg-indigo-100 text-indigo-700">Resmi Dinas</span>@endif</td> <td><span class="uppercase font-mono text-xs">{{ $it->kategori }}</span></td> <td class="font-semibold">{{ $it->nama_barang }}</td> <td class="text-xs text-slate-500">{{ $it->spesifikasi ?? '—' }}</td> <td class="font-mono text-xs">{{ $it->kode_rekening ?? '—' }}</td> <td>{{ $it->satuan }}</td> <td class="num font-bold">{{ rp($it->batas_harga) }}</td> <td>@if($it->school_id)<form method="post" action="{{ route('perencanaan.ssh.destroy', $it) }}">@csrf @method('DELETE')<button class="badge bg-rose-50 text-rose-600"></button></form>@endif</td> </tr> @empty
+        <tr><td colspan="8" class="text-center text-slate-400 py-5">Belum ada referensi Standar Harga.</td></tr> @endforelse
+      </tbody> </table> </div> {{ $items->links() }}
 </div>
 @endsection

@@ -555,7 +555,7 @@ class AsetHalamanTest extends TestCase
 
         $html = (string) $this->get('/login')->assertOk()->getContent();
 
-        $this->assertStringContainsString('.navw a', $html,
+        $this->assertStringContainsString('.arkas-sidebar', $html,
             'Tanpa aset build, layout wajib menyertakan gaya komponen (mode darurat).');
         $this->assertStringNotContainsString('/build/assets/', $html,
             'Tidak boleh merujuk berkas build yang tidak ada (pasti 404 → halaman polos).');

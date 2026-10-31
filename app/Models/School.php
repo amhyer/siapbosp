@@ -22,6 +22,11 @@ class School extends Model
         return $this->hasMany(User::class);
     }
 
+    public function penandatangans()
+    {
+        return $this->hasMany(Penandatangan::class);
+    }
+
     public function alamatLengkap(): string
     {
         return collect([$this->desa, $this->kecamatan, $this->kab_kota, $this->provinsi])->filter()->implode(', ');

@@ -9,8 +9,10 @@ use App\Models\KasNota;
 use App\Models\KasTransaction;
 use App\Models\Penandatangan;
 use App\Models\Rekening;
+use App\Models\RkasDetail;
 use App\Models\RkasHeader;
 use App\Models\Stage;
+use App\Models\SumberDanaSekolah;
 use App\Services\KasService;
 use App\Support\Csv;
 use App\Support\SumberDana;
@@ -51,24 +53,39 @@ class LaporanArkasController extends Controller
         return [$r->user()->school_id, $tahun, $bulan, sprintf('%d-%02d', $tahun, $bulan)];
     }
 
-    /** Kop laporan: sumber dana + RKAS terakhir (sel D9/D10 lembar ARKAS). */
-    private function kop(int $sid, int $tahun): array
+    /**
+     * Kop laporan: sumber dana + RKAS terakhir (sel D9/D10 lembar ARKAS).
+     *
+     * `$draf=true` memilih kertas kerja berstatus draf (belum disahkan); tanpa
+     * itu dipakai RKAS terakhir yang bukan draf, dengan fallback ke draf bila
+     * sekolah belum pernah mengesahkan RKAS pada tahun tersebut.
+     */
+    private function kop(int $sid, int $tahun, bool $draf = false): array
     {
         $bos = BosType::query()->whereIn('id',
             Allocation::where('school_id', $sid)->where('tahun', $tahun)->select('bos_type_id'))
             ->orderBy('id')->pluck('nama')->all();
-        $rkas = RkasHeader::where('school_id', $sid)->where('tahun', $tahun)
-            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'draft'))
-            ->orderByDesc('revisi_ke')->first()
-            // Hasil impor ARKAS berstatus draft — tetap dipakai bila belum ada RKAS disahkan.
-            ?? RkasHeader::where('school_id', $sid)->where('tahun', $tahun)
-                ->orderByDesc('revisi_ke')->first();
+
+        $query = RkasHeader::where('school_id', $sid)->where('tahun', $tahun);
+        if ($draf) {
+            $rkas = (clone $query)->where('status', 'draft')
+                ->orderByDesc('revisi_ke')->orderByDesc('id')->first()
+                ?? (clone $query)->orderByDesc('revisi_ke')->orderByDesc('id')->first();
+        } else {
+            $rkas = (clone $query)
+                ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'draft'))
+                ->orderByDesc('revisi_ke')->orderByDesc('id')->first()
+                // Hasil impor ARKAS berstatus draft — tetap dipakai bila belum ada RKAS disahkan.
+                ?? (clone $query)->orderByDesc('revisi_ke')->orderByDesc('id')->first();
+        }
 
         return [
             'sumber' => implode(' + ', $bos) ?: 'BOSP Reguler',
             'tahun' => $tahun,
             'revisiLabel' => ($rkas->revisi_ke ?? 1) > 1 ? ' perubahan revisi ke-'.($rkas->revisi_ke - 1) : '',
             'rkas' => $rkas,
+            'draf' => $rkas?->status === 'draft',
+            'status' => (string) ($rkas?->status ?? ''),
         ];
     }
 
@@ -278,7 +295,8 @@ class LaporanArkasController extends Controller
     {
         [$sid, $tahun, $bulan] = $this->ctx($r);
         $format = in_array($r->query('format'), ['bulan', 'triwulan'], true) ? (string) $r->query('format') : 'tahap';
-        $kop = $this->kop($sid, $tahun);
+        $drafDiminta = $r->boolean('draf');
+        $kop = $this->kop($sid, $tahun, $drafDiminta);
         $kodeNama = ArkasKode::peta($sid, $tahun);
         $tahaps = Stage::where('tahun', $tahun)->orderBy('urutan')->get();
         $nTahap = max(2, $tahaps->count());
@@ -382,6 +400,7 @@ class LaporanArkasController extends Controller
             'total' => $total, 'totalPeriode' => $totalPeriode, 'totalBulan' => $totalBulan,
             'nTahap' => $nTahap, 'nPeriode' => $nPeriode,
             'kop' => $kop, 'sekolah' => $sekolah, 'tahun' => $tahun, 'bulan' => $bulan,
+            'draf' => (bool) ($kop['draf'] ?? false), 'drafDiminta' => $drafDiminta,
             'namaBulan' => self::BULAN, 'labelBulan' => $namaBulanTeks,
             'labelKopPeriode' => ['bulan' => 'Bulan', 'triwulan' => 'Triwulan'][$format] ?? 'Tahap',
             'labelPeriode' => $labelPeriode,
@@ -1048,6 +1067,106 @@ class LaporanArkasController extends Controller
         return [$reks, $total];
     }
 
+    /**
+     * Laporan Penggunaan Hibah Dana (Semester/Tahunan) — format ARKAS `dana-hibah`.
+     *
+     * Sumber dana hibah tidak ada di master `bos_types` SiapBOSP. Sumber hibah
+     * dikenali dari master `sumber_dana_sekolah` (impor ARKAS) atau dari nama
+     * sumber pada RKAS/RKAS detail yang memuat kata "Hibah". Bila sekolah tidak
+     * punya sumber tersebut, halaman tetap tampil sebagai format resmi dengan
+     * empty-state yang menjelaskan cara menambahkannya — bukan halaman 404.
+     */
+    public function danaHibah(Request $r)
+    {
+        [$sid, $tahun] = $this->ctx($r);
+        $periode = $r->query('periode') === 'tahunan' ? 'tahunan' : 'semester';
+        $semester = (int) $r->query('semester', (int) now()->format('n') <= 6 ? 1 : 2);
+        if (! in_array($semester, [1, 2], true)) {
+            $semester = 1;
+        }
+
+        if ($periode === 'tahunan') {
+            $awal = sprintf('%d-01-01', $tahun);
+            $akhir = sprintf('%d-12-31', $tahun);
+            $labelPeriode = 'Tahun Anggaran '.$tahun;
+        } else {
+            $bulanAwal = $semester === 1 ? 1 : 7;
+            $bulanAkhir = $semester === 1 ? 6 : 12;
+            $awal = sprintf('%d-%02d-01', $tahun, $bulanAwal);
+            $akhir = now()->setDate($tahun, $bulanAkhir, 1)->endOfMonth()->toDateString();
+            $labelPeriode = 'Semester '.$semester.' ('.($semester === 1 ? 'Januari–Juni' : 'Juli–Desember').') '.$tahun;
+        }
+
+        // Revisi terbaru per sumber dana, agar pagu tidak terduplikasi.
+        $headers = RkasHeader::with(['details.rekening'])
+            ->where('school_id', $sid)->where('tahun', $tahun)
+            ->orderByDesc('revisi_ke')->orderByDesc('id')->get()
+            ->groupBy(fn (RkasHeader $h) => (string) ($h->sumber_dana ?: 'BOSP Reguler'))
+            ->map(fn (Collection $grup) => $grup->first());
+
+        $sumberHibah = collect()
+            ->merge(SumberDanaSekolah::where('school_id', $sid)->pluck('nama_sumber_dana'))
+            ->merge($headers->pluck('sumber_dana'))
+            ->merge($headers->flatMap(fn (RkasHeader $h) => $h->details->pluck('sumber_dana')))
+            ->map(fn ($nama) => trim((string) $nama))
+            ->filter(fn (string $nama) => $nama !== '' && stripos($nama, 'hibah') !== false)
+            ->unique()->sort()->values();
+
+        $adaSumber = $sumberHibah->isNotEmpty();
+
+        $details = $headers->flatMap(function (RkasHeader $h) use ($sumberHibah) {
+            $headerHibah = $sumberHibah->contains(
+                fn ($nama) => strcasecmp((string) $h->sumber_dana, (string) $nama) === 0
+            );
+
+            return $h->details->filter(fn (RkasDetail $d) => $headerHibah
+                || $sumberHibah->contains(fn ($nama) => strcasecmp((string) $d->sumber_dana, (string) $nama) === 0));
+        })->values();
+
+        $ids = $details->pluck('id')->all();
+        $realisasi = $ids === [] ? collect() : DB::table('kas_details as d')
+            ->join('kas_transactions as t', 't.id', '=', 'd.kas_transaction_id')
+            ->where('t.school_id', $sid)->where('t.tahun', $tahun)->where('t.type', 'belanja')
+            ->whereBetween('t.tanggal', [$awal, $akhir])
+            ->whereIn('d.rkas_detail_id', $ids)
+            ->selectRaw('d.rkas_detail_id, SUM(d.nilai) as nilai')
+            ->groupBy('d.rkas_detail_id')->pluck('nilai', 'd.rkas_detail_id');
+
+        $rows = $details->map(function (RkasDetail $d) use ($realisasi) {
+            $anggaran = (int) $d->jumlah;
+            $pemakaian = (int) ($realisasi[$d->id] ?? 0);
+
+            return [
+                'kode' => (string) ($d->rekening->kode ?? ''),
+                'uraian' => (string) $d->uraian,
+                'sumber' => (string) ($d->sumber_dana ?: 'Hibah'),
+                'anggaran' => $anggaran,
+                'realisasi' => $pemakaian,
+                'sisa' => $anggaran - $pemakaian,
+                'persen' => $anggaran > 0 ? round($pemakaian / $anggaran * 100, 1) : ($pemakaian > 0 ? 100.0 : 0.0),
+            ];
+        })->sortBy('kode')->values();
+
+        $total = [
+            'anggaran' => (int) $rows->sum('anggaran'),
+            'realisasi' => (int) $rows->sum('realisasi'),
+            'sisa' => (int) $rows->sum('sisa'),
+        ];
+        $total['persen'] = $total['anggaran'] > 0 ? round($total['realisasi'] / $total['anggaran'] * 100, 1) : 0.0;
+
+        $sekolah = $r->user()->school;
+
+        return view('laporan-arkas.dana-hibah', [
+            'rows' => $rows, 'total' => $total, 'kop' => $this->kop($sid, $tahun), 'sekolah' => $sekolah,
+            'tahun' => $tahun, 'periode' => $periode, 'semester' => $semester, 'labelPeriode' => $labelPeriode,
+            'sumberHibah' => $sumberHibah, 'adaSumber' => $adaSumber,
+            'penandatangan' => Penandatangan::orderBy('id')->get(),
+            'tempatTtd' => trim((string) ($sekolah->kecamatan ?? '')) !== ''
+                ? 'Kec. '.$sekolah->kecamatan : (string) ($sekolah->kab_kota ?? ''),
+            'tanggalTtd' => now()->translatedFormat('d F Y'),
+        ]);
+    }
+
     public function realisasi(Request $r)
     {
         [$reks, $total] = $this->barisRealisasi($r);
@@ -1087,7 +1206,29 @@ class LaporanArkasController extends Controller
 
     public function penerimaanBelanja(Request $r)
     {
-        [$sid, $tahun, $bulan, $bulanStr] = $this->ctx($r);
+        $periode = (string) $r->query('periode', 'bulanan');
+        if (! in_array($periode, ['bulanan', 'semester'], true)) {
+            $periode = 'bulanan';
+        }
+
+        if ($periode === 'semester') {
+            [$sid, $tahun] = $this->ctx($r);
+            $semester = (int) $r->query('semester', (int) now()->format('m') <= 6 ? 1 : 2);
+            if (! in_array($semester, [1, 2], true)) {
+                $semester = 1;
+            }
+            $bulan = null;
+            $awalYm = sprintf('%d-%02d', $tahun, $semester === 1 ? 1 : 7);
+            $akhirYm = sprintf('%d-%02d', $tahun, $semester === 1 ? 6 : 12);
+            $labelPeriode = 'Semester '.$semester.' ('.($semester === 1 ? 'Januari–Juni' : 'Juli–Desember').') '.$tahun;
+        } else {
+            [$sid, $tahun, $bulan, $bulanStr] = $this->ctx($r);
+            $semester = $bulan <= 6 ? 1 : 2;
+            $awalYm = $bulanStr;
+            $akhirYm = $bulanStr;
+            $labelPeriode = self::BULAN[$bulan].' '.$tahun;
+        }
+
         $kop = $this->kop($sid, $tahun);
         $kodeStokus = Rekening::pluck('kode', 'id');
 
@@ -1105,11 +1246,11 @@ class LaporanArkasController extends Controller
         $laluK = array_fill_keys(array_values(self::KATEGORI), 0);
         $iniK = array_fill_keys(array_values(self::KATEGORI), 0);
         foreach ($this->belanjaRek($sid, $tahun) as $b) {
-            foreach (array_values(self::KATEGORI) as $i => $pf) {
+            foreach (array_values(self::KATEGORI) as $pf) {
                 if (str_starts_with((string) $b->kode, $pf)) {
-                    if ($b->ym < $bulanStr) {
+                    if ($b->ym < $awalYm) {
                         $laluK[$pf] += (int) $b->j;
-                    } elseif ($b->ym === $bulanStr) {
+                    } elseif ($b->ym >= $awalYm && $b->ym <= $akhirYm) {
                         $iniK[$pf] += (int) $b->j;
                     }
                 }
@@ -1128,7 +1269,8 @@ class LaporanArkasController extends Controller
             'selisih' => array_sum(array_column($rows, 'selisih'))];
 
         return view('laporan-arkas.penerimaan-belanja', ['rows' => $rows, 'total' => $total, 'kop' => $kop,
-            'bulan' => $bulan, 'namaBulan' => self::BULAN]);
+            'bulan' => $bulan, 'namaBulan' => self::BULAN, 'periode' => $periode, 'semester' => $semester,
+            'labelPeriode' => $labelPeriode]);
     }
 
     // ==================== 5 & 6. Realisasi Habis Pakai / Modal ====================

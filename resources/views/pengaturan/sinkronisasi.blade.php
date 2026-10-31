@@ -1,58 +1,10 @@
 @extends('layouts.app', ['title' => 'Pengaturan — Status Sinkronisasi'])
 @section('subtitle', 'Kirim data sekolah ini ke website pusat')
 @section('content')
-<div class="grid lg:grid-cols-2 gap-4">
-  <div class="card">
-    <h3 class="card-title mb-3">🔄 Status Sinkronisasi ke Pusat</h3>
-    <div class="space-y-2 text-[13px]">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <span class="text-slate-500">Identitas akun</span>
-        <span class="badge {{ $status['punya_akun'] ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">{{ $status['punya_akun'] ? '✅ Tersedia' : '⚠️ Belum ada' }}</span>
-      </div>
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <span class="text-slate-500">Alamat pusat</span>
-        <span class="font-mono text-[11px] text-slate-700">{{ $status['pusat_url'] ?? '—' }}</span>
-      </div>
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <span class="text-slate-500">NPSN</span>
-        <span class="font-mono text-[11px] text-slate-700">{{ $status['npsn'] ?? '—' }}</span>
-      </div>
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <span class="text-slate-500">Transaksi lokal</span>
-        <span class="text-slate-700">{{ number_format($status['jumlah_transaksi_lokal']) }} baris</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-slate-500">Terakhir didorong</span>
-        <span class="text-slate-700">{{ $status['terakhir_dorong'] ?? '— belum pernah —' }}</span>
-      </div>
-    </div>
-
-    <div class="mt-4 flex flex-wrap gap-2">
-      <form method="post" action="{{ route('pengaturan.sinkronisasi.jalankan') }}">@csrf
-        <button class="btn" {{ $status['punya_akun'] ? '' : 'disabled' }}>🔄 Sinkron Sekarang</button>
-      </form>
-      <form method="post" action="{{ route('pengaturan.koneksi.uji') }}">@csrf
-        <button class="btn2 btn">🔎 Periksa Koneksi</button>
-      </form>
-    </div>
-    @unless($status['punya_akun'])
-      <p class="text-[11px] text-amber-700 mt-3">⚠️ Belum ada identitas pusat. Unduh <b>Identitas Sekolah</b> dari website pusat, lalu simpan berkas <code class="bg-slate-100 px-1 rounded">akun-sekolah.conf</code> ke folder <code class="bg-slate-100 px-1 rounded">launcher-windows</code> di aplikasi ini.</p>
-    @endunless
-  </div>
-
-  <div class="card">
-    <h3 class="card-title mb-3">ℹ️ Cara kerja sinkronisasi</h3>
-    <ul class="list-disc pl-5 text-[13px] text-slate-600 space-y-1">
-      <li>Data yang dikirim: transaksi kas, RKAS, pajak, penandatangan, dan tutup buku.</li>
-      <li>Pengiriman bersifat <b>idempoten</b> — data kembar diperbarui, tak ada duplikasi di pusat.</li>
-      <li>Hanya data yang berubah sejak dorongan terakhir yang dikirim (bukan seluruh data).</li>
-      <li>Token disimpan ter-hash di pusat; berkas identitas tak boleh dibagikan.</li>
-      <li>Sinkronisasi bisa juga dijalankan lewat pintasan <b>“Sinkron ke Pusat”</b> di Desktop.</li>
-    </ul>
-    <div class="mt-3 flex gap-2">
-      <a href="{{ route('arsip.ekspor') }}" class="btn2 btn-sm">📤 Riwayat Ekspor</a>
-      <a href="{{ route('pengaturan.koneksi') }}" class="btn2 btn-sm">🔌 Koneksi ARKAS</a>
-    </div>
-  </div>
+<div class="grid lg:grid-cols-2 gap-4"> <div class="card"> <h3 class="card-title mb-3"> Status Sinkronisasi ke Pusat</h3> <div class="space-y-2 text-[13px]"> <div class="flex items-center justify-between border-b border-slate-100 pb-2"> <span class="text-slate-500">Identitas akun</span> <span class="badge {{ $status['punya_akun'] ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">{{ $status['punya_akun'] ? ' Tersedia' : ' Belum ada' }}</span> </div> <div class="flex items-center justify-between border-b border-slate-100 pb-2"> <span class="text-slate-500">Alamat pusat</span> <span class="font-mono text-[11px] text-slate-700">{{ $status['pusat_url'] ?? '—' }}</span> </div> <div class="flex items-center justify-between border-b border-slate-100 pb-2"> <span class="text-slate-500">NPSN</span> <span class="font-mono text-[11px] text-slate-700">{{ $status['npsn'] ?? '—' }}</span> </div> <div class="flex items-center justify-between border-b border-slate-100 pb-2"> <span class="text-slate-500">Transaksi lokal</span> <span class="text-slate-700">{{ number_format($status['jumlah_transaksi_lokal']) }} baris</span> </div> <div class="flex items-center justify-between"> <span class="text-slate-500">Terakhir didorong</span> <span class="text-slate-700">{{ $status['terakhir_dorong'] ?? '— belum pernah —' }}</span> </div> </div> <div class="mt-4 flex flex-wrap gap-2"> <form method="post" action="{{ route('pengaturan.sinkronisasi.jalankan') }}">@csrf
+        <button class="btn" {{ $status['punya_akun'] ? '' : 'disabled' }}> Sinkron Sekarang</button> </form> <form method="post" action="{{ route('pengaturan.koneksi.uji') }}">@csrf
+        <button class="btn2 btn"> Periksa Koneksi</button> </form> </div> @unless($status['punya_akun'])
+      <p class="text-[11px] text-amber-700 mt-3"> Belum ada identitas pusat. Unduh <b>Identitas Sekolah</b> dari website pusat, lalu simpan berkas <code class="bg-slate-100 px-1 rounded">akun-sekolah.conf</code> ke folder <code class="bg-slate-100 px-1 rounded">launcher-windows</code> di aplikasi ini.</p> @endunless
+  </div> <div class="card"> <h3 class="card-title mb-3">ℹ Cara kerja sinkronisasi</h3> <ul class="list-disc pl-5 text-[13px] text-slate-600 space-y-1"> <li>Data yang dikirim: transaksi kas, RKAS, pajak, penandatangan, dan tutup buku.</li> <li>Pengiriman bersifat <b>idempoten</b> — data kembar diperbarui, tak ada duplikasi di pusat.</li> <li>Hanya data yang berubah sejak dorongan terakhir yang dikirim (bukan seluruh data).</li> <li>Token disimpan ter-hash di pusat; berkas identitas tak boleh dibagikan.</li> <li>Sinkronisasi bisa juga dijalankan lewat pintasan <b>“Sinkron ke Pusat”</b> di Desktop.</li> </ul> <div class="mt-3 flex gap-2"> <a href="{{ route('arsip.ekspor') }}" class="btn2 btn-sm"> Riwayat Ekspor</a> <a href="{{ route('pengaturan.koneksi') }}" class="btn2 btn-sm"> Koneksi ARKAS</a> </div> </div>
 </div>
 @endsection

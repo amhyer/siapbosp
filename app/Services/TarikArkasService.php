@@ -122,9 +122,10 @@ class TarikArkasService
      * Operasi lengkap "Sinkron ARKAS" (1 klik):
      * 1. Cek ARKAS Desktop tidak berjalan
      * 2. Ekspor DB ARKAS → Excel via agen
-     * 3. Import ke SiapBOSP via ArkasImportService
+     * 3. Import ke SiapBOSP lokal via ArkasImportService
+     * 4. Otomatis kirim / sinkronisasi ke website pusat via SinkronisasiService
      *
-     * @return array{sukses:bool, ringkasan:string, npsn:?string, tahun:int}
+     * @return array{sukses:bool, ringkasan:string, npsn:?string, tahun:int, sinkron_web?:array{terkirim:bool,pesan:string}}
      */
     public static function tarikLengkap(int $schoolId, int $userId, int $tahun): array
     {
@@ -147,27 +148,35 @@ class TarikArkasService
                     .' Betulkan Profil sekolah dulu, atau pakai unggah Excel manual di halaman Impor ARKAS.');
             }
 
-            // 4. Import ke SiapBOSP via ArkasImportService
+            // 4. Import ke SiapBOSP lokal via ArkasImportService
             $lap = ArkasImportService::import($keluar, $schoolId, $userId, $tahun);
 
-            // 5. Ringkasan user-friendly
-            $rkak = $lap['rkak_count'] ?? 0;
-            $detail = $lap['detail_count'] ?? 0;
-            $realisasi = $lap['realisasi_count'] ?? 0;
-            $ringkasan = "{$rkak} RKAK, {$detail} detail, {$realisasi} realisasi";
+            // 5. Otomatis kirim / sinkron ke website pusat dalam 1 klik yang sama
+            $sinkronWeb = SinkronisasiService::dorongOtomatisKeWebsite($keluar, $tahun);
+
+            // 6. Ringkasan user-friendly dari hasil nyata ArkasImportService + status sinkron web
+            $rkas = (int) (($lap['dibuat']['rkas'] ?? 0) + ($lap['diperbarui']['rkas'] ?? 0) + ($lap['rkak_count'] ?? 0) + ($lap['detail_count'] ?? 0));
+            $realisasi = (int) (($lap['dibuat']['transaksi'] ?? 0) + ($lap['diperbarui']['transaksi'] ?? 0) + ($lap['realisasi_count'] ?? 0));
+            $pajak = (int) (($lap['dibuat']['pajak_terima'] ?? 0) + ($lap['diperbarui']['pajak_terima'] ?? 0)
+                + ($lap['dibuat']['pajak_setor'] ?? 0) + ($lap['diperbarui']['pajak_setor'] ?? 0));
+            $infoWeb = $sinkronWeb['terkirim']
+                ? 'otomatis terkirim & sinkron ke website pusat'
+                : 'tersimpan di aplikasi desktop ('.$sinkronWeb['pesan'].')';
+            $ringkasan = "{$rkas} rincian RKAS, {$realisasi} transaksi BKU, {$pajak} pajak — {$infoWeb}";
 
             return [
                 'sukses' => true,
                 'ringkasan' => $ringkasan,
                 'npsn' => $berkas['npsn'] ?? null,
                 'tahun' => $tahun,
+                'sinkron_web' => $sinkronWeb,
             ];
         } finally {
             @unlink($keluar);
         }
     }
 
-    /** Tarik data ARKAS (1 klik): bangun Excel via agen, lalu impor ke sekolah. */
+    /** Tarik data ARKAS (1 klik): bangun Excel via agen, impor ke lokal, lalu otomatis dorong ke website. */
     public static function tarik(int $schoolId, int $userId, int $tahun): array
     {
         $berkas = self::eksporDb($tahun);
@@ -182,6 +191,7 @@ class TarikArkasService
             }
             $lap = ArkasImportService::import($keluar, $schoolId, $userId, $tahun);
             $lap['npsn_arkas'] = $berkas['npsn'] ?? null;
+            $lap['sinkron_web'] = SinkronisasiService::dorongOtomatisKeWebsite($keluar, $tahun);
 
             return $lap;
         } finally {

@@ -2,6 +2,7 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
 
 /* Tipografi resmi ARKAS 4.3.1: Inter (variable, subset latin). Berkasnya
    disimpan di public/fonts agar tidak bergantung CDN — CSP aplikasi hanya
@@ -151,34 +152,54 @@
 
 @layer base {
     body {
-        @apply bg-slate-100 text-slate-800 antialiased;
+        background: #fafafa;
+        color: #2f3031;
         font-family: var(--font-sans);
+        font-size: 15px;
+        -webkit-font-smoothing: antialiased;
     }
     ::selection {
-        @apply bg-indigo-200 text-indigo-900;
+        background: #cfe3fc;
+        color: #103178;
     }
 }
 
 @layer components {
     /* ===== Form ===== */
     .inp {
-        @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 transition;
+        width: 100%;
+        border: 1px solid #c9cbcf;
+        border-radius: 4px;
+        background: #fff;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        color: #2f3031;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .inp::placeholder {
+        color: #808489;
     }
     .inp:focus {
         @apply outline-none ring-2 ring-indigo-100;
         border-color: var(--arkas-action);
     }
     .inp-sm {
-        @apply px-2.5 py-1.5 text-[13px];
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
     }
     select.inp {
-        @apply pr-8;
+        padding-right: 2rem;
     }
     label.lbl {
-        @apply mb-1 block text-xs font-semibold text-slate-600;
+        display: block;
+        margin-bottom: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #65696c;
     }
 
-    /* ===== Tombol ===== */
+    /* ===== Tombol (tombol ARKAS: 4px, tebal 600, biru #0b5fef) ===== */
     .btn {
         @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-[13px] text-white transition focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60;
         background-color: var(--arkas-action);
@@ -192,7 +213,42 @@
         background-color: var(--arkas-action-pressed);
     }
     .btn2 {
-        @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-200;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        border: 0;
+        border-radius: 4px;
+        outline: 1px solid #808489;
+        outline-offset: -1px;
+        background: #fff;
+        padding: 0.5rem 1rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.25;
+        color: #2f3031;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s, outline-color 0.2s;
+    }
+    .btn2:hover {
+        background: #f5f5f5;
+        color: #2f3031;
+    }
+    .btn2:active {
+        background: #efefef;
+    }
+    .btn2:focus-visible {
+        outline: 2px solid #91bcfd;
+        outline-offset: 2px;
+    }
+    .btn-black {
+        background: #2f3031;
+        color: #fff;
+    }
+    .btn-black:hover {
+        background: #45474a;
+        color: #fff;
     }
     .btn-danger {
         @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-[13px] text-white transition;
@@ -204,21 +260,49 @@
         background-color: #af182c; /* red-80 */
     }
     .btn-sm {
-        @apply px-3 py-1.5 text-xs;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
     }
 
     /* ===== Kartu & tabel ===== */
     .card {
-        @apply rounded-xl border border-slate-200 bg-white p-4 sm:p-5;
+        border: 1px solid #d9dbdd;
+        border-radius: 4px;
+        background: #fff;
+        padding: 1.25rem;
+    }
+    @media (min-width: 640px) {
+        .card {
+            padding: 1.5rem;
+        }
     }
     .card-title {
-        @apply text-sm font-semibold text-slate-700;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #2f3031;
     }
     .tbl-wrap {
-        @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:rounded-lg sm:border sm:border-slate-200 sm:px-0;
+        margin-left: -1rem;
+        margin-right: -1rem;
+        overflow-x: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    @media (min-width: 640px) {
+        .tbl-wrap {
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+            border: 1px solid #d9dbdd;
+            border-radius: 4px;
+        }
     }
     .tbl {
-        @apply w-full min-w-[640px] border-collapse text-[12.5px];
+        width: 100%;
+        min-width: 640px;
+        border-collapse: collapse;
+        font-size: 0.875rem;
     }
     .tbl th {
         @apply border-b border-slate-200 px-2.5 py-2 text-left text-[11px] uppercase tracking-wide text-slate-500;
@@ -226,20 +310,24 @@
         font-weight: var(--arkas-weight-action);
     }
     .tbl td {
-        @apply border-b border-slate-100 px-2.5 py-2 align-top text-slate-700;
+        border-bottom: 1px solid #efefef;
+        padding: 0.75rem 1rem;
+        vertical-align: top;
+        color: #2f3031;
     }
     .tbl tbody tr:last-child td {
-        @apply border-b-0;
+        border-bottom: 0;
     }
     .tbl tbody tr:hover td {
-        @apply bg-slate-50/70;
+        background: #fafafa;
     }
     .tbl tfoot td {
-        @apply bg-slate-50 font-bold text-slate-800;
+        background: #f5f5f5;
+        font-weight: 600;
+        color: #2f3031;
     }
 
-    /* Baris yang baru disimpan: kilat kuning sebentar lalu kembali normal
-       (padanan ARKAS 4 saat transaksi baru masuk lembar BKU). */
+    /* Baris baru: kilat kuning sebentar lalu kembali normal. */
     .kilat td {
         animation: kilat-baris 2.6s ease-out 1;
     }
@@ -259,13 +347,12 @@
         }
     }
     .num {
-        @apply whitespace-nowrap text-right tabular-nums;
+        white-space: nowrap;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
     }
 
-    /* Jejak cetak di kerangka aplikasi: tersembunyi di layar, tampil di kertas.
-       Melengkapi footer layouts print agar SEMUA halaman yang dicetak (termasuk
-       halaman dokumen seperti LPJ dan Buku Pembantu) menyatakan bahwa dokumen
-       tersebut bukan keluaran resmi ARKAS. */
+    /* Jejak cetak di kerangka aplikasi. */
     .cetak-kaki {
         display: none;
     }
@@ -280,18 +367,200 @@
         }
     }
     .badge {
-        @apply inline-flex items-center gap-1 whitespace-nowrap rounded px-2 py-0.5 text-[11px] font-semibold;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        white-space: nowrap;
+        border-radius: 0.25rem;
+        padding: 0.125rem 0.5rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.4;
     }
     .bdan {
-        @apply bg-indigo-100 text-indigo-700 hover:bg-indigo-200;
+        background: #e1effe;
+        color: #054bcc;
+    }
+    .bdan:hover {
+        background: #cfe3fc;
     }
     .bdel {
-        @apply bg-rose-100 text-rose-700 hover:bg-rose-200;
+        background: #ffe6e7;
+        color: #c82228;
+    }
+    .bdel:hover {
+        background: #facccf;
+    }
+
+    /* ===== Kerangka ARKAS ===== */
+    .arkas-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        height: 54px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: #fff;
+        padding: 0 21px;
+        box-shadow: 0 2px 4px -4px #2f3031;
+    }
+    .arkas-logo {
+        display: inline-flex;
+        height: 32px;
+        width: 32px;
+        flex: 0 0 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background: #1e3a8a;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .arkas-avatar {
+        display: inline-flex;
+        height: 36px;
+        width: 36px;
+        flex: 0 0 36px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: #1e3a8a;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .arkas-school-btn {
+        display: flex;
+        cursor: pointer;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        background: transparent;
+        padding: 4px 0 4px 8px;
+        text-align: left;
+    }
+    .arkas-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 2px);
+        z-index: 50;
+        width: 268px;
+        border-radius: 0 0 4px 4px;
+        background: #fff;
+        padding: 4px 0;
+        box-shadow: 0 8px 20px rgba(37, 40, 43, 0.2);
+    }
+    .arkas-dropdown a,
+    .arkas-dropdown button {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        border: 0;
+        background: transparent;
+        padding: 12px 24px;
+        text-align: left;
+        font-size: 16px;
+        font-weight: 400;
+        color: #000;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .arkas-dropdown a:hover,
+    .arkas-dropdown button:hover {
+        background: #f5f5f5;
+    }
+    .arkas-dropdown svg {
+        height: 24px;
+        width: 24px;
+        margin-right: 12px;
+        flex: 0 0 24px;
+    }
+
+    .arkas-sidebar {
+        width: 260px;
+        background: #1e3a8a;
+        color: #fff;
+    }
+    .arkas-content {
+        min-height: calc(100vh - 54px);
+        background: #fafafa;
+    }
+    .arkas-main {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+    }
+    @media (min-width: 640px) {
+        .arkas-main {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+    }
+    @media (min-width: 1024px) {
+        .arkas-main {
+            padding: 32px 40px 48px;
+        }
+    }
+    .arkas-page-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .arkas-page-title {
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.3;
+        color: #2f3031;
+    }
+    .arkas-page-sub {
+        margin-top: 2px;
+        max-width: 56rem;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #65696c;
+    }
+    .arkas-year {
+        border: 1px solid #c9cbcf;
+        border-radius: 4px;
+        background: #fff;
+        padding: 4px 8px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #2f3031;
+    }
+    .arkas-year:focus {
+        border-color: #0b5fef;
+        outline: none;
+        box-shadow: 0 0 0 2px #e1effe;
+    }
+    .arkas-icon-btn {
+        display: inline-flex;
+        height: 34px;
+        width: 34px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d9dbdd;
+        border-radius: 4px;
+        background: #fff;
+        color: #2f3031;
+        cursor: pointer;
+    }
+    .arkas-icon-btn:hover {
+        background: #f5f5f5;
     }
 
     /* ===== Sidebar ===== */
-    .navw a, .navw .menu-btn {
-        @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] text-slate-300 no-underline transition;
+    .navw {
+        display: flex;
+        flex-direction: column;
     }
     .navw a:hover, .navw .menu-btn:hover {
         @apply bg-white/10 text-white no-underline;
@@ -320,64 +589,267 @@
     /* 3 area kerja utama (Penganggaran/Penatausahaan/Arsip) dibuat lebih
        menonjol, meniru hierarki sidebar ARKAS 4. */
     .navw-utama {
-        @apply mb-1 flex flex-col gap-[2px];
+        display: flex;
+        flex-direction: column;
+        gap: 0;
     }
     .navw-utama > .grp > .menu-btn,
     .navw-utama > a {
         @apply py-2.5 text-[14.5px] font-bold text-white;
     }
-    .navw-utama > .grp.open > .menu-btn {
-        @apply bg-white/10;
+    .navw-area {
+        display: block;
+        flex: 1;
+        border-radius: 4px;
+        padding: 8px 23px;
+        margin: 1px 0;
+        color: #fff;
+        font-size: 16px;
+        line-height: 1.35;
+        text-decoration: none;
+        transition: background-color 0.15s;
+    }
+    .navw .navw-area:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw .navw-area.on {
+        background: #1d4ed8;
+        font-weight: 600;
+        color: #fff;
+    }
+    .navw-chev {
+        display: inline-flex;
+        height: 32px;
+        width: 28px;
+        flex: 0 0 28px;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #bfdbfe;
+        cursor: pointer;
+    }
+    .navw-chev:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+    .navw-chev svg {
+        transition: transform 0.2s;
+    }
+    .grp.open .navw-chev svg {
+        transform: rotate(180deg);
+    }
+    .navw-sub {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin: 2px 0 4px 23px;
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 2px 0 2px 8px;
+    }
+    .navw-sub a {
+        display: block;
+        border-radius: 4px;
+        padding: 6px 12px;
+        color: #dbeafe;
+        font-size: 13.5px;
+        text-decoration: none;
+    }
+    .navw-sub a:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .navw-sub a.on {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-sub p {
+        padding: 6px 12px 2px;
+        color: #93c5fd;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
     .navw-sep {
-        @apply my-2 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 16px 0 5px;
+        padding: 0 23px;
+        color: #93c5fd;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
-    .navw-sep span {
-        @apply shrink-0;
+    .navw-sep::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+    }
+    .navw-extra {
+        display: block;
+        border-radius: 4px;
+        padding: 6px 23px;
+        color: #dbeafe;
+        font-size: 13.5px;
+        text-decoration: none;
+    }
+    .navw-extra:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .navw-extra.on {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-group > .menu-btn {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        padding: 7px 23px;
+        text-align: left;
+        color: #dbeafe;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .navw-group > .menu-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .navw-group .chev {
+        height: 16px;
+        width: 16px;
+        flex: 0 0 16px;
+        transition: transform 0.2s;
+    }
+    .navw-group.open .chev {
+        transform: rotate(180deg);
     }
     .navw-util {
-        @apply flex items-center gap-2.5 rounded-md px-3 py-2 text-[12.5px] text-slate-400 no-underline transition;
+        display: flex;
+        align-items: center;
+        border-radius: 4px;
+        padding: 8px 12px;
+        color: #fff;
+        font-size: 16px;
+        text-decoration: none;
     }
     .navw-util:hover {
-        @apply bg-white/10 text-white no-underline;
+        color: #fff;
+        font-weight: 600;
     }
     .navw-util.on {
-        @apply bg-white/10 text-white;
+        background: #1d4ed8;
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-util svg {
+        height: 24px;
+        width: 24px;
+        margin-right: 15px;
+        flex: 0 0 24px;
+    }
+
+    @media (min-width: 1024px) {
+        .sidebar-collapsed {
+            margin-left: -260px;
+        }
     }
 
     /* ===== Alert & empty ===== */
     .alert {
-        @apply flex items-start gap-2.5 rounded-md border px-4 py-3 text-sm;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        border: 1px solid;
+        border-radius: 4px;
+        padding: 12px 16px;
+        font-size: 14px;
     }
-    .alert-ok { @apply border-emerald-200 bg-emerald-50 text-emerald-800; }
-    .alert-warn { @apply border-amber-200 bg-amber-50 text-amber-800; }
-    .alert-err { @apply border-rose-200 bg-rose-50 text-rose-700; }
+    .alert-ok {
+        border-color: #a7f3d0;
+        background: #ecfdf5;
+        color: #065f46;
+    }
+    .alert-warn {
+        border-color: #fde68a;
+        background: #fffbeb;
+        color: #92400e;
+    }
+    .alert-err {
+        border-color: #fecdd3;
+        background: #fff1f2;
+        color: #9f1239;
+    }
     .empty {
-        @apply py-10 text-center text-sm text-slate-400;
+        padding: 2.5rem 0;
+        text-align: center;
+        font-size: 14px;
+        color: #808489;
     }
     .page-head {
-        @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    @media (min-width: 640px) {
+        .page-head {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
     }
     .page-desc {
-        @apply mt-1 text-[13px] text-slate-500;
+        margin-top: 4px;
+        font-size: 13px;
+        color: #65696c;
     }
     .toolbar {
-        @apply flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:p-5 !py-3;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #d9dbdd;
+        border-radius: 4px;
+        background: #fff;
+        padding: 12px 16px;
     }
 
     /* ===== Pagination Laravel ===== */
-    nav[role="navigation"] [aria-label="Pagination Navigation"] {
-        @apply mt-3;
+    nav[role='navigation'] [aria-label='Pagination Navigation'] {
+        margin-top: 12px;
     }
 
     @media print {
-        .nonprint { display: none !important; }
+        .nonprint {
+            display: none !important;
+        }
     }
 }
 
 /* Scrollbar halus sidebar */
-#sidebar nav::-webkit-scrollbar { width: 6px; }
-#sidebar nav::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+#sidebar nav::-webkit-scrollbar {
+    width: 6px;
+}
+#sidebar nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+}
 
 /* Chart canvas: cegah melar */
-canvas { max-width: 100%; }
+canvas {
+    max-width: 100%;
+}

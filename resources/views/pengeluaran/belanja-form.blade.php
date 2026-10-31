@@ -12,20 +12,20 @@
   <ol class="flex flex-wrap items-center gap-2 text-xs" role="tablist" aria-label="Langkah input belanja">
     <li role="presentation">
       <button type="button" role="tab" data-langkah-tombol="1" id="tab-langkah-1" aria-selected="true" aria-controls="langkah-1"
-              class="wizard-step on flex items-center gap-2 rounded-full border border-indigo-600 bg-white px-3 py-1.5 font-semibold text-indigo-700">
-        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">1</span> Detail Transaksi
+              class="wizard-step on flex items-center gap-2 rounded border border-indigo-600 bg-white px-3 py-1.5 font-semibold text-indigo-700">
+        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">1</span> Detail Transaksi
       </button>
     </li>
     <li role="presentation">
       <button type="button" role="tab" data-langkah-tombol="2" id="tab-langkah-2" aria-selected="false" aria-controls="langkah-2"
-              class="wizard-step flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
-        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">2</span> Kegiatan &amp; Rincian
+              class="wizard-step flex items-center gap-2 rounded border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
+        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">2</span> Kegiatan &amp; Rincian
       </button>
     </li>
     <li role="presentation">
       <button type="button" role="tab" data-langkah-tombol="3" id="tab-langkah-3" aria-selected="false" aria-controls="langkah-3"
-              class="wizard-step flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
-        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">3</span> Perhitungan Pajak
+              class="wizard-step flex items-center gap-2 rounded border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
+        <span class="wizard-num inline-flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-[11px] font-bold text-slate-500" aria-hidden="true">3</span> Perhitungan Pajak
       </button>
     </li>
   </ol>
@@ -34,33 +34,36 @@
 
 <div role="tabpanel" id="langkah-1" data-langkah="1" aria-labelledby="tab-langkah-1">
 <div class="card space-y-4">
-  <h3 class="font-semibold text-slate-700">Detail Transaksi &amp; Penyedia <span class="text-xs font-normal text-slate-400">(ARKAS 4 Bab XV–XVI)</span></h3>
+  <h3 class="card-title flex items-center gap-2">
+    <x-icon name="receipt" class="h-4 w-4 text-slate-500"/> Detail Transaksi &amp; Penyedia
+    <span class="text-xs font-normal text-slate-400">(ARKAS 4 Bab XV–XVI)</span>
+  </h3>
   <div class="grid sm:grid-cols-3 gap-4">
     <div>
-      <label class="text-xs font-semibold text-slate-600">No Bukti (BKU / Kuitansi)</label>
+      <label class="lbl">No Bukti (BKU / Kuitansi)</label>
       <input name="no_bukti" class="inp mt-1" value="{{ old('no_bukti') }}" placeholder="mis. BNU01 / KWT-001">
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">Tanggal Transaksi</label>
+      <label class="lbl">Tanggal Transaksi</label>
       <input type="date" name="tanggal" class="inp mt-1" value="{{ old('tanggal', date('Y-m-d')) }}" required>
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">Sumber Pengadaan</label>
+      <label class="lbl">Sumber Pengadaan</label>
       <select name="sumber" id="sumberPengadaan" class="inp mt-1">
         <option value="langsung">Non-SIPLah (Toko / Penyedia Langsung / Honor)</option>
         <option value="siplah">SIPLah Kemendikdasmen (Otomatis Marketplace)</option>
       </select>
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">Sumber Dana BOSP</label>
+      <label class="lbl">Sumber Dana BOSP</label>
       <select name="bos_type_id" class="inp mt-1">@foreach($bosTypes as $b)<option value="{{ $b->id }}">{{ $b->nama }}</option>@endforeach</select>
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">Tahap Penyaluran</label>
+      <label class="lbl">Tahap Penyaluran</label>
       <select name="stage_id" class="inp mt-1">@foreach($stages as $s)<option value="{{ $s->id }}">{{ $s->nama }}</option>@endforeach</select>
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">Metode Pembayaran</label>
+      <label class="lbl">Metode Pembayaran</label>
       <select name="metode_bayar" class="inp mt-1" id="metode">
         <option value="tunai">Tunai</option>
         <option value="transfer">Non-Tunai / Transfer Bank</option>
@@ -68,33 +71,35 @@
       <div class="text-[11px] text-slate-500 mt-1">Saldo tersedia: <b id="infoSaldo" class="text-emerald-700"></b></div>
     </div>
     <div class="sm:col-span-3">
-      <label class="text-xs font-semibold text-slate-600">Uraian / Keterangan Pembelanjaan</label>
+      <label class="lbl">Uraian / Keterangan Pembelanjaan</label>
       <input name="keterangan" class="inp mt-1" value="{{ old('keterangan') }}" placeholder="uraian belanja/pembayaran" required>
     </div>
 
     {{-- Detail Nota & Penyedia ala ARKAS 4 --}}
     <div>
-      <label class="text-xs font-semibold text-slate-600">Nama Toko / Penyedia / Penerima</label>
+      <label class="lbl">Nama Toko / Penyedia / Penerima</label>
       <input name="nama_toko" class="inp mt-1" value="{{ old('nama_toko') }}" placeholder="CV / Toko / Nama Penerima">
       <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-500 mt-1">
         <input type="checkbox" name="usaha_perseorangan" value="1"> Usaha Perseorangan / Individu
       </label>
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">NPWP Penyedia / NIK</label>
+      <label class="lbl">NPWP Penyedia / NIK</label>
       <input name="npwp" class="inp mt-1" value="{{ old('npwp') }}" placeholder="15/16 digit NPWP">
       <label class="inline-flex items-center gap-1.5 text-[11px] text-amber-700 mt-1">
         <input type="checkbox" id="chkTanpaNpwp" name="tanpa_npwp" value="1"> Tidak memiliki NPWP (tarif PPh lebih tinggi)
       </label>
     </div>
     <div>
-      <label class="text-xs font-semibold text-slate-600">No. Nota / Invoice &amp; Alamat</label>
+      <label class="lbl">No. Nota / Invoice &amp; Alamat</label>
       <input name="no_nota" class="inp mt-1" value="{{ old('no_nota') }}" placeholder="INV/2026/001">
     </div>
 
     {{-- Khusus SIPLah: Ongkos Kirim & Biaya Admin Marketplace --}}
-    <div id="boxSiplah" class="hidden sm:col-span-3 grid sm:grid-cols-3 gap-3 bg-sky-50 border border-sky-200 rounded-lg p-3 text-xs">
-      <div class="sm:col-span-3 font-semibold text-sky-900">🛒 Integrasi Transaksi SIPLah (Sesuai ARKAS 4 Bab XVI): Pajak otomatis dipungut/disetor oleh Mitra Pasar Daring SIPLah.</div>
+    <div id="boxSiplah" class="hidden sm:col-span-3 grid sm:grid-cols-3 gap-3 bg-sky-50 border border-sky-200 rounded p-3 text-xs">
+      <div class="sm:col-span-3 flex items-center gap-1.5 font-semibold text-sky-900">
+        <x-icon name="receipt" class="h-4 w-4"/> Integrasi Transaksi SIPLah (Sesuai ARKAS 4 Bab XVI): Pajak otomatis dipungut/disetor oleh Mitra Pasar Daring SIPLah.
+      </div>
       <div>
         <label class="font-semibold text-slate-600">Ongkos Kirim SIPLah (Rp)</label>
         <input type="number" min="0" value="0" name="ongkir_siplah" class="inp mt-1">
@@ -112,7 +117,8 @@
 
   {{-- Lampiran bukti ikut langkah 1: bukti transaksi (kuitansi/nota). --}}
   <div class="border-t border-slate-100 pt-3">
-    <h4 class="font-semibold text-slate-700 text-[13px] mb-2">📎 Lampiran Bukti
+    <h4 class="mb-2 flex items-center gap-2 text-[13px] font-semibold text-slate-700">
+      <x-icon name="upload" class="h-4 w-4 text-slate-500"/> Lampiran Bukti
       <span class="text-xs font-normal text-slate-400">(kuitansi/foto nota — PDF/JPG/PNG, maks 4MB per berkas)</span>
     </h4>
     <input type="file" name="lampiran[]" multiple accept=".pdf,.jpg,.jpeg,.png" class="inp py-2">
@@ -123,8 +129,10 @@
 <div role="tabpanel" id="langkah-2" data-langkah="2" aria-labelledby="tab-langkah-2" class="js-langkah hidden">
 <div class="card">
   <div class="flex justify-between items-center mb-3">
-    <h3 class="font-semibold text-slate-700">Kegiatan &amp; Rincian Belanja</h3>
-    <button type="button" class="btn2 btn" data-tambah-rincian>➕ Tambah Rincian</button>
+    <h3 class="card-title flex items-center gap-2">
+      <x-icon name="chart" class="h-4 w-4 text-slate-500"/> Kegiatan &amp; Rincian Belanja
+    </h3>
+    <button type="button" class="btn2 btn-sm" data-tambah-rincian><x-icon name="plus" class="h-4 w-4"/> Tambah Rincian</button>
   </div>
   <div class="overflow-x-auto"><table class="tbl" id="tblR">
     <thead><tr><th style="min-width:260px">Kode Rekening BOS</th><th style="min-width:200px">Uraian</th><th style="width:150px">Nilai (Rp)</th><th></th></tr></thead>
@@ -138,12 +146,15 @@
 <div class="card space-y-2">
   <div class="flex flex-wrap justify-between items-center gap-2">
     <div>
-      <h3 class="font-semibold text-slate-700">Perhitungan Pajak Otomatis <span class="text-xs font-normal text-slate-400">(ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }})</span></h3>
-      <p id="catatanPajakArkas" class="text-[11px] text-slate-500">Klik <b>⚡ Hitung Rekomendasi Pajak ARKAS 4</b> setelah mengisi rincian belanja untuk mengisi PPN (11%/12% &gt; Rp2 juta), PPh 21/22/23, atau SSPD 10% otomatis. Tarif PPN mengikuti tahun transaksi: <b>12%</b> untuk 2026 ke atas (penyesuaian PPN 12% pada ARKAS &amp; SiPLah), <b>11%</b> untuk tahun sebelumnya — nilai pajak yang sudah tersimpan tak dihitung ulang.</p>
+      <h3 class="card-title flex items-center gap-2">
+        <x-icon name="receipt" class="h-4 w-4 text-slate-500"/> Perhitungan Pajak Otomatis
+        <span class="text-xs font-normal text-slate-400">(ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }})</span>
+      </h3>
+      <p id="catatanPajakArkas" class="text-[11px] text-slate-500">Klik <b>Hitung Rekomendasi Pajak ARKAS 4</b> setelah mengisi rincian belanja untuk mengisi PPN (11%/12% &gt; Rp2 juta), PPh 21/22/23, atau SSPD 10% otomatis. Tarif PPN mengikuti tahun transaksi: <b>12%</b> untuk 2026 ke atas (penyesuaian PPN 12% pada ARKAS &amp; SiPLah), <b>11%</b> untuk tahun sebelumnya — nilai pajak yang sudah tersimpan tak dihitung ulang.</p>
     </div>
     <div class="flex gap-2">
-      <button type="button" class="btn btn-sm bg-emerald-600" data-rekomendasi-pajak>⚡ Hitung Rekomendasi Pajak ARKAS 4</button>
-      <button type="button" class="btn2 btn-sm" data-tambah-pajak>➕ Tambah Manual</button>
+      <button type="button" class="btn btn-sm" data-rekomendasi-pajak><x-icon name="sparkles" class="h-4 w-4"/> Hitung Rekomendasi Pajak ARKAS 4</button>
+      <button type="button" class="btn2 btn-sm" data-tambah-pajak><x-icon name="plus" class="h-4 w-4"/> Tambah Manual</button>
     </div>
   </div>
   <div class="overflow-x-auto"><table class="tbl" id="tblP">
@@ -153,8 +164,10 @@
 </div>
 
 {{-- Ringkasan sebelum menyimpan (nilai dihitung ulang oleh JS) --}}
-<div class="card bg-slate-50">
-  <h4 class="font-semibold text-slate-700 text-[13px] mb-2">🧾 Ringkasan</h4>
+<div class="card bg-[#fafafa]">
+  <h4 class="mb-2 flex items-center gap-2 text-[13px] font-semibold text-slate-700">
+    <x-icon name="file" class="h-4 w-4 text-slate-500"/> Ringkasan
+  </h4>
   <dl class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
     <dt class="text-slate-500">Total belanja</dt>
     <dd class="font-bold text-slate-800" id="ringkasBelanja">Rp 0</dd>
@@ -169,12 +182,12 @@
 </div>{{-- /langkah 3 --}}
 
 <div class="card flex flex-wrap items-center justify-between gap-2" data-wizard-nav>
-  <button type="button" class="btn2 btn" data-langkah-mundur>← Kembali</button>
+  <button type="button" class="btn2" data-langkah-mundur>← Kembali</button>
   <span class="text-xs text-slate-500" id="wizardPosisi" aria-live="polite">Langkah 1 dari 3</span>
   <div class="flex flex-wrap gap-2">
     <button type="button" class="btn" data-langkah-maju>Lanjut: Kegiatan &amp; Rincian →</button>
-    <a href="{{ route('belanja.index') }}" class="btn2 btn" data-wizard-batal>Batal</a>
-    <button class="btn js-simpan" data-wizard-simpan hidden>💾 Simpan Belanja</button>
+    <a href="{{ route('belanja.index') }}" class="btn2" data-wizard-batal>Batal</a>
+    <button class="btn js-simpan" data-wizard-simpan hidden><x-icon name="check" class="h-4 w-4"/> Simpan Belanja</button>
   </div>
 </div>
 
@@ -187,7 +200,7 @@
   </select></td>
   <td><input name="uraian[]" class="inp" placeholder="uraian (opsional)"></td>
   <td><input name="nilai[]" type="number" min="1" value="0" class="inp nR"></td>
-  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-rincian>✖</button></td>
+  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-rincian><x-icon name="x" class="h-3.5 w-3.5"/></button></td>
 </tr></template>
 
 <template id="tplP"><tr>
@@ -196,7 +209,7 @@
   <td><input name="tarif_pajak[]" type="number" step="0.01" min="0" value="0" class="inp trf"></td>
   <td><input name="billing[]" class="inp" placeholder="kode billing"></td>
   <td><input name="nilai_pajak[]" type="number" min="0" value="0" class="inp nP"></td>
-  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-baris>✖</button></td>
+  <td><button type="button" class="badge bg-rose-50 text-rose-600" data-hapus-baris><x-icon name="x" class="h-3.5 w-3.5"/></button></td>
 </tr></template>
 
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
@@ -234,7 +247,7 @@ async function rekomendasiPajakOtomatis(){
   const tanpaNpwp = document.getElementById('chkTanpaNpwp').checked ? 1 : 0;
   const res = await fetch(`{{ route('belanja.hitungPajak') }}?sumber=${sumber}&nilai=${nilai}&rekening_id=${rekId}&tanpa_npwp=${tanpaNpwp}&tahun=${tahunTransaksi()}`);
   const data = await res.json();
-  document.getElementById('catatanPajakArkas').textContent = 'ℹ️ ' + (data.catatan || '');
+  document.getElementById('catatanPajakArkas').textContent = data.catatan || '';
   const tbody = document.querySelector('#tblP tbody');
   tbody.innerHTML = '';
   (data.items || []).forEach(it => {
@@ -357,7 +370,7 @@ tambahRincian(); infoSaldo(); toggleSiplah();
   function pesanUntuk(el) {
     if (!el) return 'Lengkapi dulu isian yang wajib.';
     const label = el.closest('div')?.querySelector('label')?.textContent?.trim();
-    return '⚠️ ' + (label ? label.replace(/\s+/g, ' ') + ' belum lengkap. ' : '') + (el.validationMessage || '');
+    return (label ? label.replace(/\s+/g, ' ') + ' belum lengkap. ' : '') + (el.validationMessage || '');
   }
 
   function bolehLanjut(n) {

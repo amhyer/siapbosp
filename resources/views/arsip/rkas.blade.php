@@ -3,7 +3,7 @@
 @section('content')
 <div class="card">
   <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-    <h3 class="card-title mb-0">🗄️ RKAS Disahkan</h3>
+    <h3 class="card-title mb-0 flex items-center gap-2"><x-icon name="folder" class="h-4 w-4 text-slate-500"/> RKAS Disahkan</h3>
     @include('arsip.partials._filter', [
       'tahun' => $tahun,
       'daftarTahun' => $daftarTahun,
@@ -25,8 +25,8 @@
             <td class="num font-semibold">{{ rp($h->details->sum('jumlah')) }}</td>
             <td class="text-[11px] text-slate-500">{{ $h->ditinjau_oleh ? $h->ditinjau_oleh.' · '.($h->ditinjau_at?->format('d/m/Y') ?? '') : '—' }}</td>
             <td class="whitespace-nowrap text-right">
-              <a href="{{ route('rkas.pdf', $h) }}" class="btn2 btn-sm">📕 PDF</a>
-              <a href="{{ route('rkas.xlsx', $h) }}" class="btn2 btn-sm">📗 Excel</a>
+              <a href="{{ route('rkas.pdf', $h) }}" class="btn2 btn-sm"><x-icon name="download" class="h-4 w-4"/> PDF</a>
+              <a href="{{ route('rkas.xlsx', $h) }}" class="btn2 btn-sm"><x-icon name="download" class="h-4 w-4"/> Excel</a>
               <a href="{{ route('rkas.show', $h) }}" class="btn2 btn-sm">Lihat</a>
             </td>
           </tr>

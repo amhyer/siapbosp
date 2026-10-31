@@ -1,5 +1,8 @@
 # Masukan untuk SiapBOSP dari ARKAS 4 — Menu, Tampilan, dan Kosakata
 
+> 🚨 **PRIORITAS UTAMA (29 Oktober 2026):** Hasil bedah lengkap **45 tangkapan layar (`.png`)** dan **1 rekaman video penggunaan langsung (6 menit)** dari `docs/FOTO DAN VIDIO ARKAS/` telah dirangkum dan ditetapkan sebagai prioritas utama pengerjaan berikutnya di:  
+> 👉 **[`docs/PRIORITAS-UTAMA-PARITAS-PENUH-ARKAS4.md`](PRIORITAS-UTAMA-PARITAS-PENUH-ARKAS4.md)**
+
 **Tanggal:** 26 Oktober 2026
 **Lingkup:** inventaris menu + anatomi tampilan ARKAS 4 (v4.2.x–4.3.0), dibandingkan dengan SiapBOSP `main@8eb212c`, lalu diterjemahkan menjadi masukan konkret.
 **Sifat dokumen:** masukan (belum ada kode yang diubah). Implementasi menunggu pilihan prioritas.
@@ -190,6 +193,7 @@ Detail perilaku yang penting ditiru:
 - **Watermark DRAFT** pada bulan yang belum ditutup.
 - Sumber dana non-reguler **tidak punya** format "Tahapan" → harus pakai **BKU Tahunan/Arsip**.
 - Format rujukan: RKAS (**14 format** resmi), BKU Bulanan/Tahunan/Tahapan, Rekapitulasi Realisasi (Semester), Buku Pembantu Kas/Bank/Pajak/Rincian Objek Belanja, Laporan Realisasi Penerimaan & Belanja (Semester), SPTJM, Rekapitulasi BMD.
+- SiapBOSP memusatkan seluruh format di **Pusat Format Laporan** (`/laporan/format`): BKU, Buku Pembantu Bank/Tunai/Pajak, Rekapitulasi Realisasi (bulanan/semester/tahunan/tahapan), SPTJM (bulanan/semester), Realisasi Penerimaan & Belanja (bulanan/semester), dan LPJ.
 
 ---
 
@@ -366,8 +370,8 @@ watermark semua cetak, tab sumber dana, filter arsip seragam). Yang masih berbed
 |---|---|---|---|
 | Pita tab di **semua** halaman | ada di setiap layar | ada di 3 halaman yang benar-benar menyaring (Kertas Kerja, Pendapatan, Belanja) | sengaja: tab tanpa penyaringan = tab mati |
 | Tombol Tarik/Setor Tunai di lembar BKU | ada | di menu Penerimaan | sengaja: perpindahan antar-kas, bukan tambah transaksi |
-| Tab *Sumber Dana Tambahan* | select sumber + "Unduh dan Perbarui Data" | kartu keterangan + tab dokumen | belum: rencananya baca `arkas.db` lokal, bukan layanan pusat — menunggu uji di laptop ARKAS, lihat [`UJI-ARKAS-LAPTOP-SUMBER-DANA.md`](UJI-ARKAS-LAPTOP-SUMBER-DANA.md) |
-| Utilitas bawah sidebar | 4 (Tutorial · Pertanyaan Umum · Hubungi Kami · Perbarui Aplikasi) | 2 (Bantuan & Panduan · Perbarui Aplikasi) | belum |
+| Tab *Sumber Dana Tambahan* | select sumber + "Unduh dan Perbarui Data" | chip per nama sumber dari `sumber_dana_sekolah` (diisi Impor/Sinkron `Ref_Sumber_Dana`), saring dokumen via `?sumber_nama=` | ✅ disamakan — data datang lewat Impor/Sinkron ARKAS, lihat [`UJI-ARKAS-LAPTOP-SUMBER-DANA.md`](UJI-ARKAS-LAPTOP-SUMBER-DANA.md) |
+| Utilitas bawah sidebar | 4 (Tutorial · Pertanyaan Umum · Hubungi Kami · Perbarui Aplikasi) | 4, dikelompokkan di bawah judul **Bantuan & Panduan** | ✅ disamakan |
 | Ikon baris ✎ 🗑 🖨 | tiga aksi | Buka/PDF/Excel, tanpa hapus RKAS | sengaja: rute hapus RKAS belum ada |
 | Aktivasi BKU / Tutup BKU wajib internet | ya | tidak (offline) | sengaja — nilai jual SiapBOSP |
 

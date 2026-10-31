@@ -3,7 +3,7 @@
 @section('content')
 <div class="card">
   <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-    <h3 class="card-title mb-0">🧾 Dokumen Pajak</h3>
+    <h3 class="card-title mb-0 flex items-center gap-2"><x-icon name="receipt" class="h-4 w-4 text-slate-500"/> Dokumen Pajak</h3>
     @include('arsip.partials._filter', ['tahun' => $tahun, 'daftarTahun' => $daftarTahun])
   </div>
   <div class="overflow-x-auto">
@@ -18,9 +18,9 @@
             <td class="num font-semibold">{{ rp($p->nilai) }}</td>
             <td>
               @if($p->status === 'sudah')
-                <span class="badge bg-emerald-100 text-emerald-700">✓ sudah lapor</span>
+                <span class="badge bg-emerald-100 text-emerald-700">sudah lapor</span>
               @else
-                <span class="badge bg-rose-100 text-rose-700">⚠ wajib lapor</span>
+                <span class="badge bg-rose-100 text-rose-700">wajib lapor</span>
               @endif
             </td>
             <td class="font-mono text-[11px]">{{ $p->ntpn ?? '—' }}</td>
@@ -34,8 +34,8 @@
     </table>
   </div>
   <div class="mt-3 flex gap-2">
-    <a href="{{ route('setorpajak.index') }}" class="btn2 btn-sm">💸 Setor Pajak</a>
-    <a href="{{ route('laporan.pajak-tw') }}" class="btn2 btn-sm">🧾 Pajak Triwulan</a>
+    <a href="{{ route('setorpajak.index') }}" class="btn2 btn-sm"><x-icon name="cash" class="h-4 w-4"/> Setor Pajak</a>
+    <a href="{{ route('laporan.pajak-tw') }}" class="btn2 btn-sm"><x-icon name="receipt" class="h-4 w-4"/> Pajak Triwulan</a>
   </div>
 </div>
 @endsection

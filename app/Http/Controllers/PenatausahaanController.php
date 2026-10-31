@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Allocation;
 use App\Models\BosType;
 use App\Models\KasTransaction;
+use App\Models\RkasHeader;
 use App\Services\BkuBulan;
 use App\Services\KasService;
 use Illuminate\Http\Request;
@@ -43,8 +44,16 @@ class PenatausahaanController extends Controller
             fn (array $b) => in_array($b['status'], ['tertutup', 'belum-pajak'], true)));
 
         // --- Transaksi setahun, dibaca sekali lalu diagregasi di PHP ---
-        $trx = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
-            ->get(['id', 'type', 'total', 'bos_type_id']);
+        $tabInput = (string) $r->query('tab', '');
+        $bosFilter = $tabInput !== '' ? RkasHeader::bosTypeIds($tabInput) : [];
+        $tabAktif = $bosFilter !== [] ? $tabInput : '';
+
+        $trx = KasTransaction::with('stage')->where('school_id', $sid)->where('tahun', $tahun)
+            ->when($bosFilter !== [], fn ($q) => $q->whereIn('bos_type_id', $bosFilter))
+            ->orderBy('tanggal')
+            ->get(['id', 'type', 'tanggal', 'stage_id', 'keterangan', 'total', 'bos_type_id']);
+
+        $penerimaanList = $trx->where('type', 'pendapatan')->values();
 
         $saldo = KasService::saldo($sid, $tahun);
         $pendapatan = (int) $trx->where('type', 'pendapatan')->sum('total');
@@ -52,6 +61,7 @@ class PenatausahaanController extends Controller
 
         // --- Pagu & realisasi per sumber dana ---
         $pagu = Allocation::where('school_id', $sid)->where('tahun', $tahun)
+            ->when($bosFilter !== [], fn ($q) => $q->whereIn('bos_type_id', $bosFilter))
             ->selectRaw('bos_type_id, sum(nilai) as j')
             ->groupBy('bos_type_id')->pluck('j', 'bos_type_id');
 
@@ -105,6 +115,7 @@ class PenatausahaanController extends Controller
 
         return view('penatausahaan.index', [
             'tahun' => $tahun,
+            'tabAktif' => $tabAktif,
             'bulan' => $bulan,
             'jumlahTutup' => $jumlahTutup,
             'saldo' => $saldo,
@@ -113,6 +124,7 @@ class PenatausahaanController extends Controller
             'sumberDana' => $sumberDana,
             'menu' => $menu,
             'adaTransaksi' => $trx->isNotEmpty(),
+            'penerimaanList' => $penerimaanList,
         ]);
     }
 }

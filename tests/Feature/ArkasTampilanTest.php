@@ -80,14 +80,14 @@ class ArkasTampilanTest extends TestCase
 
         // 2. Sudut tegas: kartu tidak lagi membulat besar dan tanpa bayangan.
         $this->assertStringContainsString('--radius-2xl:10px', $css);
-        $this->assertMatchesRegularExpression('/\.card\{[^}]*border-radius:var\(--radius-xl\)/', $css);
+        $this->assertMatchesRegularExpression('/\.card\{[^}]*border-radius:(?:var\(--radius-xl\)|4px)/', $css);
         $this->assertDoesNotMatchRegularExpression('/\.card\{[^}]*box-shadow/', $css);
 
         // 3. Chip memakai sudut kecil (bukan kapsul) seperti ARKAS.
         $this->assertMatchesRegularExpression('/\.badge\{[^}]*border-radius:\.25rem/', $css);
 
         // 4. Tabel lebih rapat: padding sel 0.5rem/0.625rem.
-        $this->assertMatchesRegularExpression('/\.tbl th\{[^}]*padding-block:calc\(var\(--spacing\) \* 2\)/', $css);
+        $this->assertMatchesRegularExpression('/\.tbl th\{[^}]*(?:padding-block|padding):calc\(var\(--spacing\) \* 2\)/', $css);
 
         // 5. Tombol utama memakai token biru ARKAS (bukan kelas utilitas).
         // Tailwind memecah blok @apply dan deklarasi mentah menjadi dua aturan

@@ -1,57 +1,14 @@
 @extends('layouts.app', ['title' => 'Monitoring: ' . $s->nama])
 @section('content')
-<div class="card flex justify-between items-start">
-  <div>
-    <div class="text-lg font-bold">{{ $s->nama }} <span class="font-mono text-xs text-slate-400">({{ $s->npsn }})</span></div>
-    <div class="text-sm text-slate-500">{{ $s->jenjang }} · {{ $s->alamatLengkap() }}</div>
-    <div class="text-xs text-slate-400 mt-1">Aktivitas terakhir: {{ $s->last ? \Carbon\Carbon::parse($s->last)->format('d/m/Y H:i') . ' (' . \Carbon\Carbon::parse($s->last)->diffForHumans() . ')' : 'belum pernah input' }}</div>
-  </div>
-  <div class="flex gap-2">
-    <a href="{{ route('dinas.konsolidasi') }}" class="btn2 btn">🗂️ Konsolidasi</a>
-    <a href="{{ route('dinas.sekolah') }}" class="btn2 btn">← Daftar Sekolah</a>
-  </div>
-</div>
-
-<div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-  <div class="card"><div class="text-xs text-slate-500">Pagu {{ $tahun }}</div><div class="text-lg font-bold text-slate-700">{{ rp($s->pagu) }}</div></div>
-  <div class="card"><div class="text-xs text-slate-500">Dana Diterima</div><div class="text-lg font-bold text-sky-700">{{ rp($s->pendapatan) }}</div></div>
-  <div class="card"><div class="text-xs text-slate-500">Belanja</div><div class="text-lg font-bold text-rose-700">{{ rp($s->belanja) }}</div>
-    <span class="badge bg-indigo-100 text-indigo-700 mt-1">{{ $s->serapan }}%</span></div>
-  <div class="card"><div class="text-xs text-slate-500">Saldo Kas (Tunai+Bank)</div><div class="text-lg font-bold text-emerald-700">{{ rp($saldo['total']) }}</div>
-    <div class="text-[11px] text-slate-400">Tunai {{ rp($saldo['tunai']) }} · Bank {{ rp($saldo['bank']) }}</div></div>
-  <div class="card"><div class="text-xs text-slate-500">Pajak Belum Disetor</div><div class="text-lg font-bold {{ $s->pajakBelum>0?'text-amber-600':'text-slate-300' }}">{{ rp($s->pajakBelum) }}</div></div>
-</div>
-
-<div class="card">
-  <h3 class="font-semibold text-slate-700 mb-3">Progres per Tahap Penyaluran</h3>
-  <table class="tbl">
-    <thead><tr><th>Tahap</th><th class="num">Dana Cair</th><th class="num">Belanja</th><th>Serapan (dari dana cair)</th><th>Status</th></tr></thead>
-    <tbody>
-      @foreach($stages as $st)
+<div class="card flex justify-between items-start"> <div> <div class="text-lg font-bold">{{ $s->nama }} <span class="font-mono text-xs text-slate-400">({{ $s->npsn }})</span></div> <div class="text-sm text-slate-500">{{ $s->jenjang }} · {{ $s->alamatLengkap() }}</div> <div class="text-xs text-slate-400 mt-1">Aktivitas terakhir: {{ $s->last ? \Carbon\Carbon::parse($s->last)->format('d/m/Y H:i') . ' (' . \Carbon\Carbon::parse($s->last)->diffForHumans() . ')' : 'belum pernah input' }}</div> </div> <div class="flex gap-2"> <a href="{{ route('dinas.konsolidasi') }}" class="btn2 btn"> Konsolidasi</a> <a href="{{ route('dinas.sekolah') }}" class="btn2 btn">← Daftar Sekolah</a> </div>
+</div> <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4"> <div class="card"><div class="text-xs text-slate-500">Pagu {{ $tahun }}</div><div class="text-lg font-bold text-slate-700">{{ rp($s->pagu) }}</div></div> <div class="card"><div class="text-xs text-slate-500">Dana Diterima</div><div class="text-lg font-bold text-sky-700">{{ rp($s->pendapatan) }}</div></div> <div class="card"><div class="text-xs text-slate-500">Belanja</div><div class="text-lg font-bold text-rose-700">{{ rp($s->belanja) }}</div> <span class="badge bg-indigo-100 text-indigo-700 mt-1">{{ $s->serapan }}%</span></div> <div class="card"><div class="text-xs text-slate-500">Saldo Kas (Tunai+Bank)</div><div class="text-lg font-bold text-emerald-700">{{ rp($saldo['total']) }}</div> <div class="text-[11px] text-slate-400">Tunai {{ rp($saldo['tunai']) }} · Bank {{ rp($saldo['bank']) }}</div></div> <div class="card"><div class="text-xs text-slate-500">Pajak Belum Disetor</div><div class="text-lg font-bold {{ $s->pajakBelum>0?'text-amber-600':'text-slate-300' }}">{{ rp($s->pajakBelum) }}</div></div>
+</div> <div class="card"> <h3 class="font-semibold text-slate-700 mb-3">Progres per Tahap Penyaluran</h3> <table class="tbl"> <thead><tr><th>Tahap</th><th class="num">Dana Cair</th><th class="num">Belanja</th><th>Serapan (dari dana cair)</th><th>Status</th></tr></thead> <tbody> @foreach($stages as $st)
       @php $ps = $st->pendapatan>0 ? round($st->belanja/$st->pendapatan*100,1) : 0; @endphp
-      <tr>
-        <td class="font-semibold">{{ $st->nama }}</td>
-        <td class="num">{{ rp($st->pendapatan) }}</td><td class="num">{{ rp($st->belanja) }}</td>
-        <td style="min-width:140px"><div class="flex items-center gap-2"><div class="h-2 w-24 rounded-full bg-slate-100"><div class="h-2 rounded-full {{ $ps>=80?'bg-emerald-500':($ps>=40?'bg-amber-400':'bg-rose-400') }}" style="width:{{ min(100,$ps) }}%"></div></div><span class="text-xs font-bold">{{ $ps }}%</span></div></td>
-        <td>{!! $st->terkunci ? '<span class="badge bg-red-100 text-red-700">🔒 ditutup sekolah</span>' : '<span class="badge bg-emerald-100 text-emerald-700">terbuka</span>' !!}</td>
-      </tr>
-      @endforeach
-    </tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h3 class="font-semibold text-slate-700 mb-3">10 Transaksi Terakhir</h3>
-  <table class="tbl">
-    <thead><tr><th>BKU</th><th>Tanggal</th><th>Jenis</th><th>Uraian</th><th class="num">Nilai</th></tr></thead>
-    <tbody>
-      @forelse($terbaru as $t)
-      <tr><td>#{{ $t->no_bku }}</td><td>{{ $t->tanggal->format('d/m/Y') }}</td><td>{{ $t->labelType() }}</td>
-        <td>{{ Str::limit($t->keterangan, 55) }}</td><td class="num">{{ rp($t->total) }}</td></tr>
-      @empty
-      <tr><td colspan="5" class="text-center text-slate-400 py-6">Belum ada transaksi.</td></tr>
-      @endforelse
-    </tbody>
-  </table>
+      <tr> <td class="font-semibold">{{ $st->nama }}</td> <td class="num">{{ rp($st->pendapatan) }}</td><td class="num">{{ rp($st->belanja) }}</td> <td style="min-width:140px"><div class="flex items-center gap-2"><div class="h-2 w-24 rounded-full bg-slate-100"><div class="h-2 rounded-full {{ $ps>=80?'bg-emerald-500':($ps>=40?'bg-amber-400':'bg-rose-400') }}" style="width:{{ min(100,$ps) }}%"></div></div><span class="text-xs font-bold">{{ $ps }}%</span></div></td> <td>{!! $st->terkunci ? '<span class="badge bg-red-100 text-red-700"> ditutup sekolah</span>' : '<span class="badge bg-emerald-100 text-emerald-700">terbuka</span>' !!}</td> </tr> @endforeach
+    </tbody> </table>
+</div> <div class="card"> <h3 class="font-semibold text-slate-700 mb-3">10 Transaksi Terakhir</h3> <table class="tbl"> <thead><tr><th>BKU</th><th>Tanggal</th><th>Jenis</th><th>Uraian</th><th class="num">Nilai</th></tr></thead> <tbody> @forelse($terbaru as $t)
+      <tr><td>#{{ $t->no_bku }}</td><td>{{ $t->tanggal->format('d/m/Y') }}</td><td>{{ $t->labelType() }}</td> <td>{{ Str::limit($t->keterangan, 55) }}</td><td class="num">{{ rp($t->total) }}</td></tr> @empty
+      <tr><td colspan="5" class="text-center text-slate-400 py-6">Belum ada transaksi.</td></tr> @endforelse
+    </tbody> </table>
 </div>
 @endsection

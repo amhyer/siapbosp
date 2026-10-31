@@ -1,46 +1,20 @@
 @extends('layouts.app', ['title' => 'Cek Ulang Integritas Impor'])
 @section('subtitle', 'Bandingkan data ARKAS terbaru dengan pencatatan di SiapBOSP')
 @section('content')
-<div class="card max-w-3xl">
-  <h3 class="card-title mb-1">🔍 Cek Ulang Integritas Impor</h3>
-  <p class="page-desc mb-3">Dipakai setelah ARKAS digalakkan ulang (Pasca <b>Pergeseran / Perubahan RKAS</b>): data di ARKAS bisa berubah sementara pencatatan di SiapBOSP belum. Hasilnya: jumlah baris & nilai per bulan, plus daftar bulan yang berbeda.</p>
-
-  @if(! empty($hasil))
-    <div class="mb-4 rounded-lg border p-3 text-[13px] {{ $hasil['total']['bulan_berbeda'] === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800' }}">
-      <b>{{ $hasil['total']['bulan_berbeda'] === 0 ? '✅ Semua bulan cocok' : '⚠️ '.$hasil['total']['bulan_berbeda'].' bulan berbeda' }}</b>
-      — sumber: {{ $sumber }} · TA {{ $hasil['tahun'] }}
-      <div class="mt-1 text-[12px]">
-        ARKAS: {{ $hasil['total']['arkas_jumlah'] }} baris / {{ rp($hasil['total']['arkas_nilai']) }}
+<div class="card max-w-3xl"> <h3 class="card-title mb-1"> Cek Ulang Integritas Impor</h3> <p class="page-desc mb-3">Dipakai setelah ARKAS digalakkan ulang (Pasca <b>Pergeseran / Perubahan RKAS</b>): data di ARKAS bisa berubah sementara pencatatan di SiapBOSP belum. Hasilnya: jumlah baris & nilai per bulan, plus daftar bulan yang berbeda.</p> @if(! empty($hasil))
+    <div class="mb-4 rounded-lg border p-3 text-[13px] {{ $hasil['total']['bulan_berbeda'] === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800' }}"> <b>{{ $hasil['total']['bulan_berbeda'] === 0 ? ' Semua bulan cocok' : ' '.$hasil['total']['bulan_berbeda'].' bulan berbeda' }}</b> — sumber: {{ $sumber }} · TA {{ $hasil['tahun'] }}
+      <div class="mt-1 text-[12px]"> ARKAS: {{ $hasil['total']['arkas_jumlah'] }} baris / {{ rp($hasil['total']['arkas_nilai']) }}
         · SiapBOSP: {{ $hasil['total']['lokal_jumlah'] }} baris / {{ rp($hasil['total']['lokal_nilai']) }}
         @if($hasil['total']['manual_jumlah'] > 0)
           · catatan lokal (manual): {{ $hasil['total']['manual_jumlah'] }} baris / {{ rp($hasil['total']['manual_nilai']) }}
         @endif
-      </div>
-    </div>
-
-    <div class="overflow-x-auto">
-      <table class="tbl">
-        <thead><tr><th>Bulan</th><th class="num">ARKAS (baris)</th><th class="num">ARKAS (nilai)</th><th class="num">SiapBOSP (baris)</th><th class="num">SiapBOSP (nilai)</th><th class="num">Selisih</th><th>Status</th></tr></thead>
-        <tbody>
-          @foreach($hasil['bulan'] as $b)
-            <tr>
-              <td>{{ $b['nama'] }}</td>
-              <td class="num">{{ $b['arkas']['jumlah'] }}</td>
-              <td class="num">{{ rp($b['arkas']['nilai']) }}</td>
-              <td class="num">{{ $b['lokal']['jumlah'] }}</td>
-              <td class="num">{{ rp($b['lokal']['nilai']) }}</td>
-              <td class="num {{ $b['status'] === 'beda' ? 'text-rose-700 font-semibold' : 'text-slate-400' }}">
-                {{ $b['selisih_jumlah'] == 0 ? '0' : ($b['selisih_jumlah'] > 0 ? '+' : '').$b['selisih_jumlah'] }}
+      </div> </div> <div class="overflow-x-auto"> <table class="tbl"> <thead><tr><th>Bulan</th><th class="num">ARKAS (baris)</th><th class="num">ARKAS (nilai)</th><th class="num">SiapBOSP (baris)</th><th class="num">SiapBOSP (nilai)</th><th class="num">Selisih</th><th>Status</th></tr></thead> <tbody> @foreach($hasil['bulan'] as $b)
+            <tr> <td>{{ $b['nama'] }}</td> <td class="num">{{ $b['arkas']['jumlah'] }}</td> <td class="num">{{ rp($b['arkas']['nilai']) }}</td> <td class="num">{{ $b['lokal']['jumlah'] }}</td> <td class="num">{{ rp($b['lokal']['nilai']) }}</td> <td class="num {{ $b['status'] === 'beda' ? 'text-rose-700 font-semibold' : 'text-slate-400' }}"> {{ $b['selisih_jumlah'] == 0 ? '0' : ($b['selisih_jumlah'] > 0 ? '+' : '').$b['selisih_jumlah'] }}
                 @if($b['selisih_nilai'] != 0)
-                  <div class="text-[11px]">{{ $b['selisih_nilai'] > 0 ? '+' : '−' }}{{ rp(abs($b['selisih_nilai'])) }}</div>
-                @endif
-              </td>
-              <td>
-                @if($b['status'] === 'cocok')
-                  <span class="badge bg-emerald-100 text-emerald-700">✅ Cocok</span>
-                @else
-                  <span class="badge bg-amber-100 text-amber-700">⚠️ Beda</span>
-                @endif
+                  <div class="text-[11px]">{{ $b['selisih_nilai'] > 0 ? '+' : '−' }}{{ rp(abs($b['selisih_nilai'])) }}</div> @endif
+              </td> <td> @if($b['status'] === 'cocok')
+                  <span class="badge bg-emerald-100 text-emerald-700"> Cocok</span> @else
+                  <span class="badge bg-amber-100 text-amber-700"> Beda</span> @endif
                 @if($b['manual']['jumlah'] > 0)
                   <div class="text-[11px] text-slate-400 mt-1">{{ $b['manual']['jumlah'] }} catatan lokal</div>
                 @endif
