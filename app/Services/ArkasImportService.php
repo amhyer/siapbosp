@@ -101,6 +101,7 @@ class ArkasImportService
             'info_ptk' => null,
             'periode_terkunci' => [],
             'selisih_hapus' => [],
+            'needs_review' => [],
             'peringatan' => [],
         ];
 
@@ -768,10 +769,21 @@ class ArkasImportService
             $volume = trim((string) ($r['volume'] ?? ''));
 
             // Standardisasi hash ke SHA-256 untuk natural_key dan content_hash
-            $naturalKey = hash('sha256', implode('|', [$tahun, $noBukti, $tgl, $kdRekening, $nominal, $jenis]));
-            $contentHash = hash('sha256', implode('|', [$tgl, $noBukti, $uraian, $kdRekening, $jenis, $kdBku, $nominal, $tahun, $sumberDana, $volume]));
+            $naturalKey = self::hitungNaturalKey($tahun, $tgl, $kdRekening, $nominal, $jenis, $uraian);
+            $contentHash = self::hitungContentHash([
+                'tahun' => $tahun,
+                'tanggal' => $tgl,
+                'no_bukti' => $noBukti,
+                'uraian' => $uraian,
+                'kode_rekening' => $kdRekening,
+                'jenis' => $jenis,
+                'kode_bku' => $kdBku,
+                'nominal' => $nominal,
+                'sumber_dana' => $sumberDana,
+                'volume' => $volume,
+            ]);
 
-            // Kunci arkas_id: preferred id_kas_umum, atau legacy sha1 untuk kompatibilitas riwayat berkas lama
+            // Kunci arkas_id: preferred kas:ID, atau legacy sha1 untuk kompatibilitas riwayat berkas lama
             $legacyKey = 'kas:legacy:'.sha1(implode('|', [
                 $tgl, $noBukti, $uraian, $kdRekening, $jenis, $kdBku,
                 $nominal, $tahun, $sumberDana, $volume,
@@ -1063,8 +1075,10 @@ class ArkasImportService
 
                     continue;
                 }
-                $setorNaturalKey = hash('sha256', implode('|', [$tahun, 'setor_pajak', $tgl, (string) $induk->id, $nominal]));
-                $setorContentHash = hash('sha256', implode('|', [$tahun, $tgl, (string) $induk->id, $nominal, $base]));
+                $normTgl = self::normalizeDate($tgl);
+                $normNominal = self::normalizeNominal($nominal);
+                $setorNaturalKey = hash('sha256', implode('|', [$tahun, 'setor_pajak', $normTgl, (string) $induk->id, $normNominal]));
+                $setorContentHash = hash('sha256', implode('|', [$tahun, $normTgl, (string) $induk->id, $normNominal, self::normalizeString($base)]));
                 $setor = self::simpanTransaksi($sekolah->id, 'kas:'.$base, 'kas:'.$legacyBase, [
                     'tahun' => $tahun, 'type' => 'setor_pajak',
                     'belanja_transaction_id' => $induk->id,
@@ -1152,27 +1166,152 @@ class ArkasImportService
         return $out;
     }
 
+    // ==================== Normalisasi & Hash ====================
+
+    /**
+     * Normalisasi string deterministik: UTF-8 lowercase, trim, collapse whitespace internal.
+     */
+    public static function normalizeString(?string $str): string
+    {
+        if ($str === null) {
+            return '';
+        }
+        $trimmed = trim($str);
+        if ($trimmed === '') {
+            return '';
+        }
+        $collapsed = preg_replace('/\s+/u', ' ', $trimmed);
+
+        return mb_strtolower($collapsed, 'UTF-8');
+    }
+
+    /**
+     * Normalisasi nominal rupiah ke integer pasti tanpa floating point formatting.
+     */
+    public static function normalizeNominal(mixed $val): int
+    {
+        if (is_numeric($val)) {
+            return (int) round((float) $val);
+        }
+        if (is_string($val)) {
+            $cleaned = preg_replace('/[^\d\.\-]/', '', $val);
+
+            return (int) round((float) $cleaned);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Normalisasi tanggal ke format ISO-8601 (YYYY-MM-DD).
+     */
+    public static function normalizeDate(?string $date): string
+    {
+        if (! $date) {
+            return '';
+        }
+        $trimmed = trim($date);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $trimmed)) {
+            return substr($trimmed, 0, 10);
+        }
+        $ts = strtotime($trimmed);
+
+        return $ts ? date('Y-m-d', $ts) : '';
+    }
+
+    /**
+     * Formulasi natural_key: representasi fisik transaksi belanja/pendapatan.
+     * Mengabaikan no_bukti (yang rentan typo/koreksi bendahara) agar koreksi nomor bukti
+     * tidak memicu duplikasi data baru, melainkan diperbarui in-place.
+     */
+    public static function hitungNaturalKey(int $tahun, string $tanggal, string $kodeRekening, int $nominal, string $jenis, string $uraian): string
+    {
+        return hash('sha256', implode('|', [
+            $tahun,
+            self::normalizeDate($tanggal),
+            self::normalizeString($kodeRekening),
+            self::normalizeNominal($nominal),
+            self::normalizeString($jenis),
+            self::normalizeString($uraian),
+        ]));
+    }
+
+    /**
+     * Formulasi content_hash: sidik jari seluruh atribut data transaksi (termasuk nomor bukti dan volume).
+     */
+    public static function hitungContentHash(array $attr): string
+    {
+        return hash('sha256', implode('|', [
+            (int) ($attr['tahun'] ?? 0),
+            self::normalizeDate($attr['tanggal'] ?? ''),
+            self::normalizeString($attr['no_bukti'] ?? ''),
+            self::normalizeString($attr['uraian'] ?? ''),
+            self::normalizeString($attr['kode_rekening'] ?? ''),
+            self::normalizeString($attr['jenis'] ?? ''),
+            self::normalizeString($attr['kode_bku'] ?? ''),
+            self::normalizeNominal($attr['nominal'] ?? 0),
+            self::normalizeString($attr['sumber_dana'] ?? ''),
+            self::normalizeString($attr['volume'] ?? ''),
+        ]));
+    }
+
     // ==================== Util ====================
 
     /**
      * Simpan transaksi idempoten dengan mitigasi instabilitas kunci ARKAS:
-     * 1. Preferred key: arkas_id ('kas:' . id_kas_umum)
-     * 2. Natural key fallback: SHA-256 (tahun|no_bukti|tanggal|kode_rekening|nominal|jenis)
-     * 3. Legacy key migration
+     * 1. Preferred key: arkas_id ('kas_umum:' . id_kas_umum / backward compatible 'kas:' . id_kas_umum)
+     * 2. Natural key fallback: SHA-256 (tahun|tanggal|kode_rekening|nominal|jenis|uraian)
+     *    - Dilengkapi pendeteksi ambiguitas (jika > 1 transaksi identik di hari yang sama)
+     *    - Dilindungi guard periode terkunci (dilarang auto-adopt jika bulan/tahap sudah terkunci)
+     * 3. Legacy key migration & safe duplicate tracking
      */
-    protected static function simpanTransaksi(int $schoolId, string $arkasKey, string $legacyKey, array $isi, array &$lap, ?string $naturalKey = null): KasTransaction
+    public static function simpanTransaksi(int $schoolId, string $arkasKey, string $legacyKey, array $isi, array &$lap, ?string $naturalKey = null): KasTransaction
     {
         $query = KasTransaction::withoutGlobalScope('school')->where('school_id', $schoolId);
 
-        // 1. Cari via preferred key (arkas_id = kas:id_kas_umum)
+        // 1. Cari via preferred key (arkas_id = kas:ID atau varian kas_umum:ID)
         $baru = (clone $query)->where('arkas_id', $arkasKey)->first();
+        if (! $baru) {
+            if (str_starts_with($arkasKey, 'kas:')) {
+                $rawId = substr($arkasKey, strlen('kas:'));
+                $baru = (clone $query)->where('arkas_id', 'kas_umum:'.$rawId)->first();
+            } elseif (str_starts_with($arkasKey, 'kas_umum:')) {
+                $rawId = substr($arkasKey, strlen('kas_umum:'));
+                $baru = (clone $query)->where('arkas_id', 'kas:'.$rawId)->first();
+            }
+        }
 
         // 2. Jika tidak ditemukan via arkas_id, cari via natural_key fallback
-        // (menangani transaksi yang dihapus lalu diinput ulang di ARKAS sehingga id_kas_umum berganti)
         $natKey = $naturalKey ?? ($isi['natural_key'] ?? null);
         $rekonsiliasiNatural = null;
+        $needsReview = false;
+        $reviewNote = null;
+
         if (! $baru && $natKey !== null && $natKey !== '') {
-            $rekonsiliasiNatural = (clone $query)->where('natural_key', $natKey)->first();
+            $kandidatList = (clone $query)->where('natural_key', $natKey)->get();
+            if ($kandidatList->count() > 1) {
+                // Ambigu: Ada lebih dari satu transaksi sah dengan karakteristik identik pada hari yang sama!
+                // Jangan auto-merge secara membabi buta agar tidak menimpa transaksi lain.
+                $needsReview = true;
+                $reviewNote = 'Kandidat ambigu: ditemukan '.$kandidatList->count().' transaksi dengan natural_key identik pada tanggal '.($isi['tanggal'] ?? '').'. Memerlukan tinjauan manual.';
+                $lap['needs_review'][] = 'Kandidat ambigu: '.$kandidatList->count()." transaksi identik pada {$isi['tanggal']} ({$isi['keterangan']})";
+            } elseif ($kandidatList->count() === 1) {
+                $kandidat = $kandidatList->first();
+
+                // Cek apakah transaksi lama berada di periode yang sudah terkunci/tutup buku
+                $bulanKandidat = $kandidat->tanggal ? $kandidat->tanggal->format('Y-m') : substr((string) ($isi['tanggal'] ?? ''), 0, 7);
+                $isTerkunciBulan = BkuTutupBulan::terkunciBulan($schoolId, $bulanKandidat);
+                $isTerkunciTahap = $kandidat->stage_id && TutupBuku::terkunci($schoolId, (int) $kandidat->tahun, $kandidat->stage_id);
+
+                if ($isTerkunciBulan || $isTerkunciTahap) {
+                    // DILARANG mengadopsi / menimpa transaksi pada periode yang sudah terkunci
+                    $needsReview = true;
+                    $reviewNote = "Perubahan ID ARKAS terdeteksi ({$kandidat->arkas_id} -> {$arkasKey}) pada periode terkunci/tutup buku ({$bulanKandidat}). Adopsi otomatis ditolak untuk menjaga integritas pembukuan.";
+                    $lap['periode_terkunci'][] = "Adopsi ID ditolak pada periode tertutup: {$isi['tanggal']} {$isi['keterangan']}";
+                } else {
+                    $rekonsiliasiNatural = $kandidat;
+                }
+            }
         }
 
         // 3. Cari legacy key (sekolah migrasi dari format lama)
@@ -1185,20 +1324,38 @@ class ArkasImportService
 
         $t = $baru ?? $rekonsiliasiNatural ?? $lama;
         if ($t) {
-            $t->update($isi + ['arkas_id' => $arkasKey]);
+            $updatePayload = $isi + [
+                'arkas_id' => $arkasKey,
+                'hash_version' => 1,
+            ];
+            if ($needsReview) {
+                $updatePayload['needs_review'] = true;
+                $updatePayload['review_note'] = $reviewNote;
+            }
+            $t->update($updatePayload);
             $t->wasRecentlyCreated = false;
 
             return $t;
         }
 
+        $extraAttributes = [
+            'school_id' => $schoolId,
+            'arkas_id' => $arkasKey,
+            'hash_version' => 1,
+        ];
+        if ($needsReview) {
+            $extraAttributes['needs_review'] = true;
+            $extraAttributes['review_note'] = $reviewNote;
+        }
+
         $t = KasTransaction::withoutGlobalScope('school')
-            ->create(['school_id' => $schoolId, 'arkas_id' => $arkasKey] + $isi);
+            ->create($extraAttributes + $isi);
         $t->wasRecentlyCreated = true;
 
         return $t;
     }
 
-    /** Pindahkan rincian + pajak dari kembaran lama ke baris baru, lalu hapus lama. */
+    /** Pindahkan rincian + pajak dari kembaran lama ke baris baru, catat relasi legacy, lalu hapus lama. */
     protected static function gabungKembar(KasTransaction $baru, KasTransaction $lama): void
     {
         foreach ($lama->details as $d) {
@@ -1223,6 +1380,9 @@ class ArkasImportService
                 $p->update(['kas_transaction_id' => $baru->id]);
             }
         }
+
+        // Tandai jejak migrasi sebelum menghapus record lama
+        $lama->update(['legacy_duplicate_of' => $baru->id]);
         $lama->delete();
     }
 
@@ -1335,6 +1495,7 @@ class ArkasImportService
         $trx = KasTransaction::withoutGlobalScope('school')
             ->where('school_id', $schoolId)->where('tahun', $tahun)
             ->whereNotNull('arkas_id')
+            ->whereNull('legacy_duplicate_of')
             ->when($seenTrx !== [], fn ($q) => $q->whereNotIn('arkas_id', $seenTrx))
             ->orderBy('tanggal')->limit(50)
             ->get(['no_bku', 'tanggal', 'keterangan', 'total']);

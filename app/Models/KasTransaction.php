@@ -11,7 +11,11 @@ class KasTransaction extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['tanggal' => 'date'];
+    protected $casts = [
+        'tanggal' => 'date',
+        'needs_review' => 'boolean',
+        'hash_version' => 'integer',
+    ];
 
     public const TYPES = [
         'pendapatan' => 'Pendapatan', 'ambil_simpanan' => 'Ambil Simpanan',
@@ -47,6 +51,11 @@ class KasTransaction extends Model
     public function belanja()
     {
         return $this->belongsTo(KasTransaction::class, 'belanja_transaction_id');
+    }
+
+    public function duplicateOf()
+    {
+        return $this->belongsTo(KasTransaction::class, 'legacy_duplicate_of');
     }
 
     public function labelType(): string

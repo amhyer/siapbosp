@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BkuTutupBulan;
 use App\Models\BosType;
 use App\Models\KasTransaction;
 use App\Models\Rekening;
@@ -154,6 +155,8 @@ class ArkasImportHardeningTest extends TestCase
             $this->assertNotNull($trx);
             $this->assertSame(500000, (int) $trx->total);
             $this->assertSame('Beli Kertas HVS 10 Rim', $trx->keterangan);
+            $this->assertSame(1, (int) $trx->hash_version);
+            $this->assertFalse((bool) $trx->needs_review);
             $trxId = $trx->id;
             $noBkuAwal = $trx->no_bku;
 
@@ -229,7 +232,7 @@ class ArkasImportHardeningTest extends TestCase
             $baris2 = [
                 [
                     '8888', 'nota-2', 'periode-1', '0',
-                    '2026-03-05', 'BOS-002', 'Pengadaan Spidol Whiteboard (Re-input)', '5.1.02.01.01.0024',
+                    '2026-03-05', 'BOS-002', 'Pengadaan Spidol Whiteboard', '5.1.02.01.01.0024',
                     'Kas Keluar', 'KK', '300000', '1', '6',
                     '0', '0', '0', '0', '0',
                     '0', '0', '2026', 'BOS Reguler', 'agg-1',
@@ -242,16 +245,311 @@ class ArkasImportHardeningTest extends TestCase
                 $this->assertSame(0, $hasil2['dibuat']['transaksi'], 'Natural key harus mencegah duplikasi baris');
                 $this->assertSame(1, $hasil2['diperbarui']['transaksi']);
 
-                // Record di database tetap 2 (1 dari test sebelumnya jika di-rollback, atau 1 untuk kasus ini)
+                // Record di database tetap 1
                 $trxUpdated = KasTransaction::where('school_id', $this->sekolah->id)->find($trxId);
                 $this->assertNotNull($trxUpdated);
                 $this->assertSame('kas:8888', $trxUpdated->arkas_id, 'arkas_id harus diadopsi ke ID baru dari ARKAS');
-                $this->assertSame('Pengadaan Spidol Whiteboard (Re-input)', $trxUpdated->keterangan);
+                $this->assertSame('Pengadaan Spidol Whiteboard', $trxUpdated->keterangan);
             } finally {
                 @unlink($file2);
             }
         } finally {
             @unlink($file1);
         }
+    }
+
+    public function test_dua_transaksi_dengan_tanggal_dan_nominal_identik_tetapi_uraian_beda_tidak_bertabrakan(): void
+    {
+        $this->actingAs($this->operator);
+
+        $baris = [
+            [
+                '7001', 'nota-701', 'periode-1', '0',
+                '2026-02-15', 'BOS-701', 'Beli Amplop Putih', '5.1.02.01.01.0024',
+                'Kas Keluar', 'KK', '100000', '1', '2',
+                '0', '0', '0', '0', '0',
+                '0', '0', '2026', 'BOS Reguler', 'agg-1',
+            ],
+            [
+                '7002', 'nota-702', 'periode-1', '0',
+                '2026-02-15', 'BOS-702', 'Beli Map Folio Plastik', '5.1.02.01.01.0024',
+                'Kas Keluar', 'KK', '100000', '1', '5',
+                '0', '0', '0', '0', '0',
+                '0', '0', '2026', 'BOS Reguler', 'agg-1',
+            ],
+        ];
+
+        $file = $this->buatBerkasArkasUji($baris);
+        try {
+            $hasil = ArkasImportService::import($file, $this->sekolah->id, $this->operator->id, 2026);
+            $this->assertSame(2, $hasil['dibuat']['transaksi']);
+
+            $t1 = KasTransaction::where('school_id', $this->sekolah->id)->where('arkas_id', 'kas:7001')->firstOrFail();
+            $t2 = KasTransaction::where('school_id', $this->sekolah->id)->where('arkas_id', 'kas:7002')->firstOrFail();
+
+            $this->assertNotEquals($t1->natural_key, $t2->natural_key, 'Natural key harus membedakan belanja berdasarkan uraian yang dinormalisasi');
+            $this->assertNotEquals($t1->content_hash, $t2->content_hash);
+        } finally {
+            @unlink($file);
+        }
+    }
+
+    public function test_koreksi_no_bukti_memperbarui_content_hash_tanpa_membuat_baris_baru(): void
+    {
+        $this->actingAs($this->operator);
+
+        // Tahap 1: Transaksi awal dengan no_bukti BOS-801
+        $baris1 = [
+            [
+                '7003', 'nota-703', 'periode-1', '0',
+                '2026-02-20', 'BOS-801', 'Beli Penggaris Besi 30cm', '5.1.02.01.01.0024',
+                'Kas Keluar', 'KK', '45000', '1', '3',
+                '0', '0', '0', '0', '0',
+                '0', '0', '2026', 'BOS Reguler', 'agg-1',
+            ],
+        ];
+
+        $file1 = $this->buatBerkasArkasUji($baris1);
+        try {
+            ArkasImportService::import($file1, $this->sekolah->id, $this->operator->id, 2026);
+            $t1 = KasTransaction::where('school_id', $this->sekolah->id)->where('arkas_id', 'kas:7003')->firstOrFail();
+            $hashAwal = $t1->content_hash;
+            $naturalKeyAwal = $t1->natural_key;
+
+            // Tahap 2: Koreksi no_bukti di ARKAS menjadi BOS-801-KOR, dan id_kas_umum ter-generate ulang jadi 7004
+            $baris2 = [
+                [
+                    '7004', 'nota-703', 'periode-1', '0',
+                    '2026-02-20', 'BOS-801-KOR', 'Beli Penggaris Besi 30cm', '5.1.02.01.01.0024',
+                    'Kas Keluar', 'KK', '45000', '1', '3',
+                    '0', '0', '0', '0', '0',
+                    '0', '0', '2026', 'BOS Reguler', 'agg-1',
+                ],
+            ];
+
+            $file2 = $this->buatBerkasArkasUji($baris2);
+            try {
+                $hasil2 = ArkasImportService::import($file2, $this->sekolah->id, $this->operator->id, 2026);
+                $this->assertSame(0, $hasil2['dibuat']['transaksi']);
+                $this->assertSame(1, $hasil2['diperbarui']['transaksi']);
+
+                $tUpdated = KasTransaction::where('school_id', $this->sekolah->id)->find($t1->id);
+                $this->assertSame('kas:7004', $tUpdated->arkas_id);
+                $this->assertSame('BOS-801-KOR', $tUpdated->no_bukti);
+                $this->assertSame($naturalKeyAwal, $tUpdated->natural_key, 'Natural key tetap stabil karena tidak mengikat no_bukti');
+                $this->assertNotEquals($hashAwal, $tUpdated->content_hash, 'Content hash harus mencatat perubahan atribut no_bukti');
+            } finally {
+                @unlink($file2);
+            }
+        } finally {
+            @unlink($file1);
+        }
+    }
+
+    public function test_adopsi_natural_key_ditolak_jika_periode_transaksi_sudah_tutup_buku(): void
+    {
+        $this->actingAs($this->operator);
+
+        // Tahap 1: Transaksi dibuat di bulan Maret
+        $baris1 = [
+            [
+                '7005', 'nota-705', 'periode-1', '0',
+                '2026-03-10', 'BOS-901', 'Belanja Buku Bacaan Siswa', '5.1.02.01.01.0024',
+                'Kas Keluar', 'KK', '250000', '1', '10',
+                '0', '0', '0', '0', '0',
+                '0', '0', '2026', 'BOS Reguler', 'agg-1',
+            ],
+        ];
+
+        $file1 = $this->buatBerkasArkasUji($baris1);
+        try {
+            ArkasImportService::import($file1, $this->sekolah->id, $this->operator->id, 2026);
+            $tAwal = KasTransaction::where('school_id', $this->sekolah->id)->where('arkas_id', 'kas:7005')->firstOrFail();
+
+            // Kunci BKU bulan Maret 2026
+            BkuTutupBulan::create([
+                'school_id' => $this->sekolah->id,
+                'tahun' => 2026,
+                'bulan' => '2026-03',
+                'ditutup_oleh' => $this->operator->id,
+            ]);
+
+            // Tahap 2: Transaksi diinput ulang di ARKAS dengan id_kas_umum 7006 pada bulan yang sudah terkunci
+            $baris2 = [
+                [
+                    '7006', 'nota-705', 'periode-1', '0',
+                    '2026-03-10', 'BOS-901', 'Belanja Buku Bacaan Siswa', '5.1.02.01.01.0024',
+                    'Kas Keluar', 'KK', '250000', '1', '10',
+                    '0', '0', '0', '0', '0',
+                    '0', '0', '2026', 'BOS Reguler', 'agg-1',
+                ],
+            ];
+
+            $file2 = $this->buatBerkasArkasUji($baris2);
+            try {
+                $hasil2 = ArkasImportService::import($file2, $this->sekolah->id, $this->operator->id, 2026);
+
+                // Baris pada bulan yang tertutup BKU otomatis ditolak
+                $this->assertSame(1, $hasil2['dilewati']['transaksi']);
+                $this->assertNotEmpty($hasil2['periode_terkunci']);
+
+                // Transaksi terkunci lama TIDAK boleh tertimpa / teradopsi secara diam-diam!
+                $tTerkunci = KasTransaction::where('school_id', $this->sekolah->id)->find($tAwal->id);
+                $this->assertSame('kas:7005', $tTerkunci->arkas_id);
+
+                // Transaksi baru tidak dibuat di bulan yang terkunci
+                $this->assertNull(KasTransaction::where('school_id', $this->sekolah->id)->where('arkas_id', 'kas:7006')->first());
+            } finally {
+                @unlink($file2);
+            }
+        } finally {
+            @unlink($file1);
+        }
+    }
+
+    public function test_rekonsiliasi_natural_key_ke_transaksi_pada_bulan_terkunci_ditolak_dan_ditandai_needs_review(): void
+    {
+        $this->actingAs($this->operator);
+
+        // Tahap 1: Transaksi dibuat di bulan Maret
+        $tMaret = KasTransaction::create([
+            'school_id' => $this->sekolah->id,
+            'tahun' => 2026,
+            'type' => 'belanja',
+            'no_bukti' => 'BOS-LOCK',
+            'arkas_id' => 'kas:7010',
+            'tanggal' => '2026-03-15',
+            'keterangan' => 'Belanja Spanduk Kegiatan',
+            'total' => 150000,
+            'natural_key' => ArkasImportService::hitungNaturalKey(2026, '2026-03-15', '5.1.02.01.01.0024', 150000, 'kas keluar', 'belanja spanduk kegiatan'),
+            'content_hash' => 'hash-awal',
+            'hash_version' => 1,
+        ]);
+
+        // Kunci bulan Maret
+        BkuTutupBulan::create([
+            'school_id' => $this->sekolah->id,
+            'tahun' => 2026,
+            'bulan' => '2026-03',
+            'ditutup_oleh' => $this->operator->id,
+        ]);
+
+        // Tahap 2: Transaksi baru diimpor di bulan April (bulan belum terkunci)
+        // tetapi natural_key diarahkan sama dengan transaksi Maret yang sudah terkunci
+        $barisApril = [
+            [
+                '7011', 'nota-711', 'periode-1', '0',
+                '2026-04-05', 'BOS-LOCK-NEW', 'Belanja Spanduk Kegiatan', '5.1.02.01.01.0024',
+                'Kas Keluar', 'KK', '150000', '1', '1',
+                '0', '0', '0', '0', '0',
+                '0', '0', '2026', 'BOS Reguler', 'agg-1',
+            ],
+        ];
+
+        // Override natural key di method simpanTransaksi untuk menguji adopsi
+        $lap = [
+            'dibuat' => ['transaksi' => 0],
+            'diperbarui' => ['transaksi' => 0],
+            'digabung' => ['transaksi' => 0],
+            'periode_terkunci' => [],
+            'needs_review' => [],
+        ];
+
+        $trxBaru = ArkasImportService::simpanTransaksi(
+            $this->sekolah->id,
+            'kas:7011',
+            'kas:legacy:dummy',
+            [
+                'tahun' => 2026,
+                'type' => 'belanja',
+                'tanggal' => '2026-04-05',
+                'keterangan' => 'Belanja Spanduk Kegiatan',
+                'total' => 150000,
+                'natural_key' => $tMaret->natural_key,
+                'content_hash' => 'hash-baru',
+            ],
+            $lap,
+            $tMaret->natural_key
+        );
+
+        // Verifikasi: Transaksi Maret tidak teradopsi arkas_id-nya
+        $tMaretDb = KasTransaction::find($tMaret->id);
+        $this->assertSame('kas:7010', $tMaretDb->arkas_id);
+
+        // Transaksi baru diciptakan dan ditandai needs_review
+        $this->assertTrue((bool) $trxBaru->needs_review);
+        $this->assertStringContainsString('terkunci', $trxBaru->review_note);
+        $this->assertNotEmpty($lap['periode_terkunci']);
+    }
+
+    public function test_kandidat_ambigu_ditandai_needs_review_jika_ada_beberapa_transaksi_identik_di_hari_yang_sama(): void
+    {
+        $this->actingAs($this->operator);
+
+        $naturalKeySama = ArkasImportService::hitungNaturalKey(2026, '2026-05-10', '5.1.02.01.01.0024', 50000, 'kas keluar', 'fotokopi modul');
+
+        // Buat 2 transaksi yang memiliki natural_key identik (misal 2 nota fotokopi terpisah pada hari yang sama)
+        $t1 = KasTransaction::create([
+            'school_id' => $this->sekolah->id,
+            'tahun' => 2026,
+            'type' => 'belanja',
+            'no_bukti' => 'BOS-FOTO-1',
+            'arkas_id' => 'kas:8101',
+            'tanggal' => '2026-05-10',
+            'keterangan' => 'Fotokopi Modul',
+            'total' => 50000,
+            'natural_key' => $naturalKeySama,
+            'content_hash' => 'hash-foto-1',
+            'hash_version' => 1,
+        ]);
+
+        $t2 = KasTransaction::create([
+            'school_id' => $this->sekolah->id,
+            'tahun' => 2026,
+            'type' => 'belanja',
+            'no_bukti' => 'BOS-FOTO-2',
+            'arkas_id' => 'kas:8102',
+            'tanggal' => '2026-05-10',
+            'keterangan' => 'Fotokopi Modul',
+            'total' => 50000,
+            'natural_key' => $naturalKeySama,
+            'content_hash' => 'hash-foto-2',
+            'hash_version' => 1,
+        ]);
+
+        // Input transaksi baru dengan arkas_id 8103 yang natural key-nya sama
+        $lap = [
+            'dibuat' => ['transaksi' => 0],
+            'diperbarui' => ['transaksi' => 0],
+            'digabung' => ['transaksi' => 0],
+            'periode_terkunci' => [],
+            'needs_review' => [],
+        ];
+
+        $trxBaru = ArkasImportService::simpanTransaksi(
+            $this->sekolah->id,
+            'kas:8103',
+            'kas:legacy:dummy-foto',
+            [
+                'tahun' => 2026,
+                'type' => 'belanja',
+                'tanggal' => '2026-05-10',
+                'keterangan' => 'Fotokopi Modul',
+                'total' => 50000,
+                'natural_key' => $naturalKeySama,
+                'content_hash' => 'hash-foto-3',
+            ],
+            $lap,
+            $naturalKeySama
+        );
+
+        // Jangan auto-merge secara serampangan salah satu transaksi
+        $this->assertTrue((bool) $trxBaru->needs_review);
+        $this->assertStringContainsString('Kandidat ambigu', $trxBaru->review_note);
+        $this->assertNotEmpty($lap['needs_review']);
+
+        // Data awal t1 dan t2 tetap tidak terganggu
+        $this->assertSame('kas:8101', KasTransaction::find($t1->id)->arkas_id);
+        $this->assertSame('kas:8102', KasTransaction::find($t2->id)->arkas_id);
     }
 }
