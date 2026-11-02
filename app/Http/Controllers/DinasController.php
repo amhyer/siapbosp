@@ -24,6 +24,7 @@ use App\Services\EmailNotif;
 use App\Services\KasService;
 use App\Services\KonsolidasiExportService;
 use App\Services\LpjExportService;
+use App\Services\LpjManifestService;
 use App\Services\LpjService;
 use App\Services\RingkasanService;
 use App\Services\RkasExportService;
@@ -561,7 +562,7 @@ class DinasController extends Controller
 
     public function lpjTerima(LpjSubmission $sub)
     {
-        $sub->update(['status' => 'diterima', 'ditinjau_oleh' => auth()->user()->name, 'ditinjau_at' => now()]);
+        LpjManifestService::sahkanLpj($sub, auth()->user());
         $penerima = User::where('school_id', $sub->school_id)->get();
         $penerima->each(fn ($u) => $u->notify(new InfoNotif(
             '✅', "LPJ {$sub->stage->nama} DITERIMA Dinas",

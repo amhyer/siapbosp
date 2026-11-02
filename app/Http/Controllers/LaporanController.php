@@ -14,6 +14,7 @@ use App\Services\Aktivitas;
 use App\Services\EmailNotif;
 use App\Services\KasService;
 use App\Services\LpjExportService;
+use App\Services\LpjManifestService;
 use App\Services\LpjService;
 use App\Support\Csv;
 use Carbon\Carbon;
@@ -132,10 +133,7 @@ class LaporanController extends Controller
         if ($last && $last->status === 'diterima') {
             return back()->with('error', 'LPJ tahap ini sudah DITERIMA oleh Dinas.');
         }
-        LpjSubmission::create([
-            'school_id' => $sid, 'stage_id' => $stage->id, 'tahun' => $tahun,
-            'status' => 'dikirim', 'dikirim_oleh' => auth()->user()->name, 'catatan_dinas' => null,
-        ]);
+        LpjManifestService::ajukanLpj($sid, $tahun, $stage->id, auth()->id());
         $namaSekolah = auth()->user()->school->nama;
         $penerima = User::whereIn('role', ['dinas', 'superadmin'])->get();
         $penerima->each(fn ($u) => $u->notify(

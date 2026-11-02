@@ -201,6 +201,11 @@ class ArkasImportService
                 'keterangan' => self::ringkasan($lap),
             ]);
 
+            // Rekam snapshot harian (Lapis 1: Monitoring Real-Time)
+            $snapshot = SyncSnapshotService::rekamSnapshot($sekolah->id, $tahun);
+            $lap['snapshot_id'] = $snapshot->id;
+            $lap['snapshot_manifest_hash'] = $snapshot->manifest_hash;
+
             return $lap;
         });
     }

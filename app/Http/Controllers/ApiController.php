@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Notifications\InfoNotif;
 use App\Services\AntreanArkasService;
 use App\Services\KasService;
+use App\Services\LpjManifestService;
 use App\Services\RingkasanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -566,8 +567,7 @@ class ApiController extends Controller
 
                 continue;
             }
-            LpjSubmission::create(['school_id' => $sid, 'stage_id' => $stageId, 'tahun' => $tahun,
-                'status' => 'dikirim', 'dikirim_oleh' => $u->name.' (sync)', 'catatan_dinas' => null]);
+            LpjManifestService::ajukanLpj($sid, $tahun, $stageId, $u->id);
             $out['dikirim'][] = (int) $ord;
             User::whereIn('role', ['dinas', 'superadmin'])->get()->each(fn ($d) => $d->notify(
                 new InfoNotif('📨', 'LPJ masuk (sync): '.$u->school->nama,
