@@ -132,7 +132,7 @@ class PenatausahaanIndexTest extends TestCase
         }
     }
 
-    /** Sidebar: area kerja Penatausahaan kini satu tautan, tanpa sub-menu. */
+    /** Sidebar: area kerja BKU / Penatausahaan kini satu tautan biasa di kelompok Utama, tanpa sub-menu. */
     public function test_sidebar_penatausahaan_satu_tautan(): void
     {
         $html = $this->withSession(['tahun' => 2025])->get(route('dashboard'))->assertOk()->getContent();
@@ -141,12 +141,12 @@ class PenatausahaanIndexTest extends TestCase
         $blok = $utama[1] ?? '';
         $this->assertNotSame('', $blok, 'Blok navw-utama tidak ditemukan.');
 
-        $this->assertStringContainsString('>Penatausahaan</a>', $blok,
-            'Penatausahaan harus satu tautan biasa, bukan tombol grup.');
+        $this->assertStringContainsString('>Buku Kas Umum (BKU)</a>', $blok,
+            'Buku Kas Umum (BKU) harus satu tautan biasa, bukan tombol grup.');
         $this->assertStringContainsString(route('penatausahaan.index'), $blok);
 
         // Sub-menu lama tidak boleh lagi ada di sidebar (hanya di halaman).
-        foreach (['Buku Kas Umum', 'Tarik Tunai (Bank→Tunai)', 'Setor Tunai (Tunai→Bank)',
+        foreach (['Tarik Tunai (Bank→Tunai)', 'Setor Tunai (Tunai→Bank)',
             'Pengeluaran &amp; Pajak', 'Pelaporan'] as $hilang) {
             $this->assertStringNotContainsString($hilang, $blok,
                 'Sub-menu "'.$hilang.'" masih ada di sidebar.');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Allocation;
 use App\Models\Announcement;
+use App\Models\ArkasImportRun;
 use App\Models\BkuTutupBulan;
 use App\Models\KasTransaction;
 use App\Models\RkasHeader;
@@ -11,6 +12,9 @@ use App\Models\Stage;
 use App\Services\EarlyWarningService;
 use App\Services\JuknisBosp2026Service;
 use App\Services\KasService;
+use App\Services\SinkronisasiService;
+use App\Services\TarikArkasService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -160,11 +164,58 @@ class DashboardController extends Controller
             ],
         ];
 
+        // === Data Aksi Cepat & Kesiapan SPJ Bendahara (3 Langkah Utama) ===
+        $bulanSekarang = now()->format('Y-m');
+        $trxTerakhir = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
+            ->where('type', 'belanja')->orderByDesc('tanggal')->first();
+        $bulanAktifKey = ($trxTerakhir && substr((string) $trxTerakhir->tanggal, 0, 4) == $tahun)
+            ? substr((string) $trxTerakhir->tanggal, 0, 7)
+            : ($tahun == now()->year ? $bulanSekarang : "{$tahun}-01");
+        $namaBulanAktif = Carbon::createFromFormat('Y-m', $bulanAktifKey)->translatedFormat('F Y');
+
+        $kuitansiBulanIni = KasTransaction::where('school_id', $sid)
+            ->where('tahun', $tahun)
+            ->where('type', 'belanja')
+            ->where('tanggal', 'like', $bulanAktifKey.'%')
+            ->count();
+        $totalKuitansiTahun = $jumlahBelanja;
+
+        $pajakTanpaNtpn = DB::table('kas_taxes as p')
+            ->join('kas_transactions as t', 'p.kas_transaction_id', '=', 't.id')
+            ->where('t.school_id', $sid)
+            ->where('t.tahun', $tahun)
+            ->where('t.type', 'belanja')
+            ->where(function ($q) {
+                $q->whereNull('p.ntpn')->orWhere('p.ntpn', '')->orWhere('p.status', 'belum');
+            })
+            ->count();
+
+        $terakhirTarikRun = ArkasImportRun::where('school_id', $sid)
+            ->whereIn('jenis', [ArkasImportRun::JENIS_IMPOR, 'tarik-arkas'])
+            ->latest('created_at')
+            ->first();
+        $terakhirTarikWaktu = $terakhirTarikRun?->completed_at ?? $terakhirTarikRun?->created_at;
+        $terakhirTarikStr = $terakhirTarikWaktu
+            ? ($terakhirTarikWaktu->isToday()
+                ? 'Hari ini, '.$terakhirTarikWaktu->format('H:i')
+                : $terakhirTarikWaktu->translatedFormat('d M Y, H:i'))
+            : 'Belum pernah ditarik';
+        $tarikTersedia = TarikArkasService::tersedia();
+
+        $syncStatus = SinkronisasiService::status();
+        $terakhirDorong = $syncStatus['terakhir_dorong'] ?? null;
+        $terakhirKirimStr = $terakhirDorong
+            ? (Carbon::parse($terakhirDorong)->isToday()
+                ? 'Hari ini, '.Carbon::parse($terakhirDorong)->format('H:i')
+                : Carbon::parse($terakhirDorong)->translatedFormat('d M Y, H:i'))
+            : 'Belum pernah dikirim';
+
         return view('dashboard', compact(
             'saldo', 'pagu', 'pendapatan', 'belanja', 'bulanIni', 'serapan', 'diterimaPct', 'tunaiPct', 'bankPct',
             'pajakTerima', 'pajakSudah', 'pajakBelum', 'pajakPct', 'topRekening', 'perTahap', 'perBulan', 'maxBulan',
             'terbaru', 'pengumuman', 'tahun', 'serapanKomponen', 'bkuTerbuka', 'statusTenggat', 'ringkasanJuknis', 'rkasAktif',
-            'earlyWarnings', 'alurTahapBosp'
+            'earlyWarnings', 'alurTahapBosp', 'namaBulanAktif', 'bulanAktifKey', 'kuitansiBulanIni', 'totalKuitansiTahun',
+            'pajakTanpaNtpn', 'terakhirTarikStr', 'terakhirTarikWaktu', 'tarikTersedia', 'terakhirKirimStr', 'syncStatus'
         ));
     }
 }

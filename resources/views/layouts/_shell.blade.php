@@ -27,7 +27,12 @@
         <circle cx="23.5" cy="8.5" r="3" fill="#f59e0b"/>
         <path d="M4 25.5C8 18 13 8 23.5 8.5" stroke="#0b5fef" stroke-width="2.5" stroke-linecap="round"/>
       </svg>
-      <span class="truncate text-[18px] font-bold tracking-tight text-[#2f3031]">{{ $u->isDinas() ? 'SiapBOSP Pusat' : 'ARKAS' }}</span>
+      <span class="truncate text-[18px] font-bold tracking-tight text-[#2f3031]">{{ $u->isDinas() ? 'SiapBOSP Pusat Dinas' : 'SiapBOSP Bendahara' }}</span>
+      @if($u->isDinas())
+        <span class="hidden sm:inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Pusat Dinas</span>
+      @else
+        <span class="hidden sm:inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">Bendahara</span>
+      @endif
       <span class="sr-only">SiapBOSP v4.3.0</span>
     </a>
   </div>
@@ -77,52 +82,52 @@
 
     <nav class="navw flex-1 overflow-y-auto px-[18px] pb-4 pt-[36px]" aria-label="Menu">
       @if(!$u->isDinas())
+        {{-- Kelompok 1: Utama --}}
+        <p class="navw-sep"><span>Utama</span></p>
         <div class="navw-utama">
-          @foreach($menuUtama as $grp)
-            <div class="grp">
-              <div class="navw-area-row">
-                <a href="{{ $grp['href'] ?? '#' }}" class="navw-area {{ !empty($grp['aktif']) ? 'on' : '' }}" @if(!empty($grp['aktif'])) aria-current="page" @endif>{{ $grp['label'] }}</a>
-                @if(!empty($grp['items']))
-                <button type="button" class="navw-chev sr-only" data-grup aria-expanded="false" aria-label="Buka submenu {{ $grp['label'] }}">
-                  <x-icon name="chevron-down" class="h-4 w-4"/>
-                </button>
-                @endif
-              </div>
-              @if(!empty($grp['items']))
-              <div class="navw-sub hidden">
-                @foreach($grp['items'] as [$label, $href, $aktif])
-                  @if($href === '#')
-                    <p>{{ $label }}</p>
-                  @else
-                    <a href="{{ $href }}" class="{{ $aktif ? 'on' : '' }}" @if($aktif) aria-current="page" @endif>{{ $label }}</a>
-                  @endif
-                @endforeach
-              </div>
-              @endif
-            </div>
+          @foreach($menuSekolahUtama['utama'] as $m)
+            <a href="{{ $m['href'] }}" class="navw-area {{ $m['aktif'] ? 'on' : '' }}" @if($m['aktif']) aria-current="page" @endif>{{ $m['label'] }}</a>
           @endforeach
         </div>
 
         <div class="navw-sep" role="presentation"><span class="sr-only">Menu Lain</span></div>
-        <a href="{{ route('dashboard') }}" class="navw-extra {{ request()->routeIs('dashboard') ? 'on' : '' }}">Dashboard</a>
 
-        @foreach($menuTambahan as $grp)
-          <div class="grp navw-group {{ $grp['open'] ? 'open' : '' }}">
-            <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
-              <span>{{ $grp['label'] }}</span>
-              <x-icon name="chevron-down" class="chev"/>
-            </button>
-            <div class="navw-sub {{ $grp['open'] ? '' : 'hidden' }}">
-              @foreach($grp['items'] as [$label, $href, $aktif])
-                @if($href === '#')
-                  <p>{{ $label }}</p>
-                @else
-                  <a href="{{ $href }}" class="{{ $aktif ? 'on' : '' }}" @if($aktif) aria-current="page" @endif>{{ $label }}</a>
-                @endif
-              @endforeach
-            </div>
-          </div>
+        {{-- Kelompok 2: Cetak Dokumen (Yang paling dicari bendahara) --}}
+        <p class="navw-sep"><span>Cetak Dokumen</span></p>
+        @foreach($menuSekolahUtama['cetak'] as $m)
+          <a href="{{ $m['href'] }}" class="navw-area {{ $m['aktif'] ? 'on' : '' }}" @if($m['aktif']) aria-current="page" @endif>{{ $m['label'] }}</a>
         @endforeach
+
+        {{-- Kelompok 3: Pajak --}}
+        <p class="navw-sep"><span>Pajak</span></p>
+        @foreach($menuSekolahUtama['pajak'] as $m)
+          <a href="{{ $m['href'] }}" class="navw-area {{ $m['aktif'] ? 'on' : '' }}" @if($m['aktif']) aria-current="page" @endif>{{ $m['label'] }}</a>
+        @endforeach
+
+        {{-- Kelompok 4: Pengaturan & Bantuan --}}
+        <p class="navw-sep"><span>Pengaturan &amp; Bantuan</span></p>
+        @foreach($menuSekolahUtama['pengaturan'] as $m)
+          <a href="{{ $m['href'] }}" class="navw-area {{ $m['aktif'] ? 'on' : '' }}" @if($m['aktif']) aria-current="page" @endif>{{ $m['label'] }}</a>
+        @endforeach
+
+        {{-- Menu Teknis: Pengaturan Lanjutan (Mode Mahir) --}}
+        @php
+          $isLanjutanAktif = collect($menuTambahanLanjutan)->contains(fn ($g) => $g['open']);
+        @endphp
+        <div class="grp navw-group {{ $isLanjutanAktif ? 'open' : '' }} mt-3 pt-2 border-t border-white/10">
+          <button type="button" class="menu-btn !text-white/80 hover:!text-white" data-grup aria-expanded="{{ $isLanjutanAktif ? 'true' : 'false' }}">
+            <span>Pengaturan Lanjutan</span>
+            <x-icon name="chevron-down" class="chev"/>
+          </button>
+          <div class="navw-sub {{ $isLanjutanAktif ? '' : 'hidden' }}">
+            @foreach($menuTambahanLanjutan as $subGrp)
+              <p class="!text-[10px] !font-bold !text-slate-400 !mt-2.5 !mb-1 !uppercase !tracking-wider">{{ $subGrp['label'] }}</p>
+              @foreach($subGrp['items'] as [$subLabel, $subHref, $subAktif])
+                <a href="{{ $subHref }}" class="{{ $subAktif ? 'on' : '' }}" @if($subAktif) aria-current="page" @endif>{{ $subLabel }}</a>
+              @endforeach
+            @endforeach
+          </div>
+        </div>
       @else
         <p class="navw-sep"><span>Wilayah</span></p>
         <a href="{{ route('dinas.dashboard') }}" class="navw-area {{ request()->routeIs('dinas.dashboard') ? 'on' : '' }}">Dashboard Monitoring Wilayah</a>

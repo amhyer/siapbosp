@@ -48,9 +48,9 @@ class MenuDanArsipTest extends TestCase
     }
 
     /**
-     * Struktur menu mengikuti ARKAS 4: tiga area kerja utama di sidebar,
-     * Data Sekolah pindah ke dropdown profil di topbar, dan fitur tambahan
-     * SiapBOSP tetap ada di bawah pemisah "Menu Lain".
+     * Struktur menu sekolah ramah bendahara: 4 kelompok visual sederhana
+     * (Utama, Cetak Dokumen, Pajak, Pengaturan & Bantuan) dan menu teknis
+     * tersimpan rapi di grup akordion "Pengaturan Lanjutan".
      */
     public function test_sidebar_tiga_area_kerja_arkas_lalu_menu_tambahan(): void
     {
@@ -60,34 +60,33 @@ class MenuDanArsipTest extends TestCase
         $nav = $blok[0] ?? '';
         $this->assertNotSame('', $nav, 'Blok nav utama tidak ditemukan.');
 
-        // 3 area kerja ARKAS 4 harus berada di blok navw-utama, berurutan.
+        // 4 Kelompok visual ramah bendahara harus ada di navigasi
+        foreach (['Utama', 'Cetak Dokumen', 'Pajak', 'Pengaturan &amp; Bantuan'] as $kelompok) {
+            $this->assertStringContainsString('<span>'.$kelompok.'</span>', $nav, 'Kelompok '.$kelompok.' tidak ada di sidebar.');
+        }
+
+        // Blok navw-utama memuat tautan utama bendahara
         preg_match('#<div class="navw-utama">(.*?)</div>\s*<div class="navw-sep"#s', $nav, $utama);
         $blokUtama = $utama[1] ?? '';
-        $this->assertNotSame('', $blokUtama, 'Blok navw-utama (3 area kerja ARKAS) tidak ditemukan.');
+        $this->assertNotSame('', $blokUtama, 'Blok navw-utama tidak ditemukan.');
 
-        $posisi = [];
-        foreach (['Penganggaran', 'Penatausahaan', 'Arsip'] as $grup) {
-            $posisi[$grup] = mb_strpos($blokUtama, $grup);
-            $this->assertNotFalse($posisi[$grup], 'Area kerja '.$grup.' tidak ada di blok utama.');
-        }
-        $this->assertTrue($posisi['Penganggaran'] < $posisi['Penatausahaan'], 'Urutan ARKAS: Penganggaran lalu Penatausahaan.');
-        $this->assertTrue($posisi['Penatausahaan'] < $posisi['Arsip'], 'Urutan ARKAS: Penatausahaan lalu Arsip.');
+        $this->assertStringContainsString('>Dashboard</a>', $blokUtama);
+        $this->assertStringContainsString('>Buku Kas Umum (BKU)</a>', $blokUtama);
+        $this->assertStringContainsString('>Transaksi Belanja &amp; Kwitansi</a>', $blokUtama);
 
-        // Fitur tambahan tetap ada, di bawah pemisah.
-        foreach (['Laporan &amp; LPJ', 'Realisasi &amp; Format ARKAS', 'Data Referensi', 'Integrasi ARKAS', 'Sistem'] as $grup) {
-            $this->assertStringContainsString($grup, $nav, 'grup menu '.$grup.' tak ada');
-            $this->assertGreaterThan(mb_strpos($nav, 'navw-sep'), mb_strpos($nav, $grup),
-                $grup.' seharusnya berada setelah pemisah "Menu Lain".');
-        }
+        // Fitur cetak dokumen & pajak langsung dapat diakses
+        $this->assertStringContainsString('>Cetak Kuitansi &amp; Format SPJ</a>', $nav);
+        $this->assertStringContainsString('>Cetak BKU &amp; Buku Pembantu</a>', $nav);
+        $this->assertStringContainsString('>Cetak SPTJM &amp; LPJ Tahap</a>', $nav);
+        $this->assertStringContainsString('>Rekap Potongan &amp; Setor NTPN</a>', $nav);
 
-        // Dashboard tetap tautan langsung; "Data Sekolah" tidak lagi jadi grup sidebar.
-        $this->assertStringContainsString('href="'.route('dashboard').'"', $nav, 'Dashboard bukan tautan langsung.');
-        $this->assertMatchesRegularExpression('#>Dashboard</a>#', $nav, 'Dashboard bukan tautan langsung.');
+        // Pengaturan Lanjutan (Mode Mahir) membungkus menu teknis
+        $this->assertStringContainsString('Pengaturan Lanjutan', $nav);
 
-        // ARKAS 4: sidebar tanpa ikon/emoji — label menu teks saja.
+        // Sidebar tanpa ikon/emoji — label menu teks saja
         $this->assertDoesNotMatchRegularExpression(
             '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $nav,
-            'Sidebar ARKAS 4 tanpa ikon; label menu harus berupa teks saja.');
+            'Sidebar tanpa ikon emoji; label menu harus berupa teks saja.');
         $this->assertStringNotContainsString('Beranda', $nav, 'Induk menu Beranda seharusnya sudah dihapus.');
         $this->assertStringNotContainsString('Tahun Anggaran', $nav,
             'Data Sekolah seharusnya pindah ke dropdown profil, bukan sidebar.');
@@ -142,7 +141,7 @@ class MenuDanArsipTest extends TestCase
             ->assertSee('Data Penanggung Jawab');
     }
 
-    /** Grup menu sekolah dipecah agar tiap accordion maksimal 7 item. */
+    /** Sub-grup menu teknis dalam Pengaturan Lanjutan lengkap dan tanpa item mati. */
     public function test_grup_menu_sekolah_dipecah_dan_tanpa_item_mati(): void
     {
         $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
@@ -151,14 +150,14 @@ class MenuDanArsipTest extends TestCase
         $nav = $blok[0] ?? '';
         $this->assertNotSame('', $nav, 'Blok nav utama tidak ditemukan.');
 
-        foreach (['Laporan &amp; LPJ', 'Realisasi &amp; Format ARKAS', 'Data Referensi', 'Integrasi ARKAS', 'Sistem'] as $grup) {
+        foreach (['Penganggaran &amp; RKAS', 'Laporan &amp; Realisasi', 'Data Referensi', 'Integrasi ARKAS', 'Sistem &amp; Keamanan', 'Arsip Dokumen'] as $grup) {
             $this->assertStringContainsString($grup, $nav, 'Grup '.$grup.' tidak ada di sidebar.');
         }
 
         $this->assertStringNotContainsString('>Pengaturan</span>', $nav, 'Grup Pengaturan lama masih ada.');
         $this->assertStringNotContainsString('<p>Format ARKAS</p>', $nav, 'Item mati "Format ARKAS" masih dirender.');
 
-        foreach (['Tutup Buku Tahap', 'Cetak LPJ Tahap', 'Profil &amp; Token API', 'Perencanaan (PBD–RKM–RKT)'] as $label) {
+        foreach (['Tutup Buku Tahap', 'Cetak SPTJM &amp; LPJ Tahap', 'Profil &amp; Token API', 'Perencanaan (PBD–RKM–RKT)'] as $label) {
             $this->assertStringContainsString($label, $nav, 'Label '.$label.' tidak ditemukan.');
         }
     }
