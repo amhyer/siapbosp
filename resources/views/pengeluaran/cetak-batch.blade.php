@@ -17,6 +17,13 @@
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
+  .card {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 0.5rem;
+    border: 1px dashed #cbd5e1;
+  }
   @media print {
     .halaman-kuitansi {
       box-shadow: none !important;
@@ -38,7 +45,7 @@
 
   <form method="GET" action="{{ route('belanja.cetak-batch') }}" style="display: flex; align-items: center; gap: 0.5rem;">
     <label for="pilih-bulan" style="font-size: 13px; font-weight: 600; color: #475569;">Bulan:</label>
-    <select id="pilih-bulan" name="bulan" onchange="this.form.submit()" style="padding: 0.35rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 13px;">
+    <select id="pilih-bulan" name="bulan" data-kirim-otomatis style="padding: 0.35rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 13px;">
       @forelse($daftarBulan as $b)
         <option value="{{ $b }}" @selected($b === $bulan)>{{ \Carbon\Carbon::parse($b.'-01')->translatedFormat('F Y') }}</option>
       @empty
