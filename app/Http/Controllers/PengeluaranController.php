@@ -277,6 +277,41 @@ class PengeluaranController extends Controller
         return view('pengeluaran.kwitansi', compact('t', 'sekolah', 'penandatangan'));
     }
 
+    /** 🖨️ Cetak massal seluruh kwitansi & berkas SPJ belanja bulan tertentu dalam 1 berkas cetak. */
+    public function cetakBatch(Request $r)
+    {
+        $sid = auth()->user()->school_id;
+        $tahun = $this->tahun();
+        $bulan = (string) $r->query('bulan', '');
+
+        if (! preg_match('/^\d{4}-\d{2}$/', $bulan)) {
+            $terakhir = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
+                ->where('type', 'belanja')->orderByDesc('tanggal')->first();
+            $bulan = $terakhir ? $terakhir->tanggal->format('Y-m') : now()->format('Y-m');
+        }
+
+        $items = KasTransaction::where('school_id', $sid)
+            ->where('tahun', $tahun)
+            ->where('type', 'belanja')
+            ->where('tanggal', 'like', $bulan.'%')
+            ->orderBy('no_bku')
+            ->with(['details.rekening', 'taxes.rekeningPajak', 'bosType', 'stage'])
+            ->get();
+
+        $sekolah = auth()->user()->school;
+        $penandatangan = Penandatangan::orderBy('id')->get();
+        $bendahara = $penandatangan->first(fn ($p) => stripos($p->jabatan, 'bendahara') !== false);
+        $kepsek = $penandatangan->first(fn ($p) => stripos($p->jabatan, 'kepala') !== false);
+
+        $daftarBulan = KasTransaction::where('school_id', $sid)->where('tahun', $tahun)
+            ->where('type', 'belanja')->pluck('tanggal')
+            ->map(fn ($t) => substr((string) $t, 0, 7))->unique()->sort()->values();
+
+        return view('pengeluaran.cetak-batch', compact(
+            'items', 'sekolah', 'penandatangan', 'bendahara', 'kepsek', 'bulan', 'tahun', 'daftarBulan'
+        ));
+    }
+
     /** 🖨️ Paket Dokumen SPJ (format ARKAS) untuk satu belanja. */
     public function spj(KasTransaction $belanja)
     {

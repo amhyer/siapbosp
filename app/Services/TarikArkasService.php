@@ -119,7 +119,7 @@ class TarikArkasService
     }
 
     /**
-     * Operasi lengkap "Sinkron ARKAS" (1 klik):
+     * Operasi lengkap "Penarikan ARKAS" (1 klik):
      * 1. Cek ARKAS Desktop tidak berjalan
      * 2. Ekspor DB ARKAS → Excel via agen
      * 3. Import ke SiapBOSP lokal via ArkasImportService
@@ -176,7 +176,7 @@ class TarikArkasService
         }
     }
 
-    /** Tarik data ARKAS (1 klik): bangun Excel via agen, impor ke lokal, lalu otomatis dorong ke website. */
+    /** Penarikan data ARKAS (1 klik): bangun Excel via agen, impor ke lokal, lalu otomatis dorong ke website. */
     public static function tarik(int $schoolId, int $userId, int $tahun): array
     {
         $berkas = self::eksporDb($tahun);

@@ -21,7 +21,7 @@
         <div class="rounded border border-rose-200 bg-rose-50 p-2 text-rose-800"> Masa jabatan Kepala Sekolah berakhir pada <b>{{ $namaBulan[$sekolah->akhir_jabatan_bulan] ?? '' }}</b> — sesuai ARKAS 4 Bab VI, anggaran bulan setelahnya disisakan untuk Kepala Sekolah pengganti.
         </div> @endif
     </div> @if($tarik)
-    <div class="card border-l-4 border-indigo-600 scroll-mt-24" id="sinkron-arkas"> <div class="font-semibold text-indigo-700"> Sinkronisasi ARKAS</div> <div class="text-xs text-slate-500 mt-1"> NPSN ARKAS: {{ $tarik['npsn'] ?? '—' }} ·
+    <div class="card border-l-4 border-indigo-600 scroll-mt-24" id="penarikan-arkas"> <div class="font-semibold text-indigo-700"> Penarikan ARKAS</div> <div class="text-xs text-slate-500 mt-1"> NPSN ARKAS: {{ $tarik['npsn'] ?? '—' }} ·
             DB: {{ $tarik['db_ada'] ? 'Ditemukan' : 'Tidak ditemukan' }} ·
             ARKAS: {{ ($tarik['arkas_berjalan'] ?? false) ? 'Berjalan' : 'Tertutup' }}
         </div> @if(! $tarik['db_ada'])
@@ -30,19 +30,21 @@
                 <div class="text-[11px] text-slate-500 mt-1"> Dicari di: <code class="bg-slate-100 px-1 rounded">{{ $tarik['path_db'] }}</code> </div> </div> @elseif(($tarik['npsn'] ?? null) && $tarik['npsn'] !== (string) $sekolah->npsn)
             <div class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2 mt-2"> Database ARKAS di laptop ini milik NPSN <b>{{ $tarik['npsn'] }}</b>,
                 bukan NPSN sekolah ini (<b>{{ $sekolah->npsn }}</b>) —
-                sinkron ditolak agar data tidak tertukar.
+                penarikan ditolak agar data tidak tertukar.
                 Samaikan NPSN di Profil bila memang sekolah yang benar.
             </div> @elseif($tarik['arkas_berjalan'] ?? false)
             <div class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2 mt-2"> ARKAS Desktop sedang berjalan.
                 Tutup dulu aplikasi ARKAS, lalu coba lagi.
-            </div> @else
-            <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="mt-3" data-tombol-sibuk="⏳ Menarik &amp; Sinkron ARKAS… (30-60 dtk)" data-konfirmasi="Pastikan ARKAS Desktop sudah ditutup. Tarik seluruh data ARKAS ke aplikasi desktop dan sinkronkan otomatis ke website sekarang?"> @csrf
-                <input type="hidden" name="tahun" value="{{ session('tahun', now()->year) }}"> <button class="btn text-sm"> ↻ Tarik Data dari ARKAS &amp; Sinkron ke Website
-                </button> </form> <div class="text-[10px] text-slate-400 mt-2"> Pastikan ARKAS Desktop <b>tertutup</b> sebelum klik. Seluruh data ARKAS otomatis masuk ke aplikasi desktop ini dan langsung dikirim/sinkron ke website pusat.
-            </div> @endif
+            </div>
+        @else
+            <div class="text-[13px] text-slate-700 mt-2 leading-relaxed">
+                Penarikan data ARKAS dijalankan lewat <b>tombol Tarik Data dari ARKAS</b> di sidebar aplikasi
+                desktop — tidak lewat website pusat. Website pusat hanya menyimpan &amp; melaporkan data.
+            </div>
+        @endif
 
-        @if(session('ok') && str_contains(session('ok'), 'Sinkron ARKAS'))
-            <div class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[12px] text-emerald-800"> <div class="font-semibold text-emerald-700 mb-1"> Sinkron ARKAS selesai</div> <div class="text-emerald-700">{{ str_replace('Sinkron ARKAS selesai: ', '', session('ok')) }}</div> </div> @endif
+        @if(session('ok') && str_contains(session('ok'), 'Penarikan ARKAS'))
+            <div class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[12px] text-emerald-800"> <div class="font-semibold text-emerald-700 mb-1"> Penarikan ARKAS selesai</div> <div class="text-emerald-700">{{ str_replace('Penarikan ARKAS selesai: ', '', session('ok')) }}</div> </div> @endif
     </div>
 @endif
 

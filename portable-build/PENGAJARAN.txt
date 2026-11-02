@@ -1,0 +1,35 @@
+=== INSTALASI SiapBOSP di Laptop Target ===
+
+1. Ekstrak berkas ZIP ini ke folder tujuan (mis. D:\SiapBOSP atau C:\Users\%USER%\AppData\Local\Programs\SiapBOSP)
+
+2. Pastikan sudah terinstall:
+   - Windows 10/11
+   - (Optional) PHP dari XAMPP/Laragon jika tidak ada php\php.exe di folder
+
+3. Jalankan: double-klik berkas `launcher-windows\Pasang-SiapBOSP.bat`
+
+4. Ikuti petunjuk:
+   - Masukkan nama bendahara
+   - Masukkan NPSN sekolah (jika sudah ada di conf,lewati)
+   - Masukkan email bendahara
+   - Masukkan kata sandi (min 6 karakter)
+   - Proses akan membuat akun & database otomatis
+
+5. Setelah selesai, buka SiapBOSP dari Desktop atau Start Menu
+
+6. Untuk login pertama kali:
+   - Email: nama-bendahara@siapbosp.lokal (atau yang Anda masukkan)
+   - Password: yang telah ditentukan
+
+=== AKUN DEMO (jika sudah pernah diinstall) ===
+- dinas@siapbosp.id / password (role: dinas)
+- superadmin@siapbosp.id / password (role: superadmin)
+- operator@sekolah.demo / password (role: operator)
+- kepsek@sekolah.demo / password (role: kepsek)
+
+=== TROUBLESHOOTING ===
+- Jika error "PHP tidak ditemukan": Pastikan ada folder php\php.exe
+- Jika error database: Pastikan file database.sqlite bisa ditulis
+- Untuk bantuan: lihat README.md di folder project
+
+Selamat mencoba!

@@ -6,13 +6,16 @@ use App\Models\School;
 use App\Models\User;
 use App\Services\TarikArkasService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * Tombol 1-klik "Tarik Data ARKAS" di Pengaturan (Utility → Profil).
- * Kartu & aksi hanya aktif di aplikasi portabel di laptop sekolah
- * (TarikArkasService::tersedia()). Ujung-ke-ujung agen nyata diuji manual
- * pada paket portabel (docs/GAMBARAN-ARKAS-4.md §15).
+ * Sisi laptop: tombol 1-klik "Tarik Data dari ARKAS" di sidebar aplikasi
+ * portabel (POST /utility/tarik-arkas). Website pusat tidak pernah membaca
+ * database ARKAS — ia hanya menyediakan unduhan Aplikasi Desktop lewat halaman
+ * /aplikasi-desktop. Kartu & aksi hanya aktif di aplikasi portabel
+ * (TarikArkasService::tersedia()). Ujung-ke-ujung agen nyata diuji manual pada
+ * paket portabel (docs/GAMBARAN-ARKAS-4.md §15).
  */
 class TarikArkasTest extends TestCase
 {
@@ -45,30 +48,37 @@ class TarikArkasTest extends TestCase
             ->assertDontSee('Tarik Data ARKAS');
     }
 
-    /** Rute GET khusus (tautan sidebar) membuka halaman yang sama dengan Profil. */
-    public function test_rute_get_sinkron_arkas_membuka_halaman_profil(): void
+    /** Rute GET "Sinkron ARKAS" sudah tidak ada — penarikan tinggal lewat sidebar + POST tarik. */
+    public function test_rute_sinkron_arkas_tidak_ada(): void
     {
-        $this->get('/utility/sinkron-arkas')->assertRedirect('/login');
+        $this->assertFalse(Route::has('tarik-arkas.sinkron'),
+            'Halaman GET tarik-arkas.sinkron harus dihapus; satu-satunya penarikan lewat sidebar (POST tarik).');
 
-        $this->actingAs($this->operator)
-            ->get(route('tarik-arkas.sinkron'))
-            ->assertOk()
-            ->assertSee('Token API');
+        $this->get('/utility/sinkron-arkas')->assertNotFound();
     }
 
-    /** Tautan sidebar hanya muncul di aplikasi portabel — server pusat tak punya kartunya. */
-    public function test_tautan_sinkron_hanya_muncul_di_aplikasi_portabel(): void
+    /** Website pusat wajib menyediakan halaman unduh Aplikasi Desktop sebagai pintu tarik. */
+    public function test_halaman_aplikasi_desktop_dapat_diakses_operator(): void
     {
-        $this->assertFalse(TarikArkasService::tersedia(),
-            'Uji ini mengandaikan server pusat, bukan paket portabel.');
+        $this->actingAs($this->operator)
+            ->get(route('aplikasi-desktop'))
+            ->assertOk()
+            ->assertSee('Aplikasi Desktop');
+    }
 
+    /** Dashboard pusat wajib menampilkan CTA unduh Aplikasi Desktop (bukan tombol tarik). */
+    public function test_dashboard_menyediakan_cta_unduh_aplikasi_desktop(): void
+    {
         $html = $this->actingAs($this->operator)
+            ->withSession(['tahun' => 2025])
             ->get('/dashboard')
             ->assertOk()
             ->getContent();
 
-        $this->assertStringNotContainsString(route('tarik-arkas.sinkron'), $html,
-            'Tautan Sinkron ARKAS tidak boleh ada di sidebar server pusat.');
+        $this->assertStringContainsString(route('aplikasi-desktop'), $html);
+        $this->assertStringContainsString('Unduh Aplikasi Desktop', $html);
+        $this->assertStringNotContainsString('action="'.route('tarik-arkas.tarik').'"', $html,
+            'Website pusat tidak boleh memasang form penarikan — unduh aplikasi di laptop via halaman Aplikasi Desktop.');
     }
 
     /**
@@ -155,7 +165,7 @@ class TarikArkasTest extends TestCase
             ->from('/utility/profil')
             ->post('/utility/tarik-arkas', ['tahun' => 2025])
             ->assertRedirect('/utility/profil')
-            ->assertSessionHas('error', 'Sinkron ARKAS hanya tersedia di aplikasi portabel di laptop sekolah. Di server pusat, pakai unggah Excel manual di halaman Impor ARKAS.');
+            ->assertSessionHas('error', 'Penarikan data ARKAS hanya tersedia di aplikasi portabel di laptop sekolah. Di website pusat, unduh aplikasi desktop dari halaman Aplikasi Desktop atau unggah Excel manual di halaman Impor ARKAS.');
     }
 
     public function test_kepsek_boleh_membuka_profil_muka_tarik(): void

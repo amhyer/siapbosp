@@ -35,7 +35,7 @@
         </p>
         <p class="mt-2 max-w-3xl text-[12.5px] leading-relaxed text-[#65696c]">
           Bila sekolah menerima hibah, tambahkan sumber dananya lewat
-          <a class="font-semibold text-[#0b5fef] hover:underline" href="{{ route('tarik-arkas.sinkron') }}#sinkron-arkas">Tarik/Impor ARKAS</a>
+          <a class="font-semibold text-[#0b5fef] hover:underline" href="{{ route('aplikasi-desktop') }}">Aplikasi Desktop</a>
           atau catat rincian RKAS dengan nama sumber dana yang memuat kata “Hibah”. Laporan ini
           akan otomatis memuat pagu, realisasi, dan sisa dana hibah tersebut.
         </p>

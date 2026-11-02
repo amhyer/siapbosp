@@ -27,7 +27,7 @@
         <circle cx="23.5" cy="8.5" r="3" fill="#f59e0b"/>
         <path d="M4 25.5C8 18 13 8 23.5 8.5" stroke="#0b5fef" stroke-width="2.5" stroke-linecap="round"/>
       </svg>
-      <span class="truncate text-[18px] font-bold tracking-tight text-[#2f3031]">ARKAS</span>
+      <span class="truncate text-[18px] font-bold tracking-tight text-[#2f3031]">{{ $u->isDinas() ? 'SiapBOSP Pusat' : 'ARKAS' }}</span>
       <span class="sr-only">SiapBOSP v4.3.0</span>
     </a>
   </div>
@@ -49,6 +49,10 @@
           <a href="{{ route('dinas.dashboard') }}">
             <x-icon name="chart"/>
             <span>Dashboard Wilayah</span>
+          </a>
+          <a href="{{ route('password.edit') }}">
+            <x-icon name="lock"/>
+            <span>Ganti Password</span>
           </a>
         @endif
         <form method="post" action="{{ route('logout') }}">
@@ -100,11 +104,10 @@
         </div>
 
         <div class="navw-sep" role="presentation"><span class="sr-only">Menu Lain</span></div>
-        <a href="{{ route('dashboard') }}" class="navw-extra sr-only {{ request()->routeIs('dashboard') ? 'on' : '' }}">Dashboard</a>
+        <a href="{{ route('dashboard') }}" class="navw-extra {{ request()->routeIs('dashboard') ? 'on' : '' }}">Dashboard</a>
 
         @foreach($menuTambahan as $grp)
-          @php $tampilGrupSidebar = ($grp['label'] === 'Laporan'); @endphp
-          <div class="grp navw-group {{ $tampilGrupSidebar ? '' : 'sr-only' }} {{ $grp['open'] ? 'open' : '' }}">
+          <div class="grp navw-group {{ $grp['open'] ? 'open' : '' }}">
             <button type="button" class="menu-btn" data-grup aria-expanded="{{ $grp['open'] ? 'true' : 'false' }}">
               <span>{{ $grp['label'] }}</span>
               <x-icon name="chevron-down" class="chev"/>
@@ -122,28 +125,30 @@
         @endforeach
       @else
         <p class="navw-sep"><span>Wilayah</span></p>
-        <a href="{{ route('dinas.dashboard') }}" class="navw-area {{ request()->routeIs('dinas.dashboard') ? 'on' : '' }}">Dashboard Wilayah</a>
-        <a href="{{ route('dinas.sekolah') }}" class="navw-area {{ request()->routeIs('dinas.sekolah*') ? 'on' : '' }}">Sekolah</a>
-        <a href="{{ route('dinas.alokasi') }}" class="navw-area {{ request()->routeIs('dinas.alokasi') ? 'on' : '' }}">Pagu / Alokasi</a>
-        <a href="{{ route('dinas.konsolidasi') }}" class="navw-area {{ request()->routeIs('dinas.konsolidasi') ? 'on' : '' }}">Konsolidasi Wilayah</a>
+        <a href="{{ route('dinas.dashboard') }}" class="navw-area {{ request()->routeIs('dinas.dashboard') ? 'on' : '' }}">Dashboard Monitoring Wilayah</a>
+        <a href="{{ route('dinas.sekolah') }}" class="navw-area {{ request()->routeIs('dinas.sekolah*') ? 'on' : '' }}">Daftar Seluruh Sekolah</a>
+        <a href="{{ route('dinas.alokasi') }}" class="navw-area {{ request()->routeIs('dinas.alokasi') ? 'on' : '' }}">Pagu &amp; Alokasi Wilayah</a>
+        <a href="{{ route('dinas.konsolidasi') }}" class="navw-area {{ request()->routeIs('dinas.konsolidasi') ? 'on' : '' }}">Konsolidasi &amp; Ekspor Daerah</a>
         <p class="navw-sep"><span>Verifikasi</span></p>
-        <a href="{{ route('dinas.rkas') }}" class="navw-area {{ request()->routeIs('dinas.rkas*') ? 'on' : '' }}">RKAS Masuk</a>
-        <a href="{{ route('dinas.tahap') }}" class="navw-area {{ request()->routeIs('dinas.tahap') ? 'on' : '' }}">Kontrol Tahap</a>
+        <a href="{{ route('dinas.lpj') }}" class="navw-area {{ request()->routeIs('dinas.lpj*') ? 'on' : '' }}">Verifikasi &amp; Persetujuan LPJ</a>
+        <a href="{{ route('dinas.rkas') }}" class="navw-area {{ request()->routeIs('dinas.rkas*') ? 'on' : '' }}">RKAS / Kertas Kerja</a>
+        <a href="{{ route('dinas.tahap') }}" class="navw-area {{ request()->routeIs('dinas.tahap') ? 'on' : '' }}">Kontrol Tahap (Buka/Kunci)</a>
         <p class="navw-sep"><span>Kelola</span></p>
-        <a href="{{ route('dinas.pengguna') }}" class="navw-area {{ request()->routeIs('dinas.pengguna') ? 'on' : '' }}">Pengguna</a>
+        <a href="{{ route('dinas.pengguna') }}" class="navw-area {{ request()->routeIs('dinas.pengguna') ? 'on' : '' }}">Manajemen Pengguna</a>
+        <a href="{{ route('referensi') }}" class="navw-area {{ request()->routeIs('referensi') ? 'on' : '' }}">Referensi Harga (SSH/SBU)</a>
         <a href="{{ route('dinas.master') }}" class="navw-area {{ request()->routeIs('dinas.master*') ? 'on' : '' }}">Master Data</a>
-        <a href="{{ route('referensi') }}" class="navw-area {{ request()->routeIs('referensi') ? 'on' : '' }}">Referensi</a>
+        <a href="{{ route('aplikasi-desktop') }}" class="navw-area {{ request()->routeIs('aplikasi-desktop*') ? 'on' : '' }}">Unduh Aplikasi Desktop</a>
+        <p class="navw-sep"><span>Sistem</span></p>
         <a href="{{ route('dinas.keamanan') }}" class="navw-area {{ request()->routeIs('dinas.keamanan') ? 'on' : '' }}">Keamanan</a>
         <a href="{{ route('dinas.aktivitas') }}" class="navw-area {{ request()->routeIs('dinas.aktivitas') ? 'on' : '' }}">Log Aktivitas</a>
         <a href="{{ route('dinas.pengumuman') }}" class="navw-area {{ request()->routeIs('dinas.pengumuman') ? 'on' : '' }}">Pengumuman</a>
-        <a href="{{ route('dinas.backup') }}" class="navw-area" data-konfirmasi="Unduh backup database sekarang?">Backup DB</a>
-        <a href="{{ route('password.edit') }}" class="navw-area {{ request()->routeIs('password.edit') ? 'on' : '' }}">Ganti Password</a>
       @endif
     </nav>
 
+    @if(!$u->isDinas())
     <div class="px-[18px] pb-5 pt-3">
-      @if(!$u->isDinas() && \App\Services\TarikArkasService::tersedia())
-        <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="mb-2" data-tombol-sibuk="⏳ Menarik &amp; Sinkron ARKAS…" data-konfirmasi="Tarik seluruh data dari aplikasi ARKAS Desktop ke aplikasi ini dan sinkronkan otomatis ke website sekarang? Pastikan aplikasi ARKAS sedang ditutup.">
+      @if(\App\Services\TarikArkasService::tersedia())
+        <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="mb-2" data-tombol-sibuk="⏳ Menarik data ARKAS…" data-konfirmasi="Tarik seluruh data dari aplikasi ARKAS Desktop ke aplikasi ini dan sinkronkan otomatis ke website sekarang? Pastikan aplikasi ARKAS sedang ditutup.">
           @csrf
           <input type="hidden" name="tahun" value="{{ $tahunAktif }}">
           <button type="submit" class="navw-util w-full text-left font-semibold text-white">
@@ -152,6 +157,13 @@
           </button>
         </form>
       @endif
+      <form method="post" action="{{ route('pengaturan.sinkronisasi.jalankan') }}" class="mb-2" data-tombol-sibuk="☁️ Mengirim data ke pusat…" data-konfirmasi="Kirim seluruh transaksi BKU, nota, kuitansi, dan pajak ke website dinas sekarang?">
+        @csrf
+        <button type="submit" class="navw-util w-full text-left font-semibold text-white">
+          <x-icon name="upload"/>
+          <span>Kirim / Sinkron ke Pusat</span>
+        </button>
+      </form>
       <a href="{{ route('bantuan') }}#versi"
          class="sr-only"
          title="SiapBOSP {{ config('app.version', 'v4.3.0') }} — selaras ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }}. Klik untuk versi &amp; pembaruan.">
@@ -175,6 +187,7 @@
         <span>Perbarui Aplikasi</span>
       </a>
     </div>
+    @endif
   </aside>
 
   <div class="arkas-content min-w-0 flex-1 {{ $fullScreen ? '!bg-white !min-h-screen' : '' }}">
@@ -220,7 +233,7 @@
                     </form>
                   @endif
                 </div>
-                @if($pajakIngat > 0)
+                @if($pajakIngat > 0 && !$u->isDinas())
                   <a href="{{ route('setorpajak.index') }}" class="mb-1 block rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
                     Pajak belum disetor <b>{{ rp($pajakIngat) }}</b> — segera setor.
                   </a>

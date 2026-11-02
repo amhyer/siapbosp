@@ -1,4 +1,5 @@
-@extends('layouts.app', ['title' => 'Pengguna'])
+@extends('layouts.app', ['title' => 'Manajemen Pengguna'])
+@section('subtitle', 'Kelola akun pengguna multi-sekolah, aktivasi, dan reset kata sandi se-kabupaten')
 @section('content')
 <div class="grid lg:grid-cols-3 gap-5"> <div class="card"> <h3 class="font-semibold text-slate-700 mb-3">Buat Akun Pengguna</h3> <form method="post" action="{{ route('dinas.pengguna.store') }}" class="space-y-3"> @csrf
       <div><label class="text-xs font-semibold text-slate-600">Nama</label><input name="name" class="inp mt-1" required></div> <div><label class="text-xs font-semibold text-slate-600">Email</label><input type="email" name="email" class="inp mt-1" required></div> <div><label class="text-xs font-semibold text-slate-600">Kata Sandi</label> <input name="password" class="inp mt-1" type="text" minlength="10" required autocomplete="off"

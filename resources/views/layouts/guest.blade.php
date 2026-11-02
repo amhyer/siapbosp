@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Masuk ke SiapBOSP — Sistem Akuntansi Dana BOSP.">
-<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b5fef">
 <link rel="apple-touch-icon" href="/icons/icon.svg">

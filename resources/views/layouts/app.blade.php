@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="SiapBOSP — Sistem Akuntansi Dana BOSP multi sekolah: perencanaan, pembukuan, dan pelaporan.">
-<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0b5fef">
 <link rel="apple-touch-icon" href="/icons/icon.svg">
@@ -70,8 +71,9 @@
      ARKAS langsung menemukan letak menunya:
        · 3 area kerja di sidebar: Penganggaran, Penatausahaan, Arsip
        · Data Sekolah pindah ke dropdown profil di topbar (ARKAS: Profil ▾)
-       · Laporan/Referensi/Pengaturan tetap ada di bawah pemisah karena
-         SiapBOSP punya fitur yang tidak ada di ARKAS 4.
+       · Fitur SiapBOSP dikelompokkan ulang agar tiap grup maksimal 7 item:
+         Laporan & LPJ, Realisasi & Format ARKAS, Data Referensi,
+         Integrasi ARKAS, dan Sistem.
      ===================================================================== --}}
 @php
   $menuUtama = [
@@ -80,7 +82,7 @@
       ['Review & Proporsi Anggaran', route('penganggaran.review'), request()->is('penganggaran/review*')],
       ['Daftar Kegiatan', route('penganggaran.kegiatan'), request()->is('penganggaran/kegiatan*')],
       ['Anggaran Bulanan (ARKAS)', route('penganggaran.anggaran-bulanan'), request()->is('penganggaran/anggaran-bulanan')],
-      ['PBD → RKM → RKT (Perencanaan)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
+      ['Perencanaan (PBD–RKM–RKT)', route('perencanaan.index'), request()->routeIs('perencanaan.index')],
     ]],
     // ARKAS 4 hanya punya satu menu "Penatausahaan" di sidebar; rinciannya
     // (BKU, kas, pendapatan, belanja, pajak, dll.) dibuka dari halaman itu.
@@ -97,45 +99,48 @@
   ];
 
   $menuTambahan = [
-    ['label'=>'Laporan','open'=>request()->is('laporan*')||request()->is('laporan-arkas*')||request()->is('pengeluaran/belanja*'),'items'=>[
+    ['label'=>'Laporan & LPJ','open'=>request()->routeIs('laporan.format','laporan.tahap','laporan.lpj*','laporan.pajak-tw','laporan.realisasi-sumber-dana','laporan.rekonsiliasi','belanja.index'),'items'=>[
       ['Pusat Format Laporan', route('laporan.format'), request()->routeIs('laporan.format')],
       ['Kelengkapan Berkas & Kwitansi (SPJ)', route('belanja.index'), request()->is('pengeluaran/belanja*')],
-      ['LPJ & Tutup Buku per Tahap', route('laporan.tahap'), request()->routeIs('laporan.tahap')],
-      ['LPJ per Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
+      ['Tutup Buku Tahap', route('laporan.tahap'), request()->routeIs('laporan.tahap')],
+      ['Cetak LPJ Tahap', route('laporan.lpj'), request()->routeIs('laporan.lpj*')],
       ['Pajak Triwulan', route('laporan.pajak-tw'), request()->routeIs('laporan.pajak-tw')],
       ['Realisasi per Sumber Dana', route('laporan.realisasi-sumber-dana'), request()->is('laporan/realisasi-sumber-dana')],
       ['Rekonsiliasi ARKAS', route('laporan.rekonsiliasi'), request()->is('laporan/rekonsiliasi')],
-      ['Format ARKAS', '#', false],
-      ['Rincian RKAS per Tahap (ARKAS)', route('laporan-arkas.rkas-tahap'), request()->is('laporan-arkas/rkas-tahap')],
-      ['Realisasi Anggaran (ARKAS)', route('laporan-arkas.realisasi'), request()->is('laporan-arkas/realisasi')],
-      ['Realisasi Penerimaan & Belanja (ARKAS)', route('laporan-arkas.penerimaan-belanja'), request()->is('laporan-arkas/penerimaan-belanja')],
-      ['Realisasi Habis Pakai (ARKAS)', route('laporan-arkas.habis-pakai'), request()->is('laporan-arkas/habis-pakai')],
-      ['Realisasi Modal (ARKAS)', route('laporan-arkas.modal'), request()->is('laporan-arkas/modal')],
-      ['Daftar Kas Umum (ARKAS)', route('laporan-arkas.kas-umum'), request()->is('laporan-arkas/daftar-kas-umum')],
-      ['Daftar Nota (ARKAS)', route('laporan-arkas.nota'), request()->is('laporan-arkas/daftar-nota')],
+    ]],
+    ['label'=>'Realisasi & Format ARKAS','open'=>request()->is('laporan-arkas*'),'items'=>[
+      ['Rincian RKAS per Tahap', route('laporan-arkas.rkas-tahap'), request()->is('laporan-arkas/rkas-tahap')],
+      ['Realisasi Anggaran', route('laporan-arkas.realisasi'), request()->is('laporan-arkas/realisasi')],
+      ['Realisasi Penerimaan & Belanja', route('laporan-arkas.penerimaan-belanja'), request()->is('laporan-arkas/penerimaan-belanja')],
+      ['Realisasi Habis Pakai', route('laporan-arkas.habis-pakai'), request()->is('laporan-arkas/habis-pakai')],
+      ['Realisasi Modal', route('laporan-arkas.modal'), request()->is('laporan-arkas/modal')],
+      ['Daftar Kas Umum', route('laporan-arkas.kas-umum'), request()->is('laporan-arkas/daftar-kas-umum')],
+      ['Daftar Nota', route('laporan-arkas.nota'), request()->is('laporan-arkas/daftar-nota')],
     ]],
     ['label'=>'Data Referensi','open'=>request()->is('referensi*')||request()->is('perencanaan/ssh*'),'items'=>[
       ['Referensi Master', route('referensi'), request()->routeIs('referensi')],
       ['Referensi Harga (SSH/SBU)', route('referensi.harga'), request()->is('referensi/harga')],
     ]],
-    ['label'=>'Pengaturan','open'=>request()->is('pengaturan*')||request()->is('utility*')||request()->is('impor-arkas*')||request()->is('hpp*'),'items'=>array_values(array_filter([
+    ['label'=>'Integrasi ARKAS','open'=>request()->is('pengaturan/koneksi*')||request()->is('pengaturan/impor-database*')||request()->is('impor-arkas*')||request()->is('aplikasi-desktop*')||request()->is('pengaturan/deteksi-versi*'),'items'=>array_values(array_filter([
+      ['Aplikasi Desktop', route('aplikasi-desktop'), request()->routeIs('aplikasi-desktop')],
       ['Koneksi ARKAS', route('pengaturan.koneksi'), request()->is('pengaturan/koneksi*')],
-      ['Impor Database (ARKAS)', route('pengaturan.impor-database'), request()->is('pengaturan/impor-database')],
-      \App\Services\TarikArkasService::tersedia()
-        ? ['Sinkron ARKAS (1-klik)', route('tarik-arkas.sinkron').'#sinkron-arkas', request()->is('utility/sinkron-arkas*')]
-        : null,
+      ['Impor Database (ARKAS)', route('pengaturan.impor-database'), request()->is('pengaturan/impor-database')||request()->is('impor-arkas*')],
+      ['Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],
+    ]))],
+    ['label'=>'Sistem','open'=>request()->is('utility/profil*')||request()->is('pengaturan/pemetaan*')||request()->is('pengaturan/backup*')||request()->is('pengaturan/log*')||request()->is('hpp*')||request()->routeIs('password.edit')||request()->is('utility/hapus-data*'),'items'=>array_values(array_filter([
+      ['Profil & Token API', route('profil.edit'), request()->is('utility/profil*')],
       ['Pemetaan Data (HPP)', route('pengaturan.pemetaan'), request()->is('pengaturan/pemetaan')],
       ['Backup Data', route('pengaturan.backup'), request()->is('pengaturan/backup*')],
-      ['Deteksi Versi ARKAS', route('pengaturan.versi'), request()->is('pengaturan/deteksi-versi*')],
       ['Log Sistem', route('pengaturan.log'), request()->is('pengaturan/log*')],
       ['Ganti Password', route('password.edit'), request()->routeIs('password.edit')],
       $u->role === 'operator' ? ['Hapus Data', route('hapusdata.form'), request()->is('utility/hapus-data*')] : null,
     ]))],
   ];
 
-  // Dropdown profil ARKAS 4 hanya berisi dua item: Data Penanggung Jawab & Keluar.
+  // Dropdown profil sekolah mengikuti ARKAS 4: Data Penanggung Jawab & Keluar.
   // Pengaturan data sekolah dipindah ke halaman Data Penanggung Jawab agar
-  // dropdown tetap identik dengan ARKAS.
+  // dropdown tetap identik dengan ARKAS. Akun dinas memakai dropdown berbeda
+  // (Dashboard Wilayah + Ganti Password) karena tidak punya profil sekolah.
 
 @endphp
 

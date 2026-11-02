@@ -1,4 +1,5 @@
-@extends('layouts.app', ['title' => 'Konsolidasi Laporan Wilayah'])
+@extends('layouts.app', ['title' => 'Konsolidasi & Ekspor Laporan Daerah'])
+@section('subtitle', 'Menggabungkan pembukuan ratusan sekolah menjadi satu laporan utuh untuk BPK, Inspektorat, atau Kemenkeu')
 @section('content')
 <div class="flex flex-wrap justify-between items-center gap-2"> <p class="text-sm text-slate-500">Rekap lintas semua sekolah aktif — Tahun {{ $tahun }}.</p> <a href="{{ route('dinas.konsolidasi.csv') }}" class="btn2 btn"> Ekspor CSV</a> <a href="{{ route('dinas.konsolidasi.xlsx') }}" class="btn2 btn bg-green-50 border-green-300 font-semibold"> Ekspor Excel 2 Sheet</a>
 </div>

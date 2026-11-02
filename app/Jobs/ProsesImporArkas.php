@@ -10,6 +10,7 @@ use App\Services\RekonsiliasiService;
 use App\Services\RkasCsvImportService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -92,7 +93,7 @@ class ProsesImporArkas implements ShouldQueue
             Storage::disk('local')->delete($run->file_path);
         } catch (RuntimeException $exception) {
             Auth::logout();
-            if ($exception instanceof \Illuminate\Database\QueryException || $exception instanceof \PDOException) {
+            if ($exception instanceof QueryException || $exception instanceof \PDOException) {
                 throw $exception;
             }
             report($exception);

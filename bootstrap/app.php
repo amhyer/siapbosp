@@ -1,4 +1,9 @@
 <?php
+
+use App\Http\Middleware\ApiTokenAuth;
+use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\KeamananHeader;
+use App\Http\Middleware\PastikanAkunAktif;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -11,12 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias(['role' => \App\Http\Middleware\EnsureRole::class, 'auth.api' => \App\Http\Middleware\ApiTokenAuth::class]);
-        $middleware->append(\App\Http\Middleware\KeamananHeader::class);
+        $middleware->alias(['role' => EnsureRole::class, 'auth.api' => ApiTokenAuth::class]);
+        $middleware->append(KeamananHeader::class);
 
         // Akun/sekolah yang dinonaktifkan Dinas harus langsung kehilangan sesi,
         // termasuk pada rute yang hanya memakai middleware `auth`.
-        $middleware->web(append: [\App\Http\Middleware\PastikanAkunAktif::class]);
+        $middleware->web(append: [PastikanAkunAktif::class]);
 
         // Jangan percaya SEMUA proxy: `at: '*'` membuat header X-Forwarded-For
         // bisa dipalsukan siapa pun, sehingga pembatas percobaan login (dan
@@ -41,4 +46,5 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->trustHosts(at: $hosts);
         }
     })
-    ->withExceptions(function (Exceptions $exceptions) { /* */ })->create();
+    ->withExceptions(function (Exceptions $exceptions) { /* */
+    })->create();

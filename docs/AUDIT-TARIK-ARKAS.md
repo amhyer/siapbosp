@@ -13,7 +13,7 @@ di commit ini.
 
 | # | Langkah | Berkas | Status |
 |---|---|---|---|
-| 1 | Tombol muncul di Utility → Profil | `resources/views/utility/profil.blade.php`, `TarikArkasService::status()` | Hanya muncul bila `tersedia()` = aplikasi portabel **dan** `agen/TarikArkas/{node.exe,tarik.cjs}` ada |
+| 1 | Tombol muncul di Sistem → Profil & Token API | `resources/views/utility/profil.blade.php`, `TarikArkasService::status()` | Hanya muncul bila `tersedia()` = aplikasi portabel **dan** `agen/TarikArkas/{node.exe,tarik.cjs}` ada |
 | 2 | Klik → POST `/utility/tarik-arkas` | `TarikArkasController` | Validasi tahun, cek `tersedia()`, tangkap `RuntimeException` → pesan ramah |
 | 3 | Panggil agen mode `lokal` | `TarikArkasService::eksporDb()` | `node.exe tarik.cjs lokal --json --tahun N --keluar … --db <arkas.db>`; batas 5 menit |
 | 4 | Agen membaca `%AppData%\Roaming\Arkas\arkas.db` | `agen-arkas/tarik-arkas.js` | SQLCipher (key tetap, `legacy=4`), read-only; butuh `better-sqlite3-multiple-ciphers` |
@@ -63,7 +63,7 @@ tetap ikut. Diganti `CAST(IFNULL(soft_delete,'0') AS TEXT) <> '1'`.
 
 | Sheet | Dampak bila tidak ada |
 |---|---|
-| `Penjab` | Penandatangan (KS/Bendahara/Komite) tidak terisi dari ARKAS → harus diisi manual di Utility → Penanggung Jawab |
+| `Penjab` | Penandatangan (KS/Bendahara/Komite) tidak terisi dari ARKAS → harus diisi manual di dropdown Profil → Data Penanggung Jawab |
 | `Salur` | Info silang "dana salur vs cair" tidak dihitung (baca-saja, tidak menulis data) |
 | `Aktivasi_BKU` | Info saldo awal bank/tunai tidak dihitung (baca-saja) |
 

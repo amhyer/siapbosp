@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\BkuTutupBulan;
 use App\Models\KasTax;
+use App\Models\KasTransaction;
 use App\Models\RkasHeader;
 use App\Models\TutupBuku;
 use Illuminate\Http\Request;
@@ -147,7 +148,7 @@ class ArsipController extends Controller
         $tahun = RkasHeader::where('school_id', $sid)->pluck('tahun')
             ->merge(BkuTutupBulan::where('school_id', $sid)->pluck('tahun'))
             ->merge(TutupBuku::where('school_id', $sid)->pluck('tahun'))
-            ->merge(\App\Models\KasTransaction::where('school_id', $sid)->distinct()->pluck('tahun'))
+            ->merge(KasTransaction::where('school_id', $sid)->distinct()->pluck('tahun'))
             ->map(fn ($t) => (int) $t)
             ->push((int) session('tahun', now()->year));
 
@@ -230,7 +231,7 @@ class ArsipController extends Controller
         // `sync_states` tidak punya kolom school_id (status sinkronisasi satu
         // perangkat), jadi di server pusat multi-sekolah isinya disembunyikan:
         // tidak ada gunanya dan berpotensi membocorkan jejak perangkat lain.
-        $sync = \App\Http\Controllers\UnduhAplikasiController::isPortable()
+        $sync = UnduhAplikasiController::isPortable()
             ? DB::table('sync_states')->get()
             : collect();
 

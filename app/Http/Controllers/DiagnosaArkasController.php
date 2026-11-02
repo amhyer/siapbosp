@@ -34,7 +34,7 @@ class DiagnosaArkasController extends Controller
             ? 'TIDAK ADA'
             : number_format($status['agen']['tarik'] / 1024, 0, ',', '.').' KB ('.$status['agen']['tarik_mtime'].')';
         $baris['Tombol tarik tersedia'] = $status['tersedia'] ? 'ya' : 'tidak';
-        $baris['Database ARKAS'] = ($status['db_ada'] ? 'ditemukan — ' : 'TIDAK ditemukan di ') . $status['db_path'];
+        $baris['Database ARKAS'] = ($status['db_ada'] ? 'ditemukan — ' : 'TIDAK ditemukan di ').$status['db_path'];
 
         if (is_array($status['info'])) {
             $info = $status['info'];

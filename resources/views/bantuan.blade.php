@@ -96,7 +96,7 @@
       </details>
       <details class="rounded border border-[#d9dbdd] bg-[#fafafa] p-2.5">
         <summary class="cursor-pointer font-semibold text-[#2f3031]">Bagaimana memindahkan data dari ARKAS 4?</summary>
-        <p class="mt-2 leading-relaxed">Gunakan <a href="{{ route('pengaturan.impor-database') }}" class="link">Impor Database (ARKAS)</a> untuk berkas Excel, atau <b>Sinkron ARKAS 1-klik</b> bila aplikasi dipasang portabel di laptop yang sama dengan ARKAS.</p>
+        <p class="mt-2 leading-relaxed">Gunakan <a href="{{ route('impor-arkas.form') }}" class="link">Impor Database (ARKAS)</a> untuk berkas Excel, atau unduh &amp; pasang <a href="{{ route('aplikasi-desktop') }}" class="link">Aplikasi Desktop</a> di laptop bila ingin penarikan data otomatis dari ARKAS.</p>
       </details>
       <details class="rounded border border-[#d9dbdd] bg-[#fafafa] p-2.5">
         <summary class="cursor-pointer font-semibold text-[#2f3031]">Di mana mencetak format laporan yang lengkap?</summary>

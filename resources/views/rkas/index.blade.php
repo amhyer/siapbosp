@@ -29,17 +29,8 @@
             <x-icon name="refresh" class="h-4 w-4"/>
             <span>Unduh dan Perbarui Data</span>
           </button>
-          @if($bisaTarik)
-            <form method="post" action="{{ route('tarik-arkas.tarik') }}"
-                  data-tombol-sibuk="Sinkronisasi… (30-60 dtk)"
-                  data-konfirmasi="Pastikan ARKAS Desktop sudah ditutup. Tarik daftar sumber dana terbaru?">
-              @csrf
-              <input type="hidden" name="tahun" value="{{ session('tahun', now()->year) }}">
-              <button class="btn2 btn-sm"><x-icon name="refresh" class="h-4 w-4"/> {{ $daftarTambahan->isEmpty() ? 'Tarik Data ARKAS' : 'Perbarui dari ARKAS' }}</button>
-            </form>
-          @else
-            <a href="{{ route('impor-arkas.form') }}" class="btn2 btn-sm"><x-icon name="upload" class="h-4 w-4"/> Perbarui via Impor ARKAS</a>
-          @endif
+          <a href="{{ route('aplikasi-desktop') }}" class="btn2 btn-sm"><x-icon name="download" class="h-4 w-4"/> Unduh Aplikasi Desktop</a>
+          <a href="{{ route('impor-arkas.form') }}" class="btn2 btn-sm"><x-icon name="upload" class="h-4 w-4"/> Perbarui via Impor ARKAS</a>
         </div>
         <span class="text-[11px] font-medium text-[#0b5fef]">"Unduh dan Perbarui Data" membutuhkan koneksi internet</span>
       </div>
@@ -47,15 +38,9 @@
 
     @if($daftarTambahan->isEmpty())
       <div class="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
-        Daftar sumber dana tambahan <b>belum ada</b> di aplikasi ini.
-        @if($bisaTarik)
-          Klik <b>Tarik Data ARKAS</b> untuk membacanya dari <code>arkas.db</code> di laptop ini
-          (ARKAS harus tertutup lebih dulu).
-        @else
-          Daftar ini hanya bisa ditarik di aplikasi portabel di laptop sekolah lewat tombol
-          <b>Tarik Data ARKAS</b>; di server pusat, perbarui lewat unggah Excel di
-          <a href="{{ route('impor-arkas.form') }}" class="underline">halaman Impor ARKAS</a>.
-        @endif
+        Daftar sumber dana tambahan <b>belum ada</b> di aplikasi ini. <b>Unduh Aplikasi Desktop</b> di laptop
+        bendahara untuk menarik data dari <code>arkas.db</code>, atau unggah berkas Excel lewat
+        <a href="{{ route('impor-arkas.form') }}" class="underline">halaman Impor ARKAS</a>.
       </div>
     @else
       <div class="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Saring per nama sumber dana">

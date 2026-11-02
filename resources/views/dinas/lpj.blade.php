@@ -1,4 +1,5 @@
-@extends('layouts.app', ['title' => 'LPJ Masuk dari Sekolah'])
+@extends('layouts.app', ['title' => 'Verifikasi & Persetujuan LPJ'])
+@section('subtitle', 'Pemeriksaan, persetujuan (approve), dan penolakan (revisi) laporan pertanggungjawaban sekolah')
 @section('content')
 @php
   $badge = [

@@ -1,0 +1,5 @@
+@extends('layouts.error')
+@section('code', '401')
+@section('title', 'Perlu masuk')
+@section('heading', 'Silakan masuk kembali')
+@section('message', 'Sesi Anda tidak tersedia atau sudah berakhir. Masuk kembali untuk melanjutkan.')

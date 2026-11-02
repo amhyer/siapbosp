@@ -281,27 +281,26 @@ class SumberDanaTambahanTest extends TestCase
         $this->assertStringContainsString('RKAS BOS Reguler 2026', $pilih);
     }
 
-    /** Daftar kosong (bukan aplikasi portabel): CTA muncul, tombol tarik TIDAK dipasang. */
+    /** Daftar kosong: CTA menunjuk ke Aplikasi Desktop / Impor ARKAS — tanpa form tarik. */
     public function test_cta_tampil_bila_daftar_kosong(): void
     {
         $html = $this->halaman(['tab' => 'tambahan']);
 
         $this->assertStringContainsString('belum ada', $html);
-        $this->assertStringContainsString('Tarik Data ARKAS', $html);
+        $this->assertStringContainsString(route('aplikasi-desktop'), $html);
         $this->assertStringContainsString(route('impor-arkas.form'), $html);
         $this->assertStringNotContainsString('action="'.route('tarik-arkas.tarik').'"', $html,
             'Di server pusat form tarik tidak boleh dipasang (tombol mati).');
     }
 
-    /** Aplikasi portabel: CTA memasang form TarikArkasController; daftar ada → tombol Perbarui. */
-    public function test_cta_portable_memasang_form_tarik_data_arkas(): void
+    /** Aplikasi portabel: kartu tetap menunjuk ke alur Aplikasi Desktop; daftar ada → aksi Perbarui via Impor ARKAS. */
+    public function test_cta_portable_memuat_aplikasi_desktop(): void
     {
         $this->palsukanPortabel();
         $this->assertTrue(TarikArkasService::tersedia(), 'Prasyarat mode portabel gagal dipalsukan.');
 
         $kosong = $this->halaman(['tab' => 'tambahan']);
-        $this->assertStringContainsString('action="'.route('tarik-arkas.tarik').'"', $kosong);
-        $this->assertStringContainsString('Tarik Data ARKAS', $kosong);
+        $this->assertStringContainsString(route('aplikasi-desktop'), $kosong);
 
         SumberDanaSekolah::create([
             'school_id' => $this->sekolah->id, 'id_ref_sumber_dana' => '1005',
@@ -309,8 +308,7 @@ class SumberDanaTambahanTest extends TestCase
             'is_sumber_dana_tambahan' => true,
         ]);
         $ada = $this->halaman(['tab' => 'tambahan']);
-        $this->assertStringContainsString('action="'.route('tarik-arkas.tarik').'"', $ada);
-        $this->assertStringContainsString('Perbarui dari ARKAS', $ada);
+        $this->assertStringContainsString('Perbarui via Impor ARKAS', $ada);
         $this->assertStringContainsString('Banpem Keterampilan Menulis pada Sekolah Dasar', $ada);
     }
 }

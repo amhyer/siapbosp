@@ -65,3 +65,7 @@ Thumbs.db
 /temp/
 ARKAS/
 public/build/
+tools/bin/
+tools/obj/
+check_users.php
+*.bak

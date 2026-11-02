@@ -57,6 +57,19 @@ if not errorlevel 1 (
   )
 )
 
+REM --- cek apakah ARKAS Desktop sedang terbuka ---
+tasklist /FI "IMAGENAME eq arkas.exe" 2>nul | findstr /i "arkas.exe" >nul
+if not errorlevel 1 (
+  echo.
+  echo  [PERINGATAN] Aplikasi ARKAS Desktop saat ini sedang TERBUKA.
+  echo  Database ARKAS sedang dikunci oleh sistem Windows.
+  echo.
+  echo  Mohon SIMPAN dan TUTUP aplikasi ARKAS di laptop Anda terlebih dahulu,
+  echo  kemudian tekan tombol apa saja untuk melanjutkan tarik data...
+  pause >nul
+  echo.
+)
+
 REM --- runtime agen: 1) bundel "agen" 2) agen manual + Node di PATH ---
 set ARUN=
 set AARG=
@@ -94,6 +107,6 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
-echo  Selesai. Cek hasilnya di aplikasi SiapBOSP - Pembukuan - BKU.
+echo  Selesai. Cek hasilnya di aplikasi SiapBOSP - Penatausahaan - BKU.
 pause
 endlocal

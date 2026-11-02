@@ -80,8 +80,10 @@ Alur pasang (sekali, ±2–3 menit) via `PASANG-SIAPBOSP.bat`:
    buat sekolah dari `akun-sekolah.conf`, buat akun operator (bendahara),
    dan **tulis token Tarik ARKAS otomatis** ke `launcher-windows/agen.conf`
    (menggantikan salin-tempel token manual).
-3. Tiga pintasan Desktop: **SiapBOSP**, **Tarik Data ARKAS**,
-   **Sinkron ke Pusat** (+ ikon khusus, unblock mark-of-the-web).
+3. Satu pintasan Desktop: **SiapBOSP**. **Tarik Data ARKAS** dan
+   **Sinkron ke Pusat** tersedia di Start Menu (folder SiapBOSP) dan di
+   dalam aplikasi, agar desktop tidak penuh ikon (+ ikon khusus, unblock
+   mark-of-the-web).
 
 Catatan teknis:
 - **HTTPS pusat:** curl PHP Windows tanpa CA bundle gagal

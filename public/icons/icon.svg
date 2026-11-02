@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#4f46e5"/><text x="32" y="44" font-size="32" text-anchor="middle" fill="#fff">🎓</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="siapbospGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b7a4e"/>
+      <stop offset="100%" stop-color="#124f33"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#siapbospGrad)"/>
+  <path d="M42.5 21.2 C41.5 17.3 37.6 15.2 32 15.2 C25.8 15.2 21.8 18.2 21.8 23 C21.8 28 26.8 29.4 32 30.9 C37.6 32.4 42.8 34.1 42.8 40.2 C42.8 45.4 38.2 49 32 49 C25.9 49 21.8 46.4 21.1 42.2"
+        fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+</svg>

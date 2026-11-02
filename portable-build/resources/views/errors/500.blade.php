@@ -1,0 +1,5 @@
+@extends('layouts.error')
+@section('code', '500')
+@section('title', 'Gangguan layanan')
+@section('heading', 'Terjadi gangguan')
+@section('message', 'Permintaan belum dapat diselesaikan. Tidak ada detail teknis yang ditampilkan. Coba lagi nanti; jika masalah berlanjut, hubungi administrator.')

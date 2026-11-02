@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Support\Aset;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -28,8 +29,8 @@ class KeamananHeader
         // Beri tahu Vite nonce yang sama, supaya tag/script inline yang dicetak
         // @vite ikut sah menurut `script-src` (laporan pelanggarannya berbunyi
         // "Executing inline script violates … nonce is required").
-        if (method_exists(\Illuminate\Support\Facades\Vite::getFacadeRoot(), 'useCspNonce')) {
-            \Illuminate\Support\Facades\Vite::useCspNonce($nonce);
+        if (method_exists(Vite::getFacadeRoot(), 'useCspNonce')) {
+            Vite::useCspNonce($nonce);
         }
         $response = $next($request);
 

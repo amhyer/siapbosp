@@ -12,6 +12,7 @@ use Tests\TestCase;
  *
  * Halaman Arsip dan Dashboard sudah lebih dulu memakai rentang dinamis; tiga
  * formulir lain (impor ARKAS, cek integritas, rekonsiliasi) masih memakai
+ *
  * @for($y = 2022; $y <= 2028; $y++), sehingga sekolah dengan berkas 2021 atau
  * tahun 2029 tidak bisa memilih tahun yang benar. Validasi servernya sendiri
  * sudah menerima 2020–2030.

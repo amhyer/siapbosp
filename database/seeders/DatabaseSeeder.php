@@ -1,9 +1,19 @@
 <?php
+
 namespace Database\Seeders;
 
+use App\Models\Allocation;
+use App\Models\Announcement;
+use App\Models\BosType;
+use App\Models\KasTransaction;
+use App\Models\Penandatangan;
+use App\Models\Rekening;
+use App\Models\RekeningPajak;
+use App\Models\RkasHeader;
+use App\Models\School;
+use App\Models\Stage;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use App\Models\{User, School, BosType, Rekening, RekeningPajak, Stage, Allocation,
-                RkasHeader, KasTransaction, Penandatangan, Announcement};
 
 class DatabaseSeeder extends Seeder
 {
@@ -63,7 +73,9 @@ class DatabaseSeeder extends Seeder
         }
 
         // ===== TRANSAKSI DEMO SEKOLAH 1 (2026) =====
-        $mk = function (array $a) use ($s1) { return KasTransaction::withoutGlobalScopes()->create($a + ['school_id' => $s1->id, 'created_by' => User::where('email', 'operator@sekolah.demo')->first()->id]); };
+        $mk = function (array $a) use ($s1) {
+            return KasTransaction::withoutGlobalScopes()->create($a + ['school_id' => $s1->id, 'created_by' => User::where('email', 'operator@sekolah.demo')->first()->id]);
+        };
         // 1. Pendapatan tahap 1 cair (bank +60jt)
         $t1 = $mk(['tahun' => 2026, 'type' => 'pendapatan', 'no_bku' => 1, 'tanggal' => '2026-03-04', 'bos_type_id' => $tReg->id, 'stage_id' => $stages[2026][1]->id, 'metode_bayar' => 'transfer', 'keterangan' => 'Pencairan BOS Reguler Tahap 1 tahun 2026', 'total' => 60000000]);
         $t1->details()->create(['rekening_id' => $rHibah1->id, 'uraian' => 'Hibah BOS Reguler Pusat', 'nilai' => 45000000]);

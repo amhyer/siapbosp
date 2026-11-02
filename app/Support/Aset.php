@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Vite;
 
 /**
  * Penentu sumber CSS/JS untuk seluruh halaman web.
@@ -284,7 +285,7 @@ final class Aset
                 return false; // tidak bisa menulis: biarkan @vite apa adanya
             }
 
-            \Illuminate\Support\Facades\Vite::useHotFile($berkas);
+            Vite::useHotFile($berkas);
         } catch (\Throwable $e) {
             Log::warning('Aset: gagal mengarahkan @vite ke '.$normal.' — '.$e->getMessage());
 

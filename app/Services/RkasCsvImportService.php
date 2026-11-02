@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\ArkasImportRun;
 use App\Models\Rekening;
 use App\Models\RkasHeader;
-use App\Models\ArkasImportRun;
 use App\Models\School;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -49,6 +49,7 @@ class RkasCsvImportService
                 $accountId = $rekeningMap[$code] ?? null;
                 if (! $accountId) {
                     $unknown[] = $lineNumber.' (kode '.$code.')';
+
                     continue;
                 }
                 $rows[] = [

@@ -1,10 +1,20 @@
 <?php
+
 namespace Database\Seeders;
 
+use App\Models\Allocation;
+use App\Models\Announcement;
+use App\Models\BosType;
+use App\Models\KasTransaction;
+use App\Models\Komponen;
+use App\Models\Penandatangan;
+use App\Models\Rekening;
+use App\Models\RekeningPajak;
+use App\Models\RkasHeader;
+use App\Models\School;
+use App\Models\Stage;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Models\{User, School, BosType, Komponen, Rekening, RekeningPajak, Stage, Allocation,
-                RkasHeader, KasTransaction, Penandatangan, Announcement};
 
 class DatabaseSeeder extends Seeder
 {
@@ -43,7 +53,9 @@ class DatabaseSeeder extends Seeder
             '10' => 'Penyelenggaraan Kegiatan Peningkatan Kompetensi Keahlian',
             '11' => 'Penyelenggaraan Kegiatan dalam Mendukung Keterserapan Lulusan',
             '12' => 'Pembayaran Honor',
-        ] as $k => $n) $kom[$k] = Komponen::create(['kode' => $k, 'nama' => $n]);
+        ] as $k => $n) {
+            $kom[$k] = Komponen::create(['kode' => $k, 'nama' => $n]);
+        }
 
         $rHibah1 = Rekening::create(['kode' => '4.3.1.01.01.0001', 'nama' => 'Pendapatan Hibah BOS — Pemerintah Pusat', 'tipe' => 'pendapatan']);
         $rHibah2 = Rekening::create(['kode' => '4.3.1.01.01.0002', 'nama' => 'Pendapatan Hibah BOSP — Pemerintah Daerah', 'tipe' => 'pendapatan']);
@@ -61,7 +73,9 @@ class DatabaseSeeder extends Seeder
             ['5.1.06.09.03.0001', 'Belanja Pelatihan/Perjadin Pengembangan Guru', '06'],
             ['5.2.01.05.01.0002', 'Belanja Modal Alat Multimedia Pembelajaran', '09'],
             ['5.1.02.04.01.0021', 'Belanja Bahan Bacaan Buku Perpustakaan', '02'],
-        ] as [$k, $n, $c]) $rek[$k] = Rekening::create(['kode' => $k, 'nama' => $n, 'tipe' => 'belanja', 'komponen_id' => $kom[$c]->id]);
+        ] as [$k, $n, $c]) {
+            $rek[$k] = Rekening::create(['kode' => $k, 'nama' => $n, 'tipe' => 'belanja', 'komponen_id' => $kom[$c]->id]);
+        }
 
         $pPpn = RekeningPajak::create(['kode' => 'ppn', 'nama' => 'PPN (Pajak Pertambahan Nilai)']);
         RekeningPajak::create(['kode' => 'pph21', 'nama' => 'PPh Pasal 21']);
@@ -71,7 +85,9 @@ class DatabaseSeeder extends Seeder
 
         $stages = [];
         foreach ([2025, 2026] as $y) {
-            for ($i = 1; $i <= 5; $i++) $stages[$y][$i] = Stage::create(['tahun' => $y, 'nama' => "Tahap $i", 'urutan' => $i]);
+            for ($i = 1; $i <= 5; $i++) {
+                $stages[$y][$i] = Stage::create(['tahun' => $y, 'nama' => "Tahap $i", 'urutan' => $i]);
+            }
         }
 
         // ===== PAGU 2026 =====
@@ -92,7 +108,9 @@ class DatabaseSeeder extends Seeder
         }
 
         // ===== TRANSAKSI DEMO SEKOLAH 1 (2026) =====
-        $mk = function (array $a) use ($s1) { return KasTransaction::withoutGlobalScopes()->create($a + ['school_id' => $s1->id, 'created_by' => User::where('email', 'operator@sekolah.demo')->first()->id]); };
+        $mk = function (array $a) use ($s1) {
+            return KasTransaction::withoutGlobalScopes()->create($a + ['school_id' => $s1->id, 'created_by' => User::where('email', 'operator@sekolah.demo')->first()->id]);
+        };
         // 1. Pendapatan tahap 1 cair (bank +60jt)
         $t1 = $mk(['tahun' => 2026, 'type' => 'pendapatan', 'no_bku' => 1, 'tanggal' => '2026-03-04', 'bos_type_id' => $tReg->id, 'stage_id' => $stages[2026][1]->id, 'metode_bayar' => 'transfer', 'keterangan' => 'Pencairan BOS Reguler Tahap 1 tahun 2026', 'total' => 60000000]);
         $t1->details()->create(['rekening_id' => $rHibah1->id, 'uraian' => 'Hibah BOS Reguler Pusat', 'nilai' => 45000000]);

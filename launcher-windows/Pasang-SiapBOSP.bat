@@ -5,7 +5,7 @@ REM  Klik 2x berkas ini SEKALI untuk memasang:
 REM  - menyalin aplikasi ke %LocalAppData%\Programs\SiapBOSP
 REM  - menyiapkan database + master rekening + tahap
 REM  - membuat akun bendahara + token Tarik ARKAS otomatis
-REM  - membuat 3 pintasan di Desktop
+REM  - membuat pintasan Desktop + Start Menu
 REM  Tidak perlu install PHP/Node — semuanya sudah dibundel.
 REM ============================================================
 setlocal EnableDelayedExpansion
@@ -148,7 +148,7 @@ if not defined SIPBOS_DEST (
 
 echo.
 echo  SELESAI! Pintasan siap dipakai:
-echo    - Desktop    : 3 pintasan (SiapBOSP, Tarik Data ARKAS, Sinkron)
+echo    - Desktop    : 1 pintasan (SiapBOSP)
 echo    - Start Menu : menu "SiapBOSP" (termasuk Hapus SiapBOSP)
 echo.
 echo  CATAT kata sandi login Anda baik-baik.

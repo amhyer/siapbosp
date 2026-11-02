@@ -47,7 +47,7 @@ class ApiTokenSecurityTest extends TestCase
 
     public function test_bearer_token_valid_diterima(): void
     {
-        $this->withHeader('Authorization', 'Bearer ' . self::PLAINTEXT)
+        $this->withHeader('Authorization', 'Bearer '.self::PLAINTEXT)
             ->getJson('/api/v1/profil')
             ->assertStatus(200)
             ->assertJsonPath('ok', true);
@@ -55,7 +55,7 @@ class ApiTokenSecurityTest extends TestCase
 
     public function test_token_di_query_string_ditolak_401(): void
     {
-        $this->getJson('/api/v1/profil?api_token=' . self::PLAINTEXT)
+        $this->getJson('/api/v1/profil?api_token='.self::PLAINTEXT)
             ->assertStatus(401)
             ->assertJsonPath('ok', false);
     }
@@ -63,7 +63,7 @@ class ApiTokenSecurityTest extends TestCase
     public function test_hash_plaintext_dari_query_string_tidak_bisa_dipakai(): void
     {
         // Bahkan mengirim nilai hash-nya sendiri lewat query string tetap ditolak.
-        $this->getJson('/api/v1/profil?api_token=' . hash('sha256', self::PLAINTEXT))
+        $this->getJson('/api/v1/profil?api_token='.hash('sha256', self::PLAINTEXT))
             ->assertStatus(401);
     }
 
@@ -83,9 +83,9 @@ class ApiTokenSecurityTest extends TestCase
         $this->assertNotSame($baru, $tersimpan);
 
         // Token lama langsung mati; token baru langsung berlaku.
-        $this->withHeader('Authorization', 'Bearer ' . self::PLAINTEXT)
+        $this->withHeader('Authorization', 'Bearer '.self::PLAINTEXT)
             ->getJson('/api/v1/profil')->assertStatus(401);
-        $this->withHeader('Authorization', 'Bearer ' . $baru)
+        $this->withHeader('Authorization', 'Bearer '.$baru)
             ->getJson('/api/v1/profil')->assertStatus(200);
     }
 }

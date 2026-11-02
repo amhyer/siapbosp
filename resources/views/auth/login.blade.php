@@ -5,11 +5,8 @@
     {{-- Panel merek — biru ARKAS, tanpa gradien. --}}
     <div class="relative hidden flex-col justify-between bg-[#1e3a8a] p-8 text-white md:flex">
       <div class="relative">
-        <div class="flex h-11 w-11 items-center justify-center rounded bg-white/10">
-          <x-icon name="book" class="h-6 w-6"/>
-        </div>
-        <h1 class="mt-4 text-2xl font-bold leading-tight">SiapBOSP</h1>
-        <p class="mt-1 text-[13px] text-blue-100">Sistem Akuntansi &amp; Pertanggungjawaban Dana BOSP · Multi Sekolah</p>
+        <x-logo variant="white" size="lg" />
+        <p class="mt-3 text-[13px] text-blue-100">Sistem Akuntansi &amp; Pertanggungjawaban Dana BOSP · Multi Sekolah</p>
       </div>
       <ul class="relative space-y-3 text-[13px] text-blue-50">
         <li class="flex items-center gap-2"><x-icon name="file" class="h-4 w-4 shrink-0"/><span>Perencanaan RKAS → Pembukuan BKU → LPJ</span></li>
@@ -22,9 +19,7 @@
     {{-- Panel form --}}
     <div class="p-6 sm:p-8">
       <div class="mb-6 text-center md:text-left">
-        <div class="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded bg-[#1e3a8a] text-white md:hidden">
-          <x-icon name="book" class="h-6 w-6"/>
-        </div>
+        <x-logo size="md" class="mx-auto mb-3 md:hidden" />
         <h2 class="text-xl font-bold text-[#2f3031]">Masuk ke SiapBOSP</h2>
         <p class="mt-1 text-xs text-[#65696c]">Gunakan akun operator, kepala sekolah, atau dinas.</p>
       </div>

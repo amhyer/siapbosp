@@ -17,6 +17,117 @@
 @endsection
 
 @section('content')
+{{-- ============ CTA UNDUH APLIKASI DESKTOP (PUSAT) — penarikan data ARKAS di laptop, bukan di sini ============ --}}
+@unless(\App\Http\Controllers\UnduhAplikasiController::isPortable())
+<div class="card flex flex-wrap items-center justify-between gap-3 mb-4 border-l-4 border-indigo-600">
+  <div>
+    <div class="text-xs font-bold uppercase tracking-wider text-indigo-600">Unduh Aplikasi Desktop</div>
+    <div class="text-sm font-bold text-slate-800 mt-0.5">Unduh Aplikasi Desktop di laptop bendahara</div>
+    <p class="text-[12px] text-slate-500 mt-0.5">Website pusat menyimpan &amp; melaporkan data; penarikan data ARKAS dijalankan dari aplikasi di laptop, bukan lewat website.</p>
+  </div>
+  <a href="{{ route('aplikasi-desktop') }}" class="btn">
+    <x-icon name="download" class="h-4 w-4"/> Unduh Aplikasi Desktop
+  </a>
+</div>
+@endunless
+
+{{-- ============ WIZARD ALUR TAHAP BOSP (STEPPER) ============ --}}
+@if(!empty($alurTahapBosp))
+<div class="card bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-white border border-blue-100 shadow-sm mb-4">
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100/80 pb-3 mb-3">
+    <div>
+      <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-extrabold text-white">★</span>
+        Alur Siklus Kerja Dana BOSP (TA {{ $tahun }})
+      </h2>
+      <p class="text-[12px] text-slate-500 mt-0.5">Panduan langkah terarah: perencanaan ARKAS ➔ SPJ kuitansi ➔ pajak ➔ tutup buku ➔ LPJ &amp; sinkronisasi dinas.</p>
+    </div>
+    <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">Panduan Operasional</span>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+    @foreach($alurTahapBosp as $st)
+      @php
+        $warnaBg = match($st['status']) {
+          'selesai' => 'border-emerald-200 bg-emerald-50/60 text-emerald-800',
+          'aktif' => 'border-blue-300 bg-blue-50 text-blue-800 ring-2 ring-blue-400/40',
+          'perhatian' => 'border-amber-300 bg-amber-50 text-amber-800 ring-1 ring-amber-300',
+          default => 'border-slate-200 bg-white/70 text-slate-600'
+        };
+        $warnaIcon = match($st['status']) {
+          'selesai' => 'bg-emerald-600 text-white',
+          'aktif' => 'bg-blue-600 text-white',
+          'perhatian' => 'bg-amber-500 text-white',
+          default => 'bg-slate-200 text-slate-600'
+        };
+      @endphp
+      <div class="flex flex-col justify-between rounded-lg border p-2.5 transition-all {{ $warnaBg }}">
+        <div>
+          <div class="flex items-center justify-between gap-1 mb-1.5">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ $warnaIcon }}">
+              @if($st['status'] === 'selesai')
+                ✓
+              @else
+                {{ $st['urutan'] }}
+              @endif
+            </span>
+            <span class="text-[10px] uppercase font-bold tracking-wider opacity-75">
+              Langkah {{ $st['urutan'] }}
+            </span>
+          </div>
+          <div class="font-bold text-xs leading-tight text-slate-900">{{ $st['judul'] }}</div>
+          <div class="text-[11px] mt-0.5 text-slate-600 leading-snug">{{ $st['deskripsi'] }}</div>
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-slate-200/50">
+          <a href="{{ $st['url'] }}" class="inline-flex items-center justify-center w-full rounded py-1 px-2 text-[11px] font-semibold {{ $st['status'] === 'aktif' ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50' }} transition">
+            {{ $st['aksi'] }} →
+          </a>
+        </div>
+      </div>
+    @endforeach
+  </div>
+</div>
+@endif
+
+{{-- ============ PUSAT PERINGATAN DINI (EARLY WARNING SYSTEM) ============ --}}
+@if(!empty($earlyWarnings) && $earlyWarnings['total_peringatan'] > 0)
+<div class="card border-l-4 border-l-amber-500 bg-amber-50/40 mb-4 p-3.5">
+  <div class="flex items-start justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-bold text-sm">⚠️</span>
+      <div>
+        <h3 class="font-bold text-sm text-slate-800">Deteksi Validasi &amp; Kepatuhan Dini ({{ $earlyWarnings['total_peringatan'] }} Catatan)</h3>
+        <p class="text-xs text-slate-500">Periksa dan tuntaskan catatan berikut sebelum melakukan tutup buku bulanan atau pelaporan ke dinas:</p>
+      </div>
+    </div>
+  </div>
+  <div class="mt-3 space-y-2">
+    @foreach($earlyWarnings['items'] as $item)
+      <div class="flex flex-wrap items-center justify-between gap-2 rounded border border-amber-200/80 bg-white p-2 text-xs">
+        <div class="flex-1 min-w-[200px]">
+          <div class="font-bold text-slate-800 flex items-center gap-1.5">
+            @if($item['tipe'] === 'bahaya')
+              <span class="h-2 w-2 rounded-full bg-rose-600"></span>
+            @elseif($item['tipe'] === 'peringatan')
+              <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+            @else
+              <span class="h-2 w-2 rounded-full bg-sky-500"></span>
+            @endif
+            {{ $item['judul'] }}
+          </div>
+          <div class="text-[11px] text-slate-600 mt-0.5 leading-relaxed">{{ $item['pesan'] }}</div>
+        </div>
+        @if(!empty($item['aksi_url']) && !empty($item['aksi_label']))
+          <a href="{{ $item['aksi_url'] }}" class="btn btn-sm !text-[11px] !py-0.5 !px-2 shrink-0">
+            {{ $item['aksi_label'] }}
+          </a>
+        @endif
+      </div>
+    @endforeach
+  </div>
+</div>
+@endif
+
 {{-- ============ PENGINGAT TENGGAT PASAL 59 PERMENDIKDASMEN 8/2026 + PAJAK TGL 20 + TUTUP BKU ============ --}}
 @if(!empty($statusTenggat) && $statusTenggat['tahap1_terlambat'])
 <div class="alert alert-err">

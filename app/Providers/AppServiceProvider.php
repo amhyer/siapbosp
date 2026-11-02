@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\UnduhAplikasiController;
 use App\Models\Announcement;
 use App\Models\BkuTutupBulan;
 use App\Models\KasTransaction;
 use App\Models\RkasHeader;
 use App\Models\TutupBuku;
+use App\Models\User;
 use App\Services\Aktivitas;
+use App\Support\Aset;
 use App\Support\Peran;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -66,7 +69,7 @@ class AppServiceProvider extends ServiceProvider
         // Literal IPv6 ber-kurung (http://[::1]:5173) dibuang peramban saat
         // mem-parse CSP, jadi aset dev server tetap diblokir. Arahkan @vite ke
         // ejaan `localhost` supaya sumbernya sah sekaligus cocok dengan CSP.
-        \App\Support\Aset::arahkanVite();
+        Aset::arahkanVite();
         $this->pasangBundelCa();
         $this->pasangPembatasLaju();
         $this->periksaKonfigurasiProduksi();
@@ -129,16 +132,11 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function daftarkanKemampuan(): void
     {
-        Gate::define('manage-user', fn (\App\Models\User $actor, \App\Models\User $target): bool =>
-            Peran::bolehKelola($actor, $target));
-        Gate::define('assign-user-role', fn (\App\Models\User $actor, string $role): bool =>
-            Peran::bolehMenetapkan($actor, $role));
-        Gate::define('backup', fn (\App\Models\User $actor): bool =>
-            $actor->role === 'superadmin' || \App\Http\Controllers\UnduhAplikasiController::isPortable());
-        Gate::define('allocation', fn (\App\Models\User $actor): bool =>
-            in_array($actor->role, ['superadmin', 'dinas'], true));
-        Gate::define('master-data', fn (\App\Models\User $actor): bool =>
-            in_array($actor->role, ['superadmin', 'dinas'], true));
+        Gate::define('manage-user', fn (User $actor, User $target): bool => Peran::bolehKelola($actor, $target));
+        Gate::define('assign-user-role', fn (User $actor, string $role): bool => Peran::bolehMenetapkan($actor, $role));
+        Gate::define('backup', fn (User $actor): bool => $actor->role === 'superadmin' || UnduhAplikasiController::isPortable());
+        Gate::define('allocation', fn (User $actor): bool => in_array($actor->role, ['superadmin', 'dinas'], true));
+        Gate::define('master-data', fn (User $actor): bool => in_array($actor->role, ['superadmin', 'dinas'], true));
     }
 
     /**

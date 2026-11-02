@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use ZipArchive;
 
@@ -24,10 +25,16 @@ class UnduhAplikasiController extends Controller
 
     public const BERKAS_PEMASANG = 'SiapBOSP-Setup-v12.exe';
 
-    /** Laptop ini menjalankan aplikasi portabel (folder "php" bundel ikut pemasangan) — unduhan paket disembunyikan/dipandu ulang. */
+    /** Laptop ini menjalankan aplikasi portabel (folder "php" bundel ikut pemasangan atau lingkungan Windows lokal) — unduhan paket disembunyikan/dipandu ulang. */
     public static function isPortable(): bool
     {
-        return is_file(base_path('php/php.exe'));
+        if (app()->environment('testing')) {
+            return is_file(base_path('php/php.exe'));
+        }
+
+        return is_file(base_path('php/php.exe'))
+            || env('SIAPBOS_PORTABLE', false) === true
+            || (PHP_OS_FAMILY === 'Windows' && is_dir(base_path('launcher-windows')));
     }
 
     /**
@@ -131,6 +138,24 @@ class UnduhAplikasiController extends Controller
             'TOKEN='.$token,
             '# Token lama Anda otomatis nonaktif setelah unduhan ini.',
         ])."\n";
+    }
+
+    /**
+     * Halaman "Aplikasi Desktop" — pintu utama unduhan di website pusat.
+     *
+     * Sisi pusat tidak pernah menarik data (membaca DB ARKAS butuh agen lokal
+     * + database ARKAS di laptop), jadi unduhan aplikasi di sini dipandu ke
+     * laptop bendahara yang mengeksekusi penarikan via tombol di aplikasi.
+     */
+    public function petunjuk(): View
+    {
+        return view('aplikasi-desktop', [
+            'portabel' => self::isPortable(),
+            'adaPemasang' => is_file($this->dirPaket().'/'.self::BERKAS_PEMASANG),
+            'adaPortable' => is_file($this->dirPaket().'/'.self::BERKAS_INDUK),
+            'adaAgen' => is_file(storage_path('app/agen/TarikArkas-v1.0.0.zip')),
+            'adaGui' => is_file(storage_path('app/agen/TarikArkas-GUI-v1.0.0.zip')),
+        ]);
     }
 
     /** Buat token API baru untuk pengguna (token lama otomatis nonaktif). */

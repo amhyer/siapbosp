@@ -8,6 +8,7 @@ use App\Models\BkuTutupBulan;
 use App\Models\KasTransaction;
 use App\Models\RkasHeader;
 use App\Models\Stage;
+use App\Services\EarlyWarningService;
 use App\Services\JuknisBosp2026Service;
 use App\Services\KasService;
 use Illuminate\Support\Facades\DB;
@@ -107,10 +108,63 @@ class DashboardController extends Controller
             ? JuknisBosp2026Service::reviewKertasKerja($rkasAktif, $sekolah)
             : null;
 
+        // === Early Warning & Validasi Kepatuhan ===
+        $earlyWarnings = EarlyWarningService::cekKepatuhan($sid, $tahun);
+
+        // === Wizard Alur Tahap BOSP (Stepper) ===
+        $jumlahBelanja = KasTransaction::where('tahun', $tahun)->where('type', 'belanja')->count();
+        $rkasSiap = (bool) $rkasAktif && in_array($rkasAktif->status, ['disahkan', 'dikunci', 'aktif', 'siap']);
+        $bkuTutupCount = count($kunci);
+        $tahap1Tuntas = ! empty($statusTenggat) && ! empty($statusTenggat['tahap1_tuntas']);
+
+        $alurTahapBosp = [
+            [
+                'urutan' => 1,
+                'judul' => 'Tarik ARKAS / RKAS',
+                'deskripsi' => $rkasAktif ? ($rkasSiap ? 'RKAS Disahkan' : 'Kertas Kerja Ada') : 'Belum Ada RKAS',
+                'status' => $rkasSiap ? 'selesai' : ($rkasAktif ? 'aktif' : 'belum'),
+                'url' => route('rkas.index'),
+                'aksi' => 'Lihat RKAS',
+            ],
+            [
+                'urutan' => 2,
+                'judul' => 'Lengkapi Kuitansi/Nota',
+                'deskripsi' => $jumlahBelanja > 0 ? "{$jumlahBelanja} Transaksi Belanja" : 'Belum Ada Belanja',
+                'status' => $jumlahBelanja > 0 ? 'selesai' : ($rkasAktif ? 'aktif' : 'belum'),
+                'url' => route('belanja.index'),
+                'aksi' => 'Catat Belanja',
+            ],
+            [
+                'urutan' => 3,
+                'judul' => 'Setor Pajak & NTPN',
+                'deskripsi' => $pajakTerima == 0 ? 'Tidak Ada Pajak' : ($pajakBelum == 0 ? 'Pajak Lunas (NTPN)' : rp($pajakBelum).' Belum Setor'),
+                'status' => ($pajakTerima > 0 && $pajakBelum == 0) ? 'selesai' : ($pajakBelum > 0 ? 'perhatian' : 'belum'),
+                'url' => route('setorpajak.index'),
+                'aksi' => 'Setor Pajak',
+            ],
+            [
+                'urutan' => 4,
+                'judul' => 'Rekonsiliasi & Tutup BKU',
+                'deskripsi' => $bkuTutupCount > 0 ? "{$bkuTutupCount} Bulan Ditutup" : ($bkuTerbuka ? 'BKU Terbuka' : 'Belum Ada Transaksi'),
+                'status' => $tahap1Tuntas ? 'selesai' : ($bkuTutupCount > 0 ? 'aktif' : 'belum'),
+                'url' => route('penatausahaan.index'),
+                'aksi' => 'Buka BKU',
+            ],
+            [
+                'urutan' => 5,
+                'judul' => 'Cetak LPJ & Sinkron',
+                'deskripsi' => $tahap1Tuntas ? 'Siap Lapor Dinas' : 'Menunggu Tutup Tahap',
+                'status' => $tahap1Tuntas ? 'aktif' : 'belum',
+                'url' => route('laporan.tahap'),
+                'aksi' => 'Cetak LPJ',
+            ],
+        ];
+
         return view('dashboard', compact(
             'saldo', 'pagu', 'pendapatan', 'belanja', 'bulanIni', 'serapan', 'diterimaPct', 'tunaiPct', 'bankPct',
             'pajakTerima', 'pajakSudah', 'pajakBelum', 'pajakPct', 'topRekening', 'perTahap', 'perBulan', 'maxBulan',
-            'terbaru', 'pengumuman', 'tahun', 'serapanKomponen', 'bkuTerbuka', 'statusTenggat', 'ringkasanJuknis', 'rkasAktif'
+            'terbaru', 'pengumuman', 'tahun', 'serapanKomponen', 'bkuTerbuka', 'statusTenggat', 'ringkasanJuknis', 'rkasAktif',
+            'earlyWarnings', 'alurTahapBosp'
         ));
     }
 }

@@ -14,11 +14,13 @@ use Tests\TestCase;
 
 /**
  * Menu & halaman baru (hasil audit struktur menu):
- * - grup sidebar: Data Sekolah, Penganggaran, Penatausahaan, Laporan,
- *   Arsip, Data Referensi, Pengaturan (Dashboard berupa tautan langsung);
+ * - grup sidebar: Penganggaran, Penatausahaan, Arsip, Laporan & LPJ,
+ *   Realisasi & Format ARKAS, Data Referensi, Integrasi ARKAS, Sistem
+ *   (Dashboard berupa tautan langsung);
  * - Arsip (RKAS disahkan, BKU ditutup, dokumen pajak, riwayat impor/ekspor);
  * - Data Sekolah (tahun anggaran, sumber dana);
- * - Pengaturan (koneksi ARKAS, sinkronisasi, backup, deteksi versi, log sistem);
+ * - Integrasi ARKAS (koneksi, impor database, sinkron, deteksi versi) dan
+ *   Sistem (profil & token API, pemetaan HPP, backup, log, ganti password);
  * - Laporan Realisasi per Sumber Dana; Referensi dengan tab master baru.
  */
 class MenuDanArsipTest extends TestCase
@@ -72,7 +74,7 @@ class MenuDanArsipTest extends TestCase
         $this->assertTrue($posisi['Penatausahaan'] < $posisi['Arsip'], 'Urutan ARKAS: Penatausahaan lalu Arsip.');
 
         // Fitur tambahan tetap ada, di bawah pemisah.
-        foreach (['Laporan', 'Data Referensi', 'Pengaturan'] as $grup) {
+        foreach (['Laporan &amp; LPJ', 'Realisasi &amp; Format ARKAS', 'Data Referensi', 'Integrasi ARKAS', 'Sistem'] as $grup) {
             $this->assertStringContainsString($grup, $nav, 'grup menu '.$grup.' tak ada');
             $this->assertGreaterThan(mb_strpos($nav, 'navw-sep'), mb_strpos($nav, $grup),
                 $grup.' seharusnya berada setelah pemisah "Menu Lain".');
@@ -96,13 +98,18 @@ class MenuDanArsipTest extends TestCase
     {
         $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
 
-        $this->assertStringContainsString('href="'.route('penandatangan').'"', $html);
-        $this->assertStringContainsString('Data Penanggung Jawab', $html);
-        $this->assertStringContainsString('action="'.route('logout').'"', $html, 'Keluar harus ada di dropdown profil.');
+        preg_match('#<div class="arkas-dropdown">(.*?)</div>#s', $html, $dd);
+        $dropdown = $dd[1] ?? '';
+        $this->assertNotSame('', $dropdown, 'Dropdown profil tidak ditemukan.');
+
+        $this->assertStringContainsString('href="'.route('penandatangan').'"', $dropdown);
+        $this->assertStringContainsString('Data Penanggung Jawab', $dropdown);
+        $this->assertStringContainsString('action="'.route('logout').'"', $dropdown, 'Keluar harus ada di dropdown profil.');
 
         // Data sekolah tidak lagi di dropdown — ARKAS 4 hanya punya dua item.
+        // Tautan boleh ada di sidebar (mis. Profil & Token API), bukan di dropdown.
         foreach ([route('profil.edit'), route('datasekolah.tahun'), route('datasekolah.sumber-dana'), route('datasekolah.sinkronisasi')] as $href) {
-            $this->assertStringNotContainsString('href="'.$href.'"', $html,
+            $this->assertStringNotContainsString('href="'.$href.'"', $dropdown,
                 'Dropdown profil ARKAS 4 tidak memuat tautan data sekolah.');
         }
 
@@ -133,6 +140,53 @@ class MenuDanArsipTest extends TestCase
             ->assertOk()
             ->assertSee('Bantuan &amp; Panduan', false)
             ->assertSee('Data Penanggung Jawab');
+    }
+
+    /** Grup menu sekolah dipecah agar tiap accordion maksimal 7 item. */
+    public function test_grup_menu_sekolah_dipecah_dan_tanpa_item_mati(): void
+    {
+        $html = $this->withSession(['tahun' => 2025])->get('/dashboard')->assertOk()->getContent();
+
+        preg_match('#<nav class="navw.*?</nav>#s', $html, $blok);
+        $nav = $blok[0] ?? '';
+        $this->assertNotSame('', $nav, 'Blok nav utama tidak ditemukan.');
+
+        foreach (['Laporan &amp; LPJ', 'Realisasi &amp; Format ARKAS', 'Data Referensi', 'Integrasi ARKAS', 'Sistem'] as $grup) {
+            $this->assertStringContainsString($grup, $nav, 'Grup '.$grup.' tidak ada di sidebar.');
+        }
+
+        $this->assertStringNotContainsString('>Pengaturan</span>', $nav, 'Grup Pengaturan lama masih ada.');
+        $this->assertStringNotContainsString('<p>Format ARKAS</p>', $nav, 'Item mati "Format ARKAS" masih dirender.');
+
+        foreach (['Tutup Buku Tahap', 'Cetak LPJ Tahap', 'Profil &amp; Token API', 'Perencanaan (PBD–RKM–RKT)'] as $label) {
+            $this->assertStringContainsString($label, $nav, 'Label '.$label.' tidak ditemukan.');
+        }
+    }
+
+    /** Menu dinas: LPJ masuk, Backup DB keluar dari navigasi. */
+    public function test_menu_dinas_memuat_lpj_tanpa_backup_di_sidebar(): void
+    {
+        $dinas = User::create([
+            'name' => 'Dinas Menu', 'email' => 'dinas-menu@t.t', 'password' => 'p',
+            'role' => 'dinas', 'school_id' => null,
+        ]);
+
+        $html = $this->actingAs($dinas)->withSession(['tahun' => 2025])->get('/dinas')->assertOk()->getContent();
+
+        preg_match('#<nav class="navw.*?</nav>#s', $html, $blok);
+        $nav = $blok[0] ?? '';
+        $this->assertNotSame('', $nav, 'Blok nav dinas tidak ditemukan.');
+
+        foreach (['Wilayah', 'Verifikasi', 'Kelola', 'Sistem'] as $grup) {
+            $this->assertStringContainsString('<span>'.$grup.'</span>', $nav, 'Grup '.$grup.' tidak ada.');
+        }
+
+        $this->assertStringContainsString('href="'.route('dinas.lpj').'"', $nav, 'LPJ Sekolah tidak ada di menu dinas.');
+        $this->assertStringNotContainsString('href="'.route('dinas.backup').'"', $nav, 'Backup DB bukan menu navigasi.');
+        $this->assertStringNotContainsString('href="'.route('password.edit').'"', $nav, 'Ganti Password pindah ke dropdown profil.');
+
+        $this->actingAs($dinas)->withSession(['tahun' => 2025])->get('/dinas/keamanan')
+            ->assertOk()->assertSee('Backup Database');
     }
 
     /** Tidak ada lagi dua menu dengan target sama (duplikat) & tak ada tautan mati. */

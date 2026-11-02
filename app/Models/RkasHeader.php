@@ -96,7 +96,7 @@ class RkasHeader extends Model
             return [];
         }
 
-        return \App\Models\BosType::whereIn('nama', $sumber)->pluck('id')->all();
+        return BosType::whereIn('nama', $sumber)->pluck('id')->all();
     }
 
     /**

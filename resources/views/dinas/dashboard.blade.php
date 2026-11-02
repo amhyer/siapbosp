@@ -1,5 +1,12 @@
-@extends('layouts.app', ['title' => 'Dashboard Wilayah'])
-@section('subtitle', 'Ringkasan serapan, aktivitas, dan notifikasi sekolah di wilayah')
+@extends('layouts.app', ['title' => 'Dashboard Monitoring Wilayah'])
+@section('subtitle', 'Ringkasan serapan, kepatuhan juknis, dan pengawasan BOSP lintas sekolah se-wilayah')
+
+@section('actions')
+  <a href="{{ route('dinas.konsolidasi.xlsx') }}" class="btn btn-sm">
+    <x-icon name="download" class="h-4 w-4"/> Unduh Konsolidasi Wilayah (Excel Multi-Sheet)
+  </a>
+@endsection
+
 @section('content')
 @php $totalPagu=$schools->sum('pagu'); $totalBelanja=$schools->sum('belanja'); @endphp
 
@@ -93,11 +100,50 @@
 </div>
 
 <div class="card overflow-x-auto">
-  <h3 class="card-title mb-3">Progres Serapan per Sekolah</h3>
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-3 border-b border-slate-100 pb-3">
+    <div>
+      <h3 class="card-title">Peta Monitor Kepatuhan &amp; Serapan Sekolah</h3>
+      <p class="text-xs text-[#808489] mt-0.5">Filter dan pantau sekolah berdasarkan kesiapan syarat salur tahap berikutnya &amp; verifikasi LPJ.</p>
+    </div>
+
+    {{-- Filter Chips Kepatuhan --}}
+    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+      <a href="{{ route('dinas.dashboard', ['status' => 'semua']) }}"
+         class="rounded-full px-3 py-1 font-semibold transition {{ $filterStatus === 'semua' ? 'bg-[#0b5fef] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+        Semua ({{ $countSemua }})
+      </a>
+      <a href="{{ route('dinas.dashboard', ['status' => 'belum_salur']) }}"
+         class="rounded-full px-3 py-1 font-semibold transition {{ $filterStatus === 'belum_salur' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
+        ⚠️ Belum Salur ({{ $countBelumSalur }})
+      </a>
+      <a href="{{ route('dinas.dashboard', ['status' => 'kurang_50']) }}"
+         class="rounded-full px-3 py-1 font-semibold transition {{ $filterStatus === 'kurang_50' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100' }}">
+        ⚠️ Realisasi Tahap 1 &lt; 50% ({{ $countKurang50 }})
+      </a>
+      <a href="{{ route('dinas.dashboard', ['status' => 'siap_lpj']) }}"
+         class="rounded-full px-3 py-1 font-semibold transition {{ $filterStatus === 'siap_lpj' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
+        ⏳ Menunggu Verifikasi LPJ ({{ $countSiapLpj }})
+      </a>
+    </div>
+  </div>
+
   <table class="tbl">
-    <thead><tr><th>Sekolah (NPSN)</th><th>Jenjang</th><th>Kecamatan</th><th class="num">Pagu</th><th class="num">Realisasi</th><th>Serapan</th><th>Aktivitas Terakhir</th><th>Status</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Sekolah (NPSN)</th>
+        <th>Jenjang</th>
+        <th>Kecamatan</th>
+        <th class="num">Pagu</th>
+        <th class="num">Dana Salur</th>
+        <th class="num">Realisasi</th>
+        <th>Serapan Total</th>
+        <th>Kepatuhan Tahap 2</th>
+        <th>Aktivitas Terakhir</th>
+        <th>Status</th>
+      </tr>
+    </thead>
     <tbody>
-      @foreach($schools as $s)
+      @forelse($schools as $s)
       <tr>
         <td>
           <a href="{{ route('dinas.sekolah.show', $s) }}" class="font-semibold text-[#0b5fef] hover:underline">{{ $s->nama }}</a>
@@ -106,19 +152,41 @@
         <td>{{ $s->jenjang }}</td>
         <td>{{ $s->kecamatan ?? '—' }}</td>
         <td class="num">{{ rp($s->pagu) }}</td>
+        <td class="num">{{ rp($s->pendapatan) }}</td>
         <td class="num">{{ rp($s->belanja) }}</td>
-        <td style="min-width:120px">
-          <div class="flex items-center gap-2">
-            <div class="h-2 w-20 rounded-full bg-slate-100">
+        <td style="min-width:110px">
+          <div class="flex items-center gap-1.5">
+            <div class="h-2 w-16 rounded-full bg-slate-100">
               <div class="h-2 rounded-full {{ $s->serapan>=80?'bg-emerald-500':($s->serapan>=40?'bg-amber-400':'bg-rose-400') }}" style="width:{{ min(100,$s->serapan) }}%"></div>
             </div>
             <span class="text-xs font-semibold">{{ $s->serapan }}%</span>
           </div>
         </td>
+        <td>
+          @if($s->siapLpj)
+            <a href="{{ route('dinas.tahap') }}" class="badge bg-emerald-100 text-emerald-800 hover:bg-emerald-200">
+              ⏳ Siap Verifikasi LPJ
+            </a>
+          @elseif($s->belumSalur)
+            <span class="badge bg-slate-100 text-slate-600">Belum Salur</span>
+          @elseif($s->kurangDari50)
+            <span class="badge bg-rose-100 text-rose-700" title="Realisasi Tahap 1: {{ $s->serapanTahap1 }}% (minimal 50% untuk salur Tahap 2)">
+              T1: {{ $s->serapanTahap1 }}% (&lt;50%)
+            </span>
+          @else
+            <span class="badge bg-emerald-50 text-emerald-700">
+              T1: {{ $s->serapanTahap1 }}% (≥50% Aman)
+            </span>
+          @endif
+        </td>
         <td class="text-xs text-[#808489]">{{ $s->last ? \Carbon\Carbon::parse($s->last)->diffForHumans() : '—' }}</td>
         <td>{!! $s->is_active ? '<span class="badge bg-emerald-100 text-emerald-700">aktif</span>' : '<span class="badge bg-slate-200 text-slate-500">nonaktif</span>' !!}</td>
       </tr>
-      @endforeach
+      @empty
+      <tr>
+        <td colspan="10" class="text-center py-6 text-slate-400 text-sm">Tidak ada sekolah dengan kriteria filter ini.</td>
+      </tr>
+      @endforelse
     </tbody>
   </table>
 </div>

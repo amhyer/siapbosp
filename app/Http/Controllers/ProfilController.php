@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Allocation;
 use App\Models\BosType;
 use App\Models\School;
+use App\Rules\SandiKuat;
 use App\Services\Aktivitas;
 use App\Services\JuknisBosp2026Service;
 use App\Services\TarikArkasService;
@@ -137,7 +138,7 @@ class ProfilController extends Controller
         $u = auth()->user();
         $data = $r->validate([
             'password_lama' => 'required',
-            'password' => ['required', 'string', 'confirmed', new \App\Rules\SandiKuat($u->email, $u->name)],
+            'password' => ['required', 'string', 'confirmed', new SandiKuat($u->email, $u->name)],
         ], ['password.confirmed' => 'Konfirmasi kata sandi baru tidak sama.']);
         if (! Hash::check($data['password_lama'], $u->password)) {
             return back()->with('error', 'Kata sandi lama salah.');

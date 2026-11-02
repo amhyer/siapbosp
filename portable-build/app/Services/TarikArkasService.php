@@ -1,0 +1,411 @@
+<?php
+
+namespace App\Services;
+
+use App\Http\Controllers\UnduhAplikasiController;
+use App\Models\School;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+/**
+ * Jembatan tombol "Tarik Data ARKAS" (1 klik) di dalam aplikasi portabel
+ * (Utility → Profil Sekolah).
+ *
+ * Menjalankan agen TarikArkas yang terbundel (`agen/TarikArkas/node.exe`
+ * mode `lokal`): agen membaca database ARKAS desktop di laptop ini
+ * (read-only) dan membangun berkas Excel, lalu aplikasi mengimpornya
+ * sendiri lewat ArkasImportService — aturan impor sama persis dengan
+ * unggahan web (idempoten, tidak ada yang dobel atau terhapus).
+ */
+class TarikArkasService
+{
+    /** Batas detik menunggu agen membaca ARKAS dan menulis Excel. */
+    public const TENGGAGA_DETIK = 300;
+
+    /** Agen tersedia: aplikasi portabel + runtime agen terbundel. */
+    public static function tersedia(): bool
+    {
+        return UnduhAplikasiController::isPortable()
+            && is_file(base_path('agen/TarikArkas/node.exe'))
+            && is_file(base_path('agen/TarikArkas/tarik.cjs'));
+    }
+
+    /** Lokasi database ARKAS desktop di laptop ini (%AppData%\Roaming\Arkas\arkas.db). */
+    public static function pathDb(): string
+    {
+        $calon = [];
+        $appdata = getenv('APPDATA');
+        if ($appdata) {
+            $calon[] = rtrim($appdata, '\\/').'\\Arkas\\arkas.db';
+        }
+        $home = getenv('USERPROFILE');
+        if ($home) {
+            $calon[] = rtrim($home, '\\/').'\\AppData\\Roaming\\Arkas\\arkas.db';
+        }
+        // `php artisan serve` bisa mewarisi env kosong (Laravel menurunkan $_ENV;
+        // variables_order tanpa "E" membuatnya kosong) — turunkan profil user dari
+        // lokasi pemasangan sendiri: ...\\AppData\\Local\\... → ...\\AppData\\Local\\...
+        $profil = self::profilDariLokasiPemasangan();
+        if ($profil !== '') {
+            $calon[] = $profil.'\\AppData\\Roaming\\Arkas\\arkas.db';
+        }
+        foreach ($calon as $c) {
+            if ($c !== '' && is_file($c)) {
+                return $c;
+            }
+        }
+
+        return $calon[0] ?? '';
+    }
+
+    /** Profildir user dari base_path: C:\Users\X\AppData\Local\... → C:\Users\X. */
+    protected static function profilDariLokasiPemasangan(): string
+    {
+        $dasar = str_replace('/', '\\', base_path());
+        $pos = stripos($dasar, '\\AppData\\');
+        if ($pos <= 0) {
+            return '';
+        }
+
+        return rtrim(substr($dasar, 0, $pos), '\\');
+    }
+
+    /** Sisipkan --db eksplisit agar agen tidak bergantung pada env proses server. */
+    protected static function denganDb(array $perintah): array
+    {
+        $db = self::dbAda() ? self::pathDb() : '';
+
+        // Di akhir: argv[2] agen harus tetap subperintah (info/lokal/tes).
+        return $db !== '' ? [...$perintah, '--db', $db] : $perintah;
+    }
+
+    public static function dbAda(): bool
+    {
+        $path = self::pathDb();
+
+        return $path !== '' && is_file($path);
+    }
+
+    /** Status untuk kartu di Profil — null bila bukan aplikasi portabel. */
+    public static function status(): ?array
+    {
+        if (! self::tersedia()) {
+            return null;
+        }
+        $info = null;
+        if (self::dbAda()) {
+            $out = self::jalankan(self::denganDb(['info', '--json']));
+            $info = json_decode($out, true);
+        }
+
+        return [
+            'db_ada' => self::dbAda(),
+            'path_db' => self::pathDb(),
+            'npsn' => is_array($info) ? ($info['npsnFile'] ?? null) : null,
+            'arkas_berjalan' => self::isArkasRunning(),
+        ];
+    }
+
+    /** Cek apakah ARKAS Desktop (arkas.exe) sedang berjalan di Windows. */
+    public static function isArkasRunning(): bool
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return false;
+        }
+        $output = [];
+        @exec('tasklist /FI "IMAGENAME eq arkas.exe" /FO CSV 2>nul', $output);
+
+        // Output: header + 1 baris per proses. Lebih dari 1 baris = ada proses.
+        return count($output) > 1;
+    }
+
+    /**
+     * Operasi lengkap "Sinkron ARKAS" (1 klik):
+     * 1. Cek ARKAS Desktop tidak berjalan
+     * 2. Ekspor DB ARKAS → Excel via agen
+     * 3. Import ke SiapBOSP lokal via ArkasImportService
+     * 4. Otomatis kirim / sinkronisasi ke website pusat via SinkronisasiService
+     *
+     * @return array{sukses:bool, ringkasan:string, npsn:?string, tahun:int, sinkron_web?:array{terkirim:bool,pesan:string}}
+     */
+    public static function tarikLengkap(int $schoolId, int $userId, int $tahun): array
+    {
+        // 1. Cek ARKAS Desktop tidak berjalan
+        if (self::isArkasRunning()) {
+            throw new \RuntimeException('ARKAS Desktop sedang berjalan. Tutup dulu aplikasi ARKAS, lalu coba lagi.');
+        }
+
+        // 2. Ekspor DB ARKAS → Excel via agen
+        $berkas = self::eksporDb($tahun);
+        $keluar = $berkas['path'];
+
+        try {
+            // 3. Validasi NPSN sebelum import
+            $sekolah = School::find($schoolId);
+            if ($sekolah && $sekolah->npsn && ! empty($berkas['npsn'])
+                && (string) $sekolah->npsn !== (string) $berkas['npsn']) {
+                throw new \RuntimeException('Database ARKAS di laptop ini milik NPSN '.$berkas['npsn']
+                    .', tetapi profil sekolah Anda NPSN '.$sekolah->npsn.'.'
+                    .' Betulkan Profil sekolah dulu, atau pakai unggah Excel manual di halaman Impor ARKAS.');
+            }
+
+            // 4. Import ke SiapBOSP lokal via ArkasImportService
+            $lap = ArkasImportService::import($keluar, $schoolId, $userId, $tahun);
+
+            // 5. Otomatis kirim / sinkron ke website pusat dalam 1 klik yang sama
+            $sinkronWeb = SinkronisasiService::dorongOtomatisKeWebsite($keluar, $tahun);
+
+            // 6. Ringkasan user-friendly dari hasil nyata ArkasImportService + status sinkron web
+            $rkas = (int) (($lap['dibuat']['rkas'] ?? 0) + ($lap['diperbarui']['rkas'] ?? 0) + ($lap['rkak_count'] ?? 0) + ($lap['detail_count'] ?? 0));
+            $realisasi = (int) (($lap['dibuat']['transaksi'] ?? 0) + ($lap['diperbarui']['transaksi'] ?? 0) + ($lap['realisasi_count'] ?? 0));
+            $pajak = (int) (($lap['dibuat']['pajak_terima'] ?? 0) + ($lap['diperbarui']['pajak_terima'] ?? 0)
+                + ($lap['dibuat']['pajak_setor'] ?? 0) + ($lap['diperbarui']['pajak_setor'] ?? 0));
+            $infoWeb = $sinkronWeb['terkirim']
+                ? 'otomatis terkirim & sinkron ke website pusat'
+                : 'tersimpan di aplikasi desktop ('.$sinkronWeb['pesan'].')';
+            $ringkasan = "{$rkas} rincian RKAS, {$realisasi} transaksi BKU, {$pajak} pajak — {$infoWeb}";
+
+            return [
+                'sukses' => true,
+                'ringkasan' => $ringkasan,
+                'npsn' => $berkas['npsn'] ?? null,
+                'tahun' => $tahun,
+                'sinkron_web' => $sinkronWeb,
+            ];
+        } finally {
+            @unlink($keluar);
+        }
+    }
+
+    /** Tarik data ARKAS (1 klik): bangun Excel via agen, impor ke lokal, lalu otomatis dorong ke website. */
+    public static function tarik(int $schoolId, int $userId, int $tahun): array
+    {
+        $berkas = self::eksporDb($tahun);
+        $keluar = $berkas['path'];
+        try {
+            $sekolah = School::find($schoolId);
+            if ($sekolah && $sekolah->npsn && ! empty($berkas['npsn'])
+                && (string) $sekolah->npsn !== (string) $berkas['npsn']) {
+                throw new \RuntimeException('Database ARKAS di laptop ini milik NPSN '.$berkas['npsn']
+                    .', tetapi profil sekolah Anda NPSN '.$sekolah->npsn.'.'
+                    .' Betulkan Profil sekolah dulu, atau pakai unggah Excel manual di halaman Impor ARKAS.');
+            }
+            $lap = ArkasImportService::import($keluar, $schoolId, $userId, $tahun);
+            $lap['npsn_arkas'] = $berkas['npsn'] ?? null;
+            $lap['sinkron_web'] = SinkronisasiService::dorongOtomatisKeWebsite($keluar, $tahun);
+
+            return $lap;
+        } finally {
+            @unlink($keluar);
+        }
+    }
+
+    /**
+     * Informasi ARKAS di laptop ini (versi aplikasi, NPSN, data master).
+     *
+     * @return array{ok:bool,adaDb:bool,npsnFile:?string,versi:array}|null
+     */
+    public static function info(): ?array
+    {
+        if (! self::tersedia()) {
+            return null;
+        }
+        $out = self::jalankan(self::denganDb(['info', '--json']));
+        $hasil = json_decode($out, true);
+        if (! is_array($hasil) || empty($hasil['ok'])) {
+            return null;
+        }
+
+        return $hasil;
+    }
+
+    /** Ukuran berkas agen (null = tidak ada) — untuk diagnosa. */
+    public static function berkasAgen(): array
+    {
+        $node = base_path('agen/TarikArkas/node.exe');
+        $cjs = base_path('agen/TarikArkas/tarik.cjs');
+
+        return [
+            'node' => is_file($node) ? (int) filesize($node) : null,
+            'tarik' => is_file($cjs) ? (int) filesize($cjs) : null,
+            'node_mtime' => is_file($node) ? date('Y-m-d H:i', (int) filemtime($node)) : null,
+            'tarik_mtime' => is_file($cjs) ? date('Y-m-d H:i', (int) filemtime($cjs)) : null,
+        ];
+    }
+
+    /**
+     * Status lengkap jalur "Tarik Data ARKAS" untuk diagnosa.
+     *
+     * `$uji = true` menjalankan agen mode `lokal` (membaca ARKAS, menulis
+     * Excel sementara) dan melaporkan sheet + jumlah barisnya — bukti bahwa
+     * data ARKAS benar-benar bisa ditarik di laptop ini. Impor ke database
+     * TIDAK dijalankan.
+     *
+     * @return array<string, mixed>
+     */
+    public static function statusLengkap(?int $tahun = null, bool $uji = false): array
+    {
+        $tahun = $tahun ?? (int) now()->year;
+        $agen = self::berkasAgen();
+        $hasil = [
+            'portable' => UnduhAplikasiController::isPortable(),
+            'agen' => $agen,
+            'tersedia' => self::tersedia(),
+            'db_path' => self::pathDb(),
+            'db_ada' => self::dbAda(),
+            'tahun' => $tahun,
+            'info' => null,
+            'uji' => null,
+        ];
+
+        if (! $hasil['tersedia'] || ! $hasil['db_ada']) {
+            return $hasil;
+        }
+
+        $hasil['info'] = self::info();
+
+        if ($uji) {
+            $hasil['uji'] = self::ujiEkspor($tahun);
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Uji tarik nyata: bangun Excel dari ARKAS lalu laporkan isinya.
+     *
+     * @return array{ok:bool,pesan?:string,npsn?:?string,berkas_kb?:int,sheets?:array<string,int>}
+     */
+    public static function ujiEkspor(int $tahun): array
+    {
+        try {
+            $berkas = self::eksporDb($tahun);
+            $path = $berkas['path'];
+            $kb = is_file($path) ? (int) round(filesize($path) / 1024) : 0;
+            $sheets = [];
+            try {
+                $buku = IOFactory::load($path);
+                foreach ($buku->getSheetNames() as $nama) {
+                    $sheets[$nama] = $buku->getSheetByName($nama)?->getHighestDataRow() ?? 0;
+                }
+                $buku->disconnectWorksheets();
+            } finally {
+                @unlink($path);
+            }
+
+            return ['ok' => true, 'npsn' => $berkas['npsn'], 'berkas_kb' => $kb, 'sheets' => $sheets];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'pesan' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Jalankan agen mode `lokal` → berkas Excel ARKAS (tanpa impor).
+     *
+     * Dipakai juga untuk "Cek Ulang Integritas Impor" — pemanggil wajib
+     * menghapus berkas hasilnya.
+     *
+     * @return array{path:string,npsn:?string}
+     */
+    public static function eksporDb(int $tahun): array
+    {
+        if (! self::tersedia()) {
+            throw new \RuntimeException('Agen Tarik ARKAS hanya tersedia pada aplikasi portabel yang terpasang di laptop sekolah.');
+        }
+        $keluar = storage_path('app/tarik-arkas-'.uniqid().'.xlsx');
+        $out = self::jalankan(self::denganDb(['lokal', '--json', '--tahun', (string) $tahun, '--keluar', $keluar]));
+        $hasil = json_decode($out, true);
+        if (! is_array($hasil) || empty($hasil['ok'])) {
+            @unlink($keluar);
+
+            throw new \RuntimeException(self::pesanRamah(is_array($hasil) ? ($hasil['pesan'] ?? null) : null, $out));
+        }
+        if (! is_file($keluar)) {
+            throw new \RuntimeException('Agen tidak menghasilkan berkas Excel.');
+        }
+
+        return ['path' => $keluar, 'npsn' => $hasil['npsn'] ?? null];
+    }
+
+    /** Jalankan agen bundel (node.exe) dan balikkan keluaran stdout-nya. */
+    protected static function jalankan(array $perintah): string
+    {
+        $argum = [
+            base_path('agen/TarikArkas/node.exe'),
+            base_path('agen/TarikArkas/tarik.cjs'),
+            ...$perintah,
+        ];
+        $cmd = implode(' ', array_map('escapeshellarg', $argum));
+        $pip = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+        $proses = proc_open($cmd, $pip, $pip, base_path());
+        if (! is_resource($proses)) {
+            throw new \RuntimeException('Tidak bisa menjalankan agen TarikArkas.');
+        }
+        fclose($pip[0]);
+        stream_set_blocking($pip[1], false);
+        stream_set_blocking($pip[2], false);
+        $stdout = '';
+        $stderr = '';
+        $tenggat = microtime(true) + self::TENGGAGA_DETIK;
+        while (true) {
+            $chunk = [$pip[1], $pip[2]];
+            $tulis = null;
+            $khusus = null;
+            $sisa = max(0, $tenggat - microtime(true));
+            $n = @stream_select($chunk, $tulis, $khusus, 0, (int) (min($sisa, 0.5) * 1_000_000));
+            if ($n === false) {
+                break;
+            }
+            foreach ($chunk as $s) {
+                $isi = (string) fread($s, 8192);
+                if ($s === $pip[1]) {
+                    $stdout .= $isi;
+                } else {
+                    $stderr .= $isi;
+                }
+            }
+            $status = proc_get_status($proses);
+            if (! $status['running']) {
+                break;
+            }
+            if (microtime(true) > $tenggat) {
+                proc_terminate($proses);
+                fclose($pip[1]);
+                fclose($pip[2]);
+                proc_close($proses);
+                throw new \RuntimeException('Agen TarikArkas tidak selesai dalam '.self::TENGGAGA_DETIK
+                    .' detik. Coba sekali lagi, atau pakai unggah Excel manual di halaman Impor ARKAS.');
+            }
+        }
+        // Proses selesai: habiskan sisa buffer sampai berakhir (EOF cepat setelah mati).
+        stream_set_blocking($pip[1], true);
+        stream_set_blocking($pip[2], true);
+        $stdout .= (string) stream_get_contents($pip[1]);
+        $stderr .= (string) stream_get_contents($pip[2]);
+        fclose($pip[1]);
+        fclose($pip[2]);
+        proc_close($proses);
+
+        return $stdout !== '' ? $stdout : $stderr;
+    }
+
+    /** Pesan gagal agen → kalimat yang enak dibaca operator. */
+    protected static function pesanRamah(?string $pesan, string $out = ''): string
+    {
+        $pesan = trim((string) $pesan);
+        if ($pesan === '') {
+            $ekor = trim(strip_tags($out));
+            if ($ekor !== '') {
+                $pesan = mb_substr($ekor, 0, 300);
+            }
+        }
+        if ($pesan === '' || stripos($pesan, 'SQLITE_BUSY') !== false
+            || stripos($pesan, 'database is locked') !== false || stripos($pesan, 'unable to open') !== false) {
+            return 'Aplikasi ARKAS sedang terbuka atau database-nya terkunci. Tutup dulu aplikasi ARKAS, lalu klik Tarik Data sekali lagi.';
+        }
+        if (str_contains($pesan, "\n")) {
+            $pesan = str_replace("\n", ' — ', $pesan);
+        }
+
+        return $pesan;
+    }
+}

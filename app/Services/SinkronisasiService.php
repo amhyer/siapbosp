@@ -65,8 +65,23 @@ class SinkronisasiService
     {
         $conf = self::conf();
         if (empty($conf['PUSAT_URL'])) {
-            throw new \RuntimeException('Alamat pusat belum-known. Unduh "Identitas Sekolah" dari website pusat lalu simpan di folder launcher-windows (akun-sekolah.conf).');
+            throw new \RuntimeException('Alamat pusat belum diatur. Unduh "Identitas Sekolah" dari website pusat lalu simpan di folder launcher-windows (akun-sekolah.conf).');
         }
+
+        $parsed = parse_url($conf['PUSAT_URL']);
+        $host = $parsed['host'] ?? '';
+        $scheme = $parsed['scheme'] ?? 'http';
+        $port = (int) ($parsed['port'] ?? ($scheme === 'https' ? 443 : 80));
+        $serverPort = (int) (request()->server('SERVER_PORT') ?: 8000);
+        $serverHost = request()->getHost();
+
+        if (in_array($host, ['127.0.0.1', 'localhost', '::1', $serverHost], true) && $port === $serverPort) {
+            return [
+                'ok' => false,
+                'pesan' => 'Alamat pusat saat ini mengarah ke laptop ini sendiri ('.$conf['PUSAT_URL'].'). Alamat pusat harus berupa URL website dinas / server pusat (misal: https://siapbosp.id), bukan localhost yang sedang berjalan.',
+            ];
+        }
+
         $url = rtrim($conf['PUSAT_URL'], '/').'/api/v1/ping';
         try {
             $res = Http::timeout(10)->get($url);

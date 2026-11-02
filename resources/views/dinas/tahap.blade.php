@@ -1,4 +1,5 @@
-@extends('layouts.app', ['title' => 'Kontrol Tahap Penyaluran'])
+@extends('layouts.app', ['title' => 'Kontrol Tahap (Buka/Kunci)'])
+@section('subtitle', 'Wewenang dinas mengunci pelaporan tahap agar angka belanja tidak dapat diubah setelah batas tutup')
 @section('content')
 <div class="flex items-center justify-between flex-wrap gap-2"> <p class="text-sm text-slate-500">Buka/tutup tahap penyaluran tahun <b>{{ $tahun }}</b>; tahap yang ditutup <b>tidak bisa dipilih</b> sekolah saat mencatat pendapatan/belanja.</p> <form method="post" action="{{ route('dinas.tahap.buat') }}" class="flex items-end gap-2" data-konfirmasi="Buat paket tahap untuk tahun yang dipilih? Tahap yang sudah ada tidak akan digandakan."> @csrf
     <div> <label class="text-xs font-semibold text-slate-500">Buat paket tahap tahun</label> <select name="tahun" class="inp mt-1 !w-auto"> @for($y = now()->year - 1; $y <= now()->year + 2; $y++) <option value="{{ $y }}" @selected((int) session('tahun', now()->year) === $y)>{{ $y }}</option> @endfor

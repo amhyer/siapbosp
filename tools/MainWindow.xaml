@@ -1,0 +1,286 @@
+﻿<Window x:Class="SiapBOSP.Setup.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pemasang SiapBOSP v12"
+        Width="720" Height="560"
+        WindowStyle="ToolWindow" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Background="{StaticResource BrushLatar}"
+        FontFamily="Segoe UI" FontSize="12.5"
+        Foreground="{StaticResource BrushTeks}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        Closing="Window_Closing">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="72"/>
+        </Grid.RowDefinitions>
+
+        <!-- ================= HEADER ================= -->
+        <Grid Grid.Row="0" Background="{StaticResource BrushHeader}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
+                <!-- Logo "S": kotak putih membulat + huruf S (geometri Path, tanpa berkas gambar) -->
+                <Grid Width="38" Height="38">
+                    <Path Fill="White">
+                        <Path.Data>
+                            <RectangleGeometry Rect="0,0,38,38" RadiusX="10" RadiusY="10"/>
+                        </Path.Data>
+                    </Path>
+                    <Path Stroke="#155E3C" StrokeThickness="3.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Data="M25.2,12.6 C24.6,10.3 22.3,9 19,9 C15.3,9 12.9,10.8 12.9,13.6 C12.9,16.6 15.9,17.4 19,18.3 C22.3,19.2 25.4,20.2 25.4,23.8 C25.4,26.9 22.7,29 19,29 C15.4,29 13,27.5 12.6,25"/>
+                </Grid>
+                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="SiapBOSP" Foreground="White" FontSize="20" FontWeight="Bold"/>
+                    <TextBlock Text="Aplikasi Bendahara Sekolah" Foreground="#D1FAE5" FontSize="11" Margin="0,-2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0"
+                    Background="#33FFFFFF" CornerRadius="10" Padding="10,3">
+                <TextBlock Text="Pemasang v12.0.0" Foreground="White" FontSize="11.5"/>
+            </Border>
+        </Grid>
+
+        <!-- ================= KONTEN (5 halaman bertumpuk) ================= -->
+        <Grid Grid.Row="1">
+
+            <!--  1. Selamat datang  -->
+            <Grid x:Name="PageWelcome" Visibility="Visible">
+                <ContentControl Style="{StaticResource Kartu}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TeksJudul}" Text="Selamat datang di Pemasang SiapBOSP"/>
+                        <TextBlock Style="{StaticResource TeksSub}" Text="Aplikasi bendahara sekolah - lokal di laptop ini, tersambung ke website pusat."/>
+
+                        <TextBlock Style="{StaticResource TeksLabel}" Text="Pemasang akan:" Margin="0,14,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Path Style="{StaticResource IkonCentang}"/>
+                            <TextBlock Text="menyalin aplikasi SiapBOSP ke laptop ini (tidak perlu internet);"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Path Style="{StaticResource IkonCentang}"/>
+                            <TextBlock Text="menyiapkan database dan data awal sekolah;"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Path Style="{StaticResource IkonCentang}"/>
+                            <TextBlock Text="membuat akun bendahara untuk login;"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Path Style="{StaticResource IkonCentang}"/>
+                            <TextBlock Text="membuat pintasan di Desktop dan Start Menu."/>
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource TeksBantuan}" Margin="0,6,0,0"
+                                   Text="Tidak perlu memasang PHP, Node, atau aplikasi lain - semuanya sudah dibundel."/>
+                        <TextBlock x:Name="LblLokasi" Style="{StaticResource TeksBantuan}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+
+                        <!-- Banner kuning: sudah terpasang -> akan memperbarui (data aman) -->
+                        <Border x:Name="BannerPerbarui" Visibility="Collapsed" Margin="0,12,0,0" Padding="12,8"
+                                Background="{StaticResource BrushKuningLatar}" BorderBrush="{StaticResource BrushKuningGaris}"
+                                BorderThickness="1" CornerRadius="8">
+                            <DockPanel>
+                                <Grid DockPanel.Dock="Left" Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Top">
+                                    <Ellipse Fill="#F59E0B"/>
+                                    <Path Data="M10,5 L10,11.5 M10,14.6 L10,14.8" Stroke="White" StrokeThickness="2.2"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                </Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Akan memperbarui (data aman)" FontWeight="SemiBold" Foreground="{StaticResource BrushAmber}"/>
+                                    <TextBlock x:Name="TxtBannerPerbarui" TextWrapping="Wrap" FontSize="11.5" Foreground="#7C4A03"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </ContentControl>
+            </Grid>
+
+            <!--  2. Data sekolah  -->
+            <Grid x:Name="PageDataSekolah" Visibility="Collapsed">
+                <ContentControl Style="{StaticResource Kartu}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TeksJudul}" Text="Data Sekolah"/>
+                        <TextBlock Style="{StaticResource TeksSub}" Text="Identitas sekolah yang memakai aplikasi ini."/>
+
+                        <Border x:Name="LblConfInfo" Visibility="Collapsed" Margin="0,12,0,0" Padding="10,6"
+                                Background="{StaticResource BrushHijauMuda}" CornerRadius="7">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Style="{StaticResource IkonCentang}" Margin="0,0,8,0"/>
+                                <TextBlock FontSize="11.5" Foreground="#15803D" TextWrapping="Wrap" MaxWidth="560"
+                                           Text="Identitas terbaca dari akun-sekolah.conf (unduhan website) - sinkron ke pusat siap dipakai."/>
+                            </StackPanel>
+                        </Border>
+
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource TeksLabel}" Text="NPSN sekolah"/>
+                                <TextBox x:Name="TxtNpsn" MaxLength="20"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource TeksLabel}" Text="Nama sekolah"/>
+                                <TextBox x:Name="TxtSekolah"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource TeksBantuan}" Margin="0,12,0,0"
+                                   Text="NPSN dipakai untuk mengaitkan data dengan sekolah di website pusat."/>
+                        <TextBlock Style="{StaticResource TeksBantuan}"
+                                   Text="Periksa ejaan nama sekolah - tampil juga di laporan."/>
+                        <TextBlock x:Name="LblGalatData" Style="{StaticResource TeksGalat}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </ContentControl>
+            </Grid>
+
+            <!--  3. Akun bendahara  -->
+            <Grid x:Name="PageAkun" Visibility="Collapsed">
+                <ContentControl Style="{StaticResource Kartu}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TeksJudul}" Text="Akun Bendahara"/>
+                        <TextBlock Style="{StaticResource TeksSub}" Text="Dipakai untuk login ke aplikasi SiapBOSP di laptop ini."/>
+
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="12"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Grid.Column="0">
+                                <TextBlock Style="{StaticResource TeksLabel}" Text="Nama bendahara"/>
+                                <TextBox x:Name="TxtNama"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="2">
+                                <TextBlock Style="{StaticResource TeksLabel}" Text="Email untuk login"/>
+                                <TextBox x:Name="TxtEmail"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="0">
+                                <TextBlock Style="{StaticResource TeksLabel}" Text="Kata sandi (min 6)"/>
+                                <PasswordBox x:Name="TxtSandi"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="2">
+                                <TextBlock Style="{StaticResource TeksLabel}" Text="Ulangi kata sandi"/>
+                                <PasswordBox x:Name="TxtSandi2"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock x:Name="LblGalatAkun" Style="{StaticResource TeksGalat}" Margin="0,10,0,0"/>
+
+                        <Border Margin="0,12,0,0" Padding="12,8" Background="{StaticResource BrushKuningLatar}" CornerRadius="8">
+                            <TextBlock FontSize="11.5" Foreground="#7C4A03" TextWrapping="Wrap"
+                                       Text="CATAT email dan kata sandi ini - dipakai untuk login aplikasi setiap hari (bisa diganti kapan saja lewat menu Profil di aplikasi)."/>
+                        </Border>
+                    </StackPanel>
+                </ContentControl>
+            </Grid>
+
+            <!--  4. Proses  -->
+            <Grid x:Name="PageProses" Visibility="Collapsed">
+                <ContentControl Style="{StaticResource Kartu}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <DockPanel Grid.Row="0">
+                            <Button x:Name="BtnBukaLog" DockPanel.Dock="Right" Style="{StaticResource TombolTautan}"
+                                    Content="Buka Log" VerticalAlignment="Center" Click="BtnBukaLog_Click"/>
+                            <TextBlock x:Name="LblJudulProses" Style="{StaticResource TeksJudul}" Text="Memasang SiapBOSP..." Margin="0"/>
+                        </DockPanel>
+                        <TextBlock x:Name="LblPersen" Grid.Row="1" Text="0%" FontSize="48" FontWeight="Light"
+                                   Foreground="{StaticResource BrushHijauTua}" HorizontalAlignment="Center" Margin="0,-4,0,-4"/>
+                        <TextBlock x:Name="LblStatus" Grid.Row="2" Text="Menyiapkan..." FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,0,8"/>
+                        <ProgressBar x:Name="Bar" Grid.Row="3" Style="{StaticResource ProgresBulat}" Minimum="0" Maximum="100" Value="0"/>
+                        <TextBox x:Name="TxtLog" Grid.Row="4" Style="{StaticResource GayaLog}" Margin="0,12,0,0"/>
+                        <TextBlock x:Name="LblGalat" Grid.Row="5" Style="{StaticResource TeksGalat}" Margin="0,8,0,0"/>
+                    </Grid>
+                </ContentControl>
+            </Grid>
+
+            <!--  5. Selesai  -->
+            <Grid x:Name="PageSelesai" Visibility="Collapsed">
+                <ContentControl Style="{StaticResource Kartu}">
+                    <StackPanel>
+                        <!-- Logo Aplikasi SiapBOSP + Lencana Berhasil -->
+                        <Grid Width="78" Height="78" HorizontalAlignment="Center" Margin="0,2,0,8">
+                            <!-- Kartu Logo SiapBOSP -->
+                            <Border Width="68" Height="68" CornerRadius="16" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                    Background="{StaticResource BrushHeader}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#0F172A" Direction="270" ShadowDepth="3" BlurRadius="10" Opacity="0.18"/>
+                                </Border.Effect>
+                                <Grid>
+                                    <!-- Monogram Huruf S SiapBOSP -->
+                                    <Path Stroke="White" StrokeThickness="5.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Data="M44.5,22.5 C43.5,18.4 39.5,16 34,16 C27.5,16 23.2,19.2 23.2,24.2 C23.2,29.5 28.5,31 34,32.5 C39.8,34.1 45.2,35.9 45.2,42.3 C45.2,47.8 40.4,51.6 34,51.6 C27.6,51.6 23.3,48.9 22.6,44.5"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Badge Centang Sukses di sudut kanan bawah -->
+                            <Grid Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                <Ellipse Fill="White"/>
+                                <Ellipse Width="24" Height="24">
+                                    <Ellipse.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#10B981" Offset="0"/>
+                                            <GradientStop Color="#059669" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                                <Path Data="M7,12 L10.5,15.5 L17,9" Stroke="White" StrokeThickness="2.6"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Grid>
+                        <TextBlock Style="{StaticResource TeksJudul}" Text="SiapBOSP berhasil terpasang!" HorizontalAlignment="Center" Margin="0,10,0,2"/>
+                        <TextBlock x:Name="LblLokasiSelesai" Style="{StaticResource TeksSub}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                        <TextBlock TextWrapping="Wrap" Margin="0,14,0,0" TextAlignment="Center"
+                                   Text="Pintasan dibuat di Desktop dan Start Menu (menu SiapBOSP): buka aplikasi, Tarik Data ARKAS, Sinkron ke Pusat, dan Hapus."/>
+                        <Border Margin="0,12,0,0" Padding="12,8" Background="{StaticResource BrushKuningLatar}" CornerRadius="8">
+                            <TextBlock FontSize="11.5" Foreground="#7C4A03" TextWrapping="Wrap" TextAlignment="Center"
+                                       Text="Simpan email dan kata sandi login Anda baik-baik. Ganti kata sandi kapan saja lewat menu Profil di aplikasi."/>
+                        </Border>
+                        <DockPanel Margin="0,14,0,0">
+                            <Button x:Name="BtnBukaLog2" DockPanel.Dock="Right" Style="{StaticResource TombolTautan}"
+                                    Content="Buka Log" Click="BtnBukaLog_Click"/>
+                            <CheckBox x:Name="ChkBuka" Content="Buka SiapBOSP sekarang" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </StackPanel>
+                </ContentControl>
+            </Grid>
+        </Grid>
+
+        <!-- ================= FOOTER ================= -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <Grid Margin="24,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="Titik1" Style="{StaticResource TitikLangkah}"/>
+                    <Ellipse x:Name="Titik2" Style="{StaticResource TitikLangkah}"/>
+                    <Ellipse x:Name="Titik3" Style="{StaticResource TitikLangkah}"/>
+                    <Ellipse x:Name="Titik4" Style="{StaticResource TitikLangkah}"/>
+                    <Ellipse x:Name="Titik5" Style="{StaticResource TitikLangkah}"/>
+                    <TextBlock x:Name="LblLangkah" Margin="6,0,0,0" FontSize="11.5" Foreground="{StaticResource BrushTeksRedup}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="BtnSekunder" Style="{StaticResource RoundedSecondary}" Content="Batal" Margin="0,0,10,0" Click="BtnSekunder_Click"/>
+                    <Button x:Name="BtnPrimer" Style="{StaticResource RoundedPrimary}" Content="Mulai &gt;" IsDefault="True" Click="BtnPrimer_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

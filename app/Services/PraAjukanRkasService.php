@@ -6,6 +6,7 @@ use App\Models\RkasDetail;
 use App\Models\RkasHeader;
 use App\Models\School;
 use App\Models\StandarHarga;
+use Illuminate\Support\Collection;
 
 /**
  * Gerbang pra-pengajuan Kertas Kerja (paritas tombol "Ajukan Pengesahan" ARKAS 4).
@@ -158,8 +159,8 @@ class PraAjukanRkasService
     /**
      * Rincian yang harga satuannya melebihi batas Standar Harga (SSH/SBU) sekolah/Dinas.
      *
-     * @param  \Illuminate\Support\Collection<int,RkasDetail>  $details
-     * @return \Illuminate\Support\Collection<int,RkasDetail>
+     * @param  Collection<int,RkasDetail>  $details
+     * @return Collection<int,RkasDetail>
      */
     private static function hargaDiAtasStandar($details, int $schoolId)
     {
@@ -188,7 +189,7 @@ class PraAjukanRkasService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int,RkasDetail>  $details
+     * @param  Collection<int,RkasDetail>  $details
      * @return array<int,int>
      */
     private static function idBaris($details): array

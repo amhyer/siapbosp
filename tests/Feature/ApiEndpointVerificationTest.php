@@ -23,6 +23,7 @@ class ApiEndpointVerificationTest extends TestCase
     use RefreshDatabase;
 
     private const TOKEN_SEKOLAH = 'token-plaintext-sekolah-xyz789';
+
     private const TOKEN_DINAS = 'token-plaintext-dinas-xyz789';
 
     /** Semua endpoint API v1 selain /ping (yang publik). */
@@ -57,7 +58,7 @@ class ApiEndpointVerificationTest extends TestCase
 
     private function denganToken(string $token): static
     {
-        return $this->withHeader('Authorization', 'Bearer ' . $token);
+        return $this->withHeader('Authorization', 'Bearer '.$token);
     }
 
     public function test_ping_publik_tanpa_token(): void
@@ -75,7 +76,7 @@ class ApiEndpointVerificationTest extends TestCase
     public function test_semua_endpoint_menolak_token_di_query_string(): void
     {
         foreach (self::ENDPOINT_TERLINDUNGI as $ep) {
-            $res = $this->getJson($ep . '?api_token=' . self::TOKEN_SEKOLAH);
+            $res = $this->getJson($ep.'?api_token='.self::TOKEN_SEKOLAH);
             $this->assertSame(401, $res->getStatusCode(), "Gagal di {$ep}: query string harus 401");
         }
     }

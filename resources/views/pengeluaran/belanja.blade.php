@@ -10,7 +10,12 @@
 ])
 <div class="flex flex-wrap justify-between items-center gap-2">
   <p class="text-sm text-slate-500">Pencatatan belanja Dana BOSP (tahun {{ $tahun }}).</p>
-  <a href="{{ route('belanja.create') }}" class="btn"><x-icon name="plus" class="h-4 w-4"/> Input Belanja</a>
+  <div class="flex items-center gap-2">
+    <a href="{{ route('belanja.cetak-batch') }}" class="btn2" target="_blank" title="Cetak seluruh kuitansi belanja bulan ini dalam 1 dokumen siap cetak">
+      <x-icon name="print" class="h-4 w-4"/> Cetak Semua Kuitansi Bulan Ini
+    </a>
+    <a href="{{ route('belanja.create') }}" class="btn"><x-icon name="plus" class="h-4 w-4"/> Input Belanja</a>
+  </div>
 </div>
 <div class="card !py-3 flex flex-wrap gap-2 items-center">
   <form method="get" class="flex gap-2 items-center">

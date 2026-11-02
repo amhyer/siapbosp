@@ -1,0 +1,67 @@
+// SiapBOSP — interaksi shell aplikasi (sidebar drawer, dropdown, grup menu).
+(function () {
+    function sidebar(open) {
+        const sb = document.getElementById('sidebar');
+        const ov = document.getElementById('sidebar-overlay');
+        if (!sb) return;
+        const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+        if (isDesktop) {
+            const willCollapse = open === undefined
+                ? !sb.classList.contains('sidebar-collapsed')
+                : open === false;
+            sb.classList.toggle('sidebar-collapsed', willCollapse);
+            return;
+        }
+        const willOpen = open === undefined ? sb.classList.contains('-translate-x-full') : open;
+        sb.classList.toggle('-translate-x-full', !willOpen);
+        if (ov) {
+            ov.classList.toggle('hidden', !willOpen);
+            document.body.classList.toggle('overflow-hidden', willOpen);
+        }
+    }
+
+    function closeNotif() {
+        document.querySelectorAll('details[data-dropdown][open]').forEach((d) => d.removeAttribute('open'));
+    }
+
+    window.toggleSidebar = function (force) {
+        sidebar(force);
+    };
+
+    window.toggleGrp = function (btn) {
+        const grp = btn.closest('.grp');
+        if (!grp) return;
+        grp.classList.toggle('open');
+        const sub = grp.querySelector('.navw-sub, .sub');
+        if (sub) sub.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', grp.classList.contains('open') ? 'true' : 'false');
+    };
+
+    // Handler atribut inline sudah dipindah ke data-* (audit R-03): tombol
+    // buka/tutup sidebar dan tombol grup menu dideteksi lewat delegasi event.
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('details[data-dropdown]')) closeNotif();
+        const t = e.target.closest('[data-close-sidebar]');
+        if (t) sidebar(false);
+        if (e.target.closest('[data-sidebar-tutup]')) sidebar(false);
+        if (e.target.closest('[data-sidebar-buka]')) sidebar();
+        const grp = e.target.closest('[data-grup]');
+        if (grp) window.toggleGrp(grp);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeNotif();
+            sidebar(false);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        const ov = document.getElementById('sidebar-overlay');
+        if (window.matchMedia('(min-width: 1024px)').matches && ov) {
+            ov.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            document.getElementById('sidebar')?.classList.remove('-translate-x-full');
+        }
+    });
+})();

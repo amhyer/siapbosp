@@ -1,0 +1,855 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+
+/* Tipografi resmi ARKAS 4.3.1: Inter (variable, subset latin). Berkasnya
+   disimpan di public/fonts agar tidak bergantung CDN — CSP aplikasi hanya
+   mengizinkan font-src 'self' (lihat app/Http/Middleware/KeamananHeader.php).
+   Lisensi: public/fonts/Inter-OFL.txt (SIL Open Font License 1.1). */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2');
+}
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* ===================================================================
+       PALET ARKAS 4.3.1 — TOKEN RESMI, BUKAN PERKIRAAN
+       Nilai di bawah diambil langsung dari aplikasi ARKAS Desktop 4.3.1
+       (design token @wartek-id/design-tokens yang tertanam di bundle
+       main_window/index.js). Lihat docs/ARKAS-4.3.1-RUJUKAN.md.
+
+       Seluruh view memakai utilitas indigo-*, slate-*, emerald-*, rose-*,
+       amber-*, dan sky-*. Peta warna dipasang SEKALI di sini supaya semua
+       halaman mengikuti palet ARKAS tanpa menyentuh view satu per satu.
+       =================================================================== */
+
+    /* Biru ARKAS (blue-5 … blue-100), dipetakan apa adanya:
+       600 = blue-60, 700 = blue-70, 800 = blue-80. Warna aksi utama
+       (#0b5fef = --color-action-default) dipakai lewat token semantik
+       --arkas-action di bawah, bukan dengan menggeser skala ini. */
+    --color-indigo-50: #ecf5fe;
+    --color-indigo-100: #e1effe;
+    --color-indigo-200: #cfe3fc;
+    --color-indigo-300: #b1d1fb;
+    --color-indigo-400: #91bcfd;
+    --color-indigo-500: #4c8df6;
+    --color-indigo-600: #2c70e5;
+    --color-indigo-700: #0b5fef;
+    --color-indigo-800: #054bcc;
+    --color-indigo-900: #103178;
+    --color-indigo-950: #0e1c39;
+
+    /* Abu-arang ARKAS (gray-0 … gray-100) — netral hangat, bukan slate kebiruan.
+       gray-90 #2f3031 dan gray-100 #1e1f1f dipakai untuk permukaan gelap
+       (sidebar, bilah ringkas, blok kode) yang di view ditulis bg-slate-900/950. */
+    --color-slate-50: #fafafa;
+    --color-slate-100: #f5f5f5;
+    --color-slate-200: #d9dbdd;
+    --color-slate-300: #c9cbcf;
+    --color-slate-400: #b3b5b7;
+    --color-slate-500: #808489;
+    --color-slate-600: #65696c;
+    --color-slate-700: #53575a;
+    --color-slate-800: #45474a;
+    --color-slate-900: #2f3031;
+    --color-slate-950: #1e1f1f;
+
+    /* Hijau "berhasil" (green-50…90); teks sukses ARKAS = #35825a. */
+    --color-emerald-50: #e3fdeb;
+    --color-emerald-100: #cefde0;
+    --color-emerald-200: #bcf1d1;
+    --color-emerald-300: #a1e8be;
+    --color-emerald-400: #7bd3a1;
+    --color-emerald-500: #4ca375;
+    --color-emerald-600: #2e8a5c;
+    --color-emerald-700: #117e47;
+    --color-emerald-800: #04673a;
+    --color-emerald-900: #084a2d;
+
+    /* Merah "kritis" (red-50…90); red-60 = #e02d38. */
+    --color-rose-50: #fef0f0;
+    --color-rose-100: #ffe6e7;
+    --color-rose-200: #facccf;
+    --color-rose-300: #fbb7bc;
+    --color-rose-400: #f7979f;
+    --color-rose-500: #ed5362;
+    --color-rose-600: #e02d38;
+    --color-rose-700: #c82228;
+    --color-rose-800: #af182c;
+    --color-rose-900: #70111d;
+
+    /* Jingga "peringatan" (orange-5…90); orange-40 = #eda62b. */
+    --color-amber-50: #fff9ee;
+    --color-amber-100: #ffeece;
+    --color-amber-200: #ffd78a;
+    --color-amber-300: #fabf4b;
+    --color-amber-400: #eda62b;
+    --color-amber-500: #d99620;
+    --color-amber-600: #b57f21;
+    --color-amber-700: #976a1c;
+    --color-amber-800: #815b18;
+    --color-amber-900: #5f4212;
+
+    /* sky-* dipakai untuk kas bank: tetap keluarga biru ARKAS. */
+    --color-sky-50: #ecf5fe;
+    --color-sky-100: #e1effe;
+    --color-sky-200: #cfe3fc;
+    --color-sky-300: #b1d1fb;
+    --color-sky-400: #91bcfd;
+    --color-sky-500: #4c8df6;
+    --color-sky-600: #2c70e5;
+    --color-sky-700: #0b5fef;
+    --color-sky-800: #054bcc;
+    --color-sky-900: #103178;
+
+    --color-brand-50: #ecf5fe;
+    --color-brand-100: #e1effe;
+    --color-brand-500: #4c8df6;
+    --color-brand-600: #0b5fef;
+    --color-brand-700: #054bcc;
+
+    /* Sudut ARKAS: kartu & tombol tidak membulat besar. */
+    --radius-lg: 6px;
+    --radius-xl: 8px;
+    --radius-2xl: 10px;
+}
+
+/* Token semantik ARKAS 4.3.1 — nama & nilai persis dari paket resmi.
+   Sumber: design token @wartek-id di bundle main_window/index.js.
+   Dijaga tests/Feature/TokenArkasTest.php. */
+:root {
+    --arkas-action: #0b5fef;            /* --color-action-default */
+    --arkas-action-hovered: #054bcc;    /* --color-action-hovered */
+    --arkas-action-pressed: #103178;    /* --color-action-pressed */
+    --arkas-primary: #0b5ae2;           /* --color-primary */
+    --arkas-critical: #c82236;          /* --color-critical */
+    --arkas-success: #35825a;           /* --color-success */
+    --arkas-warning: #ffc453;           /* --color-warning */
+    --arkas-informational: #4c8df6;     /* --color-informational */
+    --arkas-text-default: #2f3031;      /* --color-text-default */
+    --arkas-text-subdued: #65696c;      /* --color-text-subdued */
+    --arkas-background-default: #fafafa; /* --color-background-default */
+    --arkas-gray-5: #f5f5f5;
+    --arkas-gray-10: #efefef;
+    --arkas-gray-20: #d9dbdd;
+    --arkas-gray-90: #2f3031;
+    --arkas-surface-neutral-high: #efeff0; /* --color-surface-neutral-high */
+    --arkas-border-default: #808489;       /* --color-border-default */
+    --arkas-border-subdued: #c9cbcf;       /* --color-border-subdued */
+    --arkas-weight-action: 600;            /* --font-weight-action */
+    --arkas-radius: 0.25rem;               /* sudut komponen ARKAS (0.25–0.3rem) */
+    /* --elevation-01 (belum dipakai: kartu sengaja tetap rata tanpa bayangan) */
+    --arkas-shadow-card: 0px 1px 1px rgba(0, 0, 0, 0.08), 0px 2px 1px -1px rgba(0, 0, 0, 0.02), 0px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@layer base {
+    body {
+        background: #fafafa;
+        color: #2f3031;
+        font-family: var(--font-sans);
+        font-size: 15px;
+        -webkit-font-smoothing: antialiased;
+    }
+    ::selection {
+        background: #cfe3fc;
+        color: #103178;
+    }
+}
+
+@layer components {
+    /* ===== Form ===== */
+    .inp {
+        width: 100%;
+        border: 1px solid #c9cbcf;
+        border-radius: 4px;
+        background: #fff;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        color: #2f3031;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .inp::placeholder {
+        color: #808489;
+    }
+    .inp:focus {
+        @apply outline-none ring-2 ring-indigo-100;
+        border-color: var(--arkas-action);
+    }
+    .inp-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+    select.inp {
+        padding-right: 2rem;
+    }
+    label.lbl {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #65696c;
+    }
+
+    /* ===== Tombol (tombol ARKAS: 4px, tebal 600, biru #0b5fef) ===== */
+    .btn {
+        @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-[13px] text-white transition focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60;
+        background-color: var(--arkas-action);
+        border-radius: var(--arkas-radius);
+        font-weight: var(--arkas-weight-action);
+    }
+    .btn:hover {
+        background-color: var(--arkas-action-hovered);
+    }
+    .btn:active {
+        background-color: var(--arkas-action-pressed);
+    }
+    .btn2 {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        border: 0;
+        border-radius: 4px;
+        outline: 1px solid #808489;
+        outline-offset: -1px;
+        background: #fff;
+        padding: 0.5rem 1rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.25;
+        color: #2f3031;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s, outline-color 0.2s;
+    }
+    .btn2:hover {
+        background: #f5f5f5;
+        color: #2f3031;
+    }
+    .btn2:active {
+        background: #efefef;
+    }
+    .btn2:focus-visible {
+        outline: 2px solid #91bcfd;
+        outline-offset: 2px;
+    }
+    .btn-black {
+        background: #2f3031;
+        color: #fff;
+    }
+    .btn-black:hover {
+        background: #45474a;
+        color: #fff;
+    }
+    .btn-danger {
+        @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-[13px] text-white transition;
+        background-color: var(--arkas-critical); /* --color-critical #c82236 */
+        border-radius: var(--arkas-radius);
+        font-weight: var(--arkas-weight-action);
+    }
+    .btn-danger:hover {
+        background-color: #af182c; /* red-80 */
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    /* ===== Kartu & tabel ===== */
+    .card {
+        border: 1px solid #d9dbdd;
+        border-radius: 4px;
+        background: #fff;
+        padding: 1.25rem;
+    }
+    @media (min-width: 640px) {
+        .card {
+            padding: 1.5rem;
+        }
+    }
+    .card-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #2f3031;
+    }
+    .tbl-wrap {
+        margin-left: -1rem;
+        margin-right: -1rem;
+        overflow-x: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    @media (min-width: 640px) {
+        .tbl-wrap {
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+            border: 1px solid #d9dbdd;
+            border-radius: 4px;
+        }
+    }
+    .tbl {
+        width: 100%;
+        min-width: 640px;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+    .tbl th {
+        @apply border-b border-slate-200 px-2.5 py-2 text-left text-[11px] uppercase tracking-wide text-slate-500;
+        background-color: var(--arkas-surface-neutral-high);
+        font-weight: var(--arkas-weight-action);
+    }
+    .tbl td {
+        border-bottom: 1px solid #efefef;
+        padding: 0.75rem 1rem;
+        vertical-align: top;
+        color: #2f3031;
+    }
+    .tbl tbody tr:last-child td {
+        border-bottom: 0;
+    }
+    .tbl tbody tr:hover td {
+        background: #fafafa;
+    }
+    .tbl tfoot td {
+        background: #f5f5f5;
+        font-weight: 600;
+        color: #2f3031;
+    }
+
+    /* Baris baru: kilat kuning sebentar lalu kembali normal. */
+    .kilat td {
+        animation: kilat-baris 2.6s ease-out 1;
+    }
+    @keyframes kilat-baris {
+        0%,
+        25% {
+            background-color: #fef3c7;
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .kilat td {
+            animation: none;
+            background-color: #fef3c7;
+        }
+    }
+    .num {
+        white-space: nowrap;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Jejak cetak di kerangka aplikasi. */
+    .cetak-kaki {
+        display: none;
+    }
+    @media print {
+        .cetak-kaki {
+            display: block;
+            margin-top: 1rem;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 0.35rem;
+            font-size: 9pt;
+            color: #475569;
+        }
+    }
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        white-space: nowrap;
+        border-radius: 0.25rem;
+        padding: 0.125rem 0.5rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .bdan {
+        background: #e1effe;
+        color: #054bcc;
+    }
+    .bdan:hover {
+        background: #cfe3fc;
+    }
+    .bdel {
+        background: #ffe6e7;
+        color: #c82228;
+    }
+    .bdel:hover {
+        background: #facccf;
+    }
+
+    /* ===== Kerangka ARKAS ===== */
+    .arkas-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        height: 54px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: #fff;
+        padding: 0 21px;
+        box-shadow: 0 2px 4px -4px #2f3031;
+    }
+    .arkas-logo {
+        display: inline-flex;
+        height: 32px;
+        width: 32px;
+        flex: 0 0 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background: #1e3a8a;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .arkas-avatar {
+        display: inline-flex;
+        height: 36px;
+        width: 36px;
+        flex: 0 0 36px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: #1e3a8a;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .arkas-school-btn {
+        display: flex;
+        cursor: pointer;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        background: transparent;
+        padding: 4px 0 4px 8px;
+        text-align: left;
+    }
+    .arkas-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 2px);
+        z-index: 50;
+        width: 268px;
+        border-radius: 0 0 4px 4px;
+        background: #fff;
+        padding: 4px 0;
+        box-shadow: 0 8px 20px rgba(37, 40, 43, 0.2);
+    }
+    .arkas-dropdown a,
+    .arkas-dropdown button {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        border: 0;
+        background: transparent;
+        padding: 12px 24px;
+        text-align: left;
+        font-size: 16px;
+        font-weight: 400;
+        color: #000;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .arkas-dropdown a:hover,
+    .arkas-dropdown button:hover {
+        background: #f5f5f5;
+    }
+    .arkas-dropdown svg {
+        height: 24px;
+        width: 24px;
+        margin-right: 12px;
+        flex: 0 0 24px;
+    }
+
+    .arkas-sidebar {
+        width: 260px;
+        background: #1e3a8a;
+        color: #fff;
+    }
+    .arkas-content {
+        min-height: calc(100vh - 54px);
+        background: #fafafa;
+    }
+    .arkas-main {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+    }
+    @media (min-width: 640px) {
+        .arkas-main {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+    }
+    @media (min-width: 1024px) {
+        .arkas-main {
+            padding: 32px 40px 48px;
+        }
+    }
+    .arkas-page-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .arkas-page-title {
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.3;
+        color: #2f3031;
+    }
+    .arkas-page-sub {
+        margin-top: 2px;
+        max-width: 56rem;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #65696c;
+    }
+    .arkas-year {
+        border: 1px solid #c9cbcf;
+        border-radius: 4px;
+        background: #fff;
+        padding: 4px 8px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #2f3031;
+    }
+    .arkas-year:focus {
+        border-color: #0b5fef;
+        outline: none;
+        box-shadow: 0 0 0 2px #e1effe;
+    }
+    .arkas-icon-btn {
+        display: inline-flex;
+        height: 34px;
+        width: 34px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d9dbdd;
+        border-radius: 4px;
+        background: #fff;
+        color: #2f3031;
+        cursor: pointer;
+    }
+    .arkas-icon-btn:hover {
+        background: #f5f5f5;
+    }
+
+    /* ===== Sidebar ===== */
+    .navw {
+        display: flex;
+        flex-direction: column;
+    }
+    .navw a:hover, .navw .menu-btn:hover {
+        @apply bg-white/10 text-white no-underline;
+    }
+    .navw a.on {
+        @apply font-semibold text-white;
+        background-color: var(--arkas-action);
+    }
+    .navw .menu-btn {
+        @apply font-semibold text-slate-200;
+    }
+    .navw .chev {
+        @apply ml-auto text-[11px] text-slate-500 transition-transform duration-200;
+        transform: rotate(-90deg);
+    }
+    .navw .grp.open .chev {
+        transform: rotate(0deg);
+    }
+    .navw .grp.open > .menu-btn {
+        @apply text-white;
+    }
+    .navw .sub {
+        @apply ml-5 flex flex-col gap-0.5 border-l border-white/15 py-1 pl-3;
+    }
+
+    /* 3 area kerja utama (Penganggaran/Penatausahaan/Arsip) dibuat lebih
+       menonjol, meniru hierarki sidebar ARKAS 4. */
+    .navw-utama {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .navw-utama > .grp > .menu-btn,
+    .navw-utama > a {
+        @apply py-2.5 text-[14.5px] font-bold text-white;
+    }
+    .navw-area {
+        display: block;
+        flex: 1;
+        border-radius: 4px;
+        padding: 8px 23px;
+        margin: 1px 0;
+        color: #fff;
+        font-size: 16px;
+        line-height: 1.35;
+        text-decoration: none;
+        transition: background-color 0.15s;
+    }
+    .navw .navw-area:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw .navw-area.on {
+        background: #1d4ed8;
+        font-weight: 600;
+        color: #fff;
+    }
+    .navw-chev {
+        display: inline-flex;
+        height: 32px;
+        width: 28px;
+        flex: 0 0 28px;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #bfdbfe;
+        cursor: pointer;
+    }
+    .navw-chev:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+    .navw-chev svg {
+        transition: transform 0.2s;
+    }
+    .grp.open .navw-chev svg {
+        transform: rotate(180deg);
+    }
+    .navw-sub {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin: 2px 0 4px 23px;
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 2px 0 2px 8px;
+    }
+    .navw-sub a {
+        display: block;
+        border-radius: 4px;
+        padding: 6px 12px;
+        color: #dbeafe;
+        font-size: 13.5px;
+        text-decoration: none;
+    }
+    .navw-sub a:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .navw-sub a.on {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-sub p {
+        padding: 6px 12px 2px;
+        color: #93c5fd;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .navw-sep {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 16px 0 5px;
+        padding: 0 23px;
+        color: #93c5fd;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .navw-sep::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+    }
+    .navw-extra {
+        display: block;
+        border-radius: 4px;
+        padding: 6px 23px;
+        color: #dbeafe;
+        font-size: 13.5px;
+        text-decoration: none;
+    }
+    .navw-extra:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .navw-extra.on {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-group > .menu-btn {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        padding: 7px 23px;
+        text-align: left;
+        color: #dbeafe;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .navw-group > .menu-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+    .navw-group .chev {
+        height: 16px;
+        width: 16px;
+        flex: 0 0 16px;
+        transition: transform 0.2s;
+    }
+    .navw-group.open .chev {
+        transform: rotate(180deg);
+    }
+    .navw-util {
+        display: flex;
+        align-items: center;
+        border-radius: 4px;
+        padding: 8px 12px;
+        color: #fff;
+        font-size: 16px;
+        text-decoration: none;
+    }
+    .navw-util:hover {
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-util.on {
+        background: #1d4ed8;
+        color: #fff;
+        font-weight: 600;
+    }
+    .navw-util svg {
+        height: 24px;
+        width: 24px;
+        margin-right: 15px;
+        flex: 0 0 24px;
+    }
+
+    @media (min-width: 1024px) {
+        .sidebar-collapsed {
+            margin-left: -260px;
+        }
+    }
+
+    /* ===== Alert & empty ===== */
+    .alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        border: 1px solid;
+        border-radius: 4px;
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+    .alert-ok {
+        border-color: #a7f3d0;
+        background: #ecfdf5;
+        color: #065f46;
+    }
+    .alert-warn {
+        border-color: #fde68a;
+        background: #fffbeb;
+        color: #92400e;
+    }
+    .alert-err {
+        border-color: #fecdd3;
+        background: #fff1f2;
+        color: #9f1239;
+    }
+    .empty {
+        padding: 2.5rem 0;
+        text-align: center;
+        font-size: 14px;
+        color: #808489;
+    }
+    .page-head {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    @media (min-width: 640px) {
+        .page-head {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+    }
+    .page-desc {
+        margin-top: 4px;
+        font-size: 13px;
+        color: #65696c;
+    }
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #d9dbdd;
+        border-radius: 4px;
+        background: #fff;
+        padding: 12px 16px;
+    }
+
+    /* ===== Pagination Laravel ===== */
+    nav[role='navigation'] [aria-label='Pagination Navigation'] {
+        margin-top: 12px;
+    }
+
+    @media print {
+        .nonprint {
+            display: none !important;
+        }
+    }
+}
+
+/* Scrollbar halus sidebar */
+#sidebar nav::-webkit-scrollbar {
+    width: 6px;
+}
+#sidebar nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+}
+
+/* Chart canvas: cegah melar */
+canvas {
+    max-width: 100%;
+}

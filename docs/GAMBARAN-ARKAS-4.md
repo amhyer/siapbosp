@@ -93,10 +93,10 @@ Paket `SiapBOSP-Portable-v12.zip` diuji end-to-end (diekstrak, dipasang via
 
 ## 16. Tarik Data ARKAS "1 klik" di dalam aplikasi portabel (21 Okt 2026)
 
-- **Kartu ⚡ di *Utility → Profil Sekolah*** — hanya di aplikasi portabel (`TarikArkasService::tersedia()`):
+- **Kartu ⚡ di *Sistem → Profil & Token API*** — hanya di aplikasi portabel (`TarikArkasService::tersedia()`):
   status database ARKAS di laptop ini (ditemukan + NPSN + path), pilih tahun anggaran, tombol
   **"⬇️ Tarik Data Sekarang"** → selesai; ringkasan jumlah (transaksi kas, RKAS, pajak terima/setor)
-  langsung tampil di kartu yang sama. Pintasan Desktop lama tetap tersedia.
+  langsung tampil di kartu yang sama. Aksi tarik juga tetap tersedia lewat Start Menu.
 - **Alur (tanpa token API & tanpa HTTP ke server sendiri)** — aplikasi menjalankan agen bundel
   `agen/TarikArkas/node.exe tarik.cjs lokal --json --tahun X --keluar <temp>.xlsx --db <path>`;
   agen membaca ARKAS desktop (read-only) dan menulis Excel, lalu aplikasi mengimpornya sendiri

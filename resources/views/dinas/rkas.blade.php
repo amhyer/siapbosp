@@ -1,4 +1,5 @@
-@extends('layouts.app', ['title' => 'RKAS Masuk'])
+@extends('layouts.app', ['title' => 'Verifikasi RKAS / Kertas Kerja'])
+@section('subtitle', 'Verifikasi pembagian anggaran belanja sekolah sesuai proporsi juknis')
 @section('content')
 @php
   $badge = [

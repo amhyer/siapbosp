@@ -166,6 +166,7 @@ Route::middleware('auth')->group(function () {
 
         return back()->with('ok', 'Semua notifikasi ditandai sudah dibaca.');
     })->name('notifikasi.bacaSemua');
+    Route::get('/aplikasi-desktop', [UnduhAplikasiController::class, 'petunjuk'])->name('aplikasi-desktop');
 
     // ===== PANEL SEKOLAH =====
     Route::middleware('role:operator,kepsek')->group(function () {
@@ -280,6 +281,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengeluaran/belanja', [PengeluaranController::class, 'belanja'])->name('belanja.index');
         Route::get('/pengeluaran/belanja/buat', [PengeluaranController::class, 'belanjaCreate'])->name('belanja.create');
         Route::get('/pengeluaran/belanja/hitung-pajak', [PengeluaranController::class, 'hitungPajak'])->name('belanja.hitungPajak');
+        Route::get('/pengeluaran/belanja/cetak-batch', [PengeluaranController::class, 'cetakBatch'])->name('belanja.cetak-batch');
         Route::post('/pengeluaran/belanja', [PengeluaranController::class, 'belanjaStore'])->name('belanja.store');
         Route::get('/pengeluaran/belanja/{belanja}', [PengeluaranController::class, 'belanjaShow'])->name('belanja.show')->whereNumber('belanja');
         Route::get('/pengeluaran/belanja/{belanja}/kwitansi', [PengeluaranController::class, 'kwitansi'])->name('belanja.kwitansi')->whereNumber('belanja');
@@ -324,7 +326,6 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/utility/profil', [ProfilController::class, 'edit'])->name('profil.edit');
         Route::put('/utility/profil', [ProfilController::class, 'update'])->name('profil.update');
-        Route::get('/utility/sinkron-arkas', [TarikArkasController::class, 'sinkron'])->name('tarik-arkas.sinkron');
         Route::post('/utility/tarik-arkas', [TarikArkasController::class, 'tarik'])->name('tarik-arkas.tarik');
         Route::get('/utility/penandatangan', [PenandatanganController::class, 'index'])->name('penandatangan');
         Route::post('/utility/penanggung-jawab', [PenandatanganController::class, 'simpanPenanggungJawab'])->name('penandatangan.penanggung-jawab');

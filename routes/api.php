@@ -1,6 +1,7 @@
 <?php
-use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\ApiController;
+use Illuminate\Support\Facades\Route;
 
 // ===== API Publik Baca-Saja v1 =====
 // Autentikasi: header "Authorization: Bearer <token>" (token dibuat di Profil / halaman Pengguna Dinas).

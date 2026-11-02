@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ $title ?? 'Cetak' }}@isset($sekolah) — {{ $sekolah->nama }}@endisset</title>
+<style>
+  /* Inter (berkas yang sama dengan aplikasi) supaya dokumen cetak memakai
+     tipografi yang sama seperti layar; asal-usul & lisensi: public/fonts. */
+  @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;
+    src:url('/fonts/inter-latin-wght-normal.woff2') format('woff2')}
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body{font-family:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px;max-width:62rem;margin:auto;color:#0f172a;line-height:1.5}
+  .kop{border-bottom:3px double #0f172a;padding-bottom:.6rem;margin-bottom:1rem;text-align:center}
+  .tbl{width:100%;border-collapse:collapse;font-size:.78rem}
+  .tbl th,.tbl td{border:1px solid #94a3b8;padding:.32rem .5rem;text-align:left;vertical-align:top}
+  .tbl th{background:#f1f5f9}
+  /* Baris nomor kolom BKU ala ARKAS 4 (1–8). */
+  .tbl tr.bku-nomor th{background:#e2e8f0;text-align:center;font-size:.68rem;color:#475569;padding:.15rem .3rem}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pg{break-before:page}
+  .toolbar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+  .toolbar a,.toolbar button{border:1px solid #cbd5e1;background:#fff;border-radius:.5rem;padding:.4rem .8rem;font-size:.82rem;text-decoration:none;color:#0f172a;cursor:pointer}
+  .toolbar a:hover,.toolbar button:hover{background:#f1f5f9}
+  .ttd{display:flex;justify-content:flex-end;margin-top:2rem}
+  /* Footer jejak cetak: ikut tercetak (tanpa .nonprint) agar dokumen tidak
+     disangka keluaran resmi ARKAS. */
+  .cetak-footer{margin-top:1.75rem;border-top:1px solid #cbd5e1;padding-top:.4rem;
+    display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;
+    font-size:.68rem;line-height:1.35;color:#64748b}
+  .cetak-footer b{color:#334155}
+  .ttd-grid{display:grid;grid-template-columns:1fr 1fr;gap:3.5rem;text-align:center;font-size:.82rem}
+  /* Kompatibilitas kelas Tailwind yang dipakai di isi LPJ cetak */
+  .text-center{text-align:center}.text-right{text-align:right}.text-justify{text-align:justify}
+  .font-bold,.font-extrabold{font-weight:800}.font-semibold{font-weight:600}
+  .uppercase{text-transform:uppercase}.italic{font-style:italic}
+  .text-xs{font-size:11px}.text-sm{font-size:13px}
+  .mt-4{margin-top:1rem}.mt-8{margin-top:2rem}.mt-16{margin-top:4rem}.mt-24{margin-top:6rem}.mt-6{margin-top:1.5rem}.mt-1{margin-top:.25rem}.mt-5{margin-top:1.25rem}
+  .pt-10{padding-top:2.5rem}.text-2xl{font-size:24px}.text-xl{font-size:20px}.text-lg{font-size:18px}
+  .tracking-wide{letter-spacing:.05em}.leading-7{line-height:1.75}
+  .w-2\/3{width:66%}.whitespace-nowrap{white-space:nowrap}.font-mono{font-family:monospace}
+  .text-slate-400{color:#94a3b8}.text-slate-600{color:#475569}.text-emerald-700{color:#047857}
+  .bg-slate-50{background:#f8fafc}.bg-slate-100{background:#f1f5f9}.bg-emerald-100{background:#d1fae5}
+  .badge{display:inline-block;border-radius:999px;padding:.05rem .45rem;font-size:10px;font-weight:600}
+  /* Kelas ukuran arbitrer yang dipakai isi SPJ (Tailwind tak dimuat di cetak). */
+  .text-\[10px\]{font-size:10px}
+  @media print{
+    .nonprint{display:none !important}
+    /* Kaki halaman bernomor ala ARKAS 4 ("Halaman X dari Y"). Margin box CSS
+       didukung Chromium 131+ dan Safari 18.2+; peramban lain mengabaikannya
+       tanpa merusak halaman. Tiap view boleh menambah @bottom-left sendiri. */
+    @page{size:A4;margin:1.5cm;
+      @bottom-right{content:"Halaman " counter(page) " dari " counter(pages);font-size:8pt;color:#334155}
+    }
+    body{padding:0;max-width:none}
+    a{color:inherit;text-decoration:none}
+  }
+</style>
+</head>
+<body>
+{{-- Tanda air DRAFT berlaku untuk SEMUA cetakan (ARKAS 4 Bab XXI), bukan hanya
+     cetak BKU. View yang menghitung statusnya sendiri (mis. bku-cetak dengan
+     rentang Format/Periode) cukup mengirim $isDraft lewat controller. --}}
+@include('partials._watermark-draft')
+@yield('content')
+<footer class="cetak-footer">
+  <span>Dicetak dari <b>SiapBOSP {{ config('app.version', 'v4.3.0') }}</b> — bukan dokumen resmi ARKAS.</span>
+  <span>Cetak {{ now()->format('d/m/Y H:i') }} · {{ $sekolah->nama ?? auth()->user()?->school?->nama ?? '—' }} · TA {{ session('tahun', now()->year) }}</span>
+</footer>
+@include('layouts._interaksi')
+@include('layouts._cetak-preview')
+</body>
+</html>

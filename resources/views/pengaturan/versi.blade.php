@@ -17,15 +17,9 @@
         <div class="text-slate-600">Batas pergeseran: <b>{{ $info['allow_pergeseran'] ?? '—' }}</b> · batas perubahan: <b>{{ $info['allow_perubahan'] ?? '—' }}</b></div> <div class="text-slate-600 text-[11px] mt-1">Tenggat &amp; batas diambil langsung dari ARKAS laptop ini (bukan ketetapan aplikasi).</div> </div> </div> @endif
 
   <div class="mt-4 flex flex-wrap items-center gap-2">
-    @if(\App\Services\TarikArkasService::tersedia())
-      <form method="post" action="{{ route('tarik-arkas.tarik') }}" data-tombol-sibuk="⏳ Menarik &amp; Sinkron ARKAS…" data-konfirmasi="Pastikan aplikasi ARKAS Desktop sudah ditutup. Tarik seluruh data ARKAS ke aplikasi desktop dan sinkronkan otomatis ke website sekarang?">
-        @csrf
-        <input type="hidden" name="tahun" value="{{ $info['tahun_aktif'] ?? session('tahun', now()->year) }}">
-        <button type="submit" class="btn btn-sm">↻ Tarik Data dari ARKAS &amp; Sinkron ke Website</button>
-      </form>
-    @endif
+    <a href="{{ route('aplikasi-desktop') }}" class="btn2 btn-sm"> Unduh Aplikasi Desktop</a>
     <a href="https://arkas.kemdikbud.go.id/download/arkas4" target="_blank" rel="noopener" class="btn2 btn-sm"> Unduh ARKAS 4 terbaru</a>
-    <a href="{{ route('impor-arkas.form') }}" class="btn2 btn-sm"> Tarik Data ARKAS</a>
+    <a href="{{ route('impor-arkas.form') }}" class="btn2 btn-sm"> Impor Database (ARKAS)</a>
   </div>
 </div>
 @endsection

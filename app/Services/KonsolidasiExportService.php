@@ -30,6 +30,7 @@ class KonsolidasiExportService
 
         self::sheetRekap($book->getSheet(0)->setTitle('Rekap Sekolah'), $schools, $tahun);
         self::sheetMatriks($book->createSheet()->setTitle('Belanja per Komponen'), $schools, $tahun);
+        self::sheetKepatuhan($book->createSheet()->setTitle('Kepatuhan & Pajak'), $schools, $tahun);
 
         $path = sys_get_temp_dir().'/konsolidasi_'.$tahun.'_'.uniqid().'.xlsx';
         (new Xlsx($book))->save($path);
@@ -166,5 +167,47 @@ class KonsolidasiExportService
         for ($i = 0; $i <= $schools->count(); $i++) {
             $s->getColumnDimension(chr(ord('B') + $i))->setWidth(18);
         }
+    }
+
+    private static function sheetKepatuhan($s, $schools, int $tahun): void
+    {
+        $cols = ['No', 'NPSN', 'Nama Sekolah', 'Jenjang', 'Kecamatan', 'Pagu (Rp)', 'Dana Salur (Rp)', 'Belanja (Rp)', 'Serapan (%)', 'Kepatuhan Tahap 2', 'Pajak Terhutang (Rp)'];
+        self::kop($s, "REKAPITULASI KEPATUHAN PENYALURAN & PAJAK BOSP — TAHUN {$tahun}", 'K');
+        self::header($s, 4, $cols);
+
+        $r = 4;
+        foreach ($schools as $idx => $sc) {
+            $r++;
+            $statusTahap2 = ($sc->serapan >= 50.0) ? 'Memenuhi Syarat (≥50%)' : 'Belum Memenuhi (<50%)';
+            $s->fromArray([
+                $idx + 1,
+                $sc->npsn,
+                Csv::sel($sc->nama),
+                $sc->jenjang,
+                Csv::sel($sc->kecamatan ?? '-'),
+                (int) $sc->pagu,
+                (int) $sc->pendapatan,
+                (int) $sc->belanja,
+                (float) $sc->serapan,
+                $statusTahap2,
+                (int) ($sc->pajakBelum ?? 0),
+            ], null, "A{$r}");
+        }
+
+        $s->getStyle("F5:H{$r}")->getNumberFormat()->setFormatCode(self::RP);
+        $s->getStyle("K5:K{$r}")->getNumberFormat()->setFormatCode(self::RP);
+        $s->getStyle("I5:I{$r}")->getNumberFormat()->setFormatCode('0.0"%"');
+        $s->getStyle("A4:K{$r}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $s->getColumnDimension('A')->setWidth(6);
+        $s->getColumnDimension('B')->setWidth(14);
+        $s->getColumnDimension('C')->setWidth(36);
+        $s->getColumnDimension('D')->setWidth(10);
+        $s->getColumnDimension('E')->setWidth(18);
+        $s->getColumnDimension('F')->setWidth(18);
+        $s->getColumnDimension('G')->setWidth(18);
+        $s->getColumnDimension('H')->setWidth(18);
+        $s->getColumnDimension('I')->setWidth(14);
+        $s->getColumnDimension('J')->setWidth(26);
+        $s->getColumnDimension('K')->setWidth(20);
     }
 }

@@ -16,10 +16,8 @@ use App\Models\School;
 use App\Models\Stage;
 use App\Models\TutupBuku;
 use App\Models\User;
-use App\Rules\SandiKuat;
-use App\Support\Peran;
-use App\Support\Sandi;
 use App\Notifications\InfoNotif;
+use App\Rules\SandiKuat;
 use App\Services\Aktivitas;
 use App\Services\BackupService;
 use App\Services\EmailNotif;
@@ -30,6 +28,8 @@ use App\Services\LpjService;
 use App\Services\RingkasanService;
 use App\Services\RkasExportService;
 use App\Support\Csv;
+use App\Support\Peran;
+use App\Support\Sandi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -50,20 +50,66 @@ class DinasController extends Controller
 
     public function dashboard()
     {
-        $schools = School::orderBy('nama')->get()->map(fn ($s) => $this->ringkas($s));
+        $tahun = $this->tahun();
+        $tahap1 = Stage::where('tahun', $tahun)->orderBy('urutan')->first();
+        $tahap1Id = $tahap1?->id;
+
+        // Ambil ID sekolah yang mengajukan LPJ dan menunggu verifikasi
+        $sekolahLpjPending = LpjSubmission::withoutGlobalScope('school')
+            ->where('tahun', $tahun)
+            ->where('status', 'diajukan')
+            ->pluck('school_id')
+            ->all();
+
+        $schools = School::orderBy('nama')->get()->map(function ($s) use ($tahap1Id, $sekolahLpjPending, $tahun) {
+            $ringkas = $this->ringkas($s);
+
+            $ringkas->belumSalur = ((int) $ringkas->pendapatan <= 0);
+
+            if ($tahap1Id) {
+                $terima1 = (int) KasTransaction::withoutGlobalScope('school')
+                    ->where('school_id', $s->id)->where('tahun', $tahun)
+                    ->where('type', 'pendapatan')->where('stage_id', $tahap1Id)->sum('total');
+                $belanja1 = (int) KasTransaction::withoutGlobalScope('school')
+                    ->where('school_id', $s->id)->where('tahun', $tahun)
+                    ->where('type', 'belanja')->where('stage_id', $tahap1Id)->sum('total');
+                $ringkas->serapanTahap1 = ($terima1 > 0) ? round($belanja1 / $terima1 * 100, 1) : 0;
+                $ringkas->kurangDari50 = ($terima1 > 0 && $ringkas->serapanTahap1 < 50.0);
+            } else {
+                $ringkas->serapanTahap1 = $ringkas->serapan;
+                $ringkas->kurangDari50 = ($ringkas->serapan < 50.0);
+            }
+
+            $ringkas->siapLpj = in_array($s->id, $sekolahLpjPending);
+
+            return $ringkas;
+        });
+
+        $countSemua = $schools->count();
+        $countBelumSalur = $schools->where('belumSalur', true)->count();
+        $countKurang50 = $schools->where('kurangDari50', true)->count();
+        $countSiapLpj = $schools->where('siapLpj', true)->count();
+
+        $filterStatus = (string) request('status', 'semua');
+        $filteredSchools = match ($filterStatus) {
+            'belum_salur' => $schools->where('belumSalur', true)->values(),
+            'kurang_50' => $schools->where('kurangDari50', true)->values(),
+            'siap_lpj' => $schools->where('siapLpj', true)->values(),
+            default => $schools,
+        };
+
         $belumAktif = $schools->where('notAktif', true)->count();
         $pajakBelumTotal = $schools->sum('pajakBelum');
         $peringkat = $schools->sortByDesc('serapan')->take(8)->values();
-        $tahun = $this->tahun();
         $perTahapWilayah = Stage::where('tahun', $tahun)->orderBy('urutan')->get()->map(function ($s) use ($tahun) {
             $b = (int) KasTransaction::withoutGlobalScope('school')->where('tahun', $tahun)
                 ->where('type', 'belanja')->where('stage_id', $s->id)->sum('total');
 
             return ['nama' => $s->nama, 'belanja' => $b];
         })->filter(fn ($x) => $x['belanja'] > 0)->values();
+
         // Data grafik interaktif: tren belanja wilayah per bulan + komposisi per komponen
         $trenBulanan = array_fill(1, 12, 0);
-        // agregasi di PHP agar portable antar driver (pgsql, sqlite, mysql)
         foreach (DB::table('kas_transactions')->where('tahun', $tahun)->where('type', 'belanja')
             ->select('tanggal', 'total')->get() as $trx) {
             $trenBulanan[(int) substr((string) $trx->tanggal, 5, 2)] += (int) $trx->total;
@@ -77,12 +123,22 @@ class DinasController extends Controller
             ->groupBy(DB::raw("coalesce(k.nama, '(tanpa komponen)')"))->orderByDesc('j')->get()
             ->map(fn ($x) => ['nama' => $x->nama, 'jumlah' => (int) $x->j])->values();
 
-        return view('dinas.dashboard', ['schools' => $schools, 'tahun' => $tahun, 'belumAktif' => $belumAktif,
-            'pajakBelumTotal' => $pajakBelumTotal, 'peringkat' => $peringkat, 'perTahapWilayah' => $perTahapWilayah,
-            'trenBulanan' => $trenBulanan, 'komposisiKomponen' => $komposisiKomponen]);
-
-        return view('dinas.dashboard', ['schools' => $schools, 'tahun' => $tahun, 'belumAktif' => $belumAktif,
-            'pajakBelumTotal' => $pajakBelumTotal, 'peringkat' => $peringkat, 'perTahapWilayah' => $perTahapWilayah]);
+        return view('dinas.dashboard', [
+            'schools' => $filteredSchools,
+            'allSchools' => $schools,
+            'filterStatus' => $filterStatus,
+            'countSemua' => $countSemua,
+            'countBelumSalur' => $countBelumSalur,
+            'countKurang50' => $countKurang50,
+            'countSiapLpj' => $countSiapLpj,
+            'tahun' => $tahun,
+            'belumAktif' => $belumAktif,
+            'pajakBelumTotal' => $pajakBelumTotal,
+            'peringkat' => $peringkat,
+            'perTahapWilayah' => $perTahapWilayah,
+            'trenBulanan' => $trenBulanan,
+            'komposisiKomponen' => $komposisiKomponen,
+        ]);
     }
 
     public function sekolah()
