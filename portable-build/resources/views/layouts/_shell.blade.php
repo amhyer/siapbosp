@@ -142,16 +142,6 @@
     </nav>
 
     <div class="px-[18px] pb-5 pt-3">
-      @if(!$u->isDinas() && \App\Services\TarikArkasService::tersedia())
-        <form method="post" action="{{ route('tarik-arkas.tarik') }}" class="mb-2" data-tombol-sibuk="⏳ Menarik &amp; Sinkron ARKAS…" data-konfirmasi="Tarik seluruh data dari aplikasi ARKAS Desktop ke aplikasi ini dan sinkronkan otomatis ke website sekarang? Pastikan aplikasi ARKAS sedang ditutup.">
-          @csrf
-          <input type="hidden" name="tahun" value="{{ $tahunAktif }}">
-          <button type="submit" class="navw-util w-full text-left font-semibold text-white">
-            <x-icon name="refresh"/>
-            <span>Tarik Data dari ARKAS</span>
-          </button>
-        </form>
-      @endif
       <a href="{{ route('bantuan') }}#versi"
          class="sr-only"
          title="SiapBOSP {{ config('app.version', 'v4.3.0') }} — selaras ARKAS 4 v{{ config('app.arkas_acuan', '4.3.0') }}. Klik untuk versi &amp; pembaruan.">

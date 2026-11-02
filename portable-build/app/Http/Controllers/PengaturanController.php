@@ -99,8 +99,10 @@ class PengaturanController extends Controller
     public function versi()
     {
         $hasil = VersiArkasService::deteksi();
+        $statusSinkron = SinkronisasiService::status();
+        $tarikTersedia = TarikArkasService::tersedia();
 
-        return view('pengaturan.versi', compact('hasil'));
+        return view('pengaturan.versi', compact('hasil', 'statusSinkron', 'tarikTersedia'));
     }
 
     /** Koneksi ARKAS: server tujuan, token, dan status koneksi. */

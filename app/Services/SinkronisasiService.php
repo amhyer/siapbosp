@@ -45,9 +45,10 @@ class SinkronisasiService
     {
         $conf = self::conf();
         $terakhir = DB::table('sync_states')->where('kunci', 'terakhir_dorong')->value('nilai');
-        $lokal = (int) DB::table('kas_transactions')
-            ->where('school_id', auth()->user()->school_id)
-            ->count();
+        $schoolId = auth()->user()?->school_id;
+        $lokal = $schoolId ? (int) DB::table('kas_transactions')
+            ->where('school_id', $schoolId)
+            ->count() : 0;
 
         return [
             'punya_akun' => ! empty($conf['TOKEN']) && ! empty($conf['PUSAT_URL']),

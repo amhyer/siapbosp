@@ -170,4 +170,29 @@ class EnhancementBaruTest extends TestCase
         $this->assertFileExists($path);
         @unlink($path);
     }
+
+    public function test_halaman_deteksi_versi_memuat_tombol_tarik_dan_sinkron_tanpa_ada_di_sidebar(): void
+    {
+        // 1. Pada halaman deteksi versi, aksi Tarik Data ARKAS & Sinkron ke Pusat harus tersedia
+        $response = $this->actingAs($this->operator)
+            ->withSession(['tahun' => 2026])
+            ->get('/pengaturan/deteksi-versi');
+
+        $response->assertOk();
+        $response->assertSee('Tarik Data dari ARKAS');
+        $response->assertSee('Kirim / Sinkron ke Pusat');
+        $response->assertSee(route('pengaturan.sinkronisasi.jalankan'));
+
+        // 2. Pada sidebar (misal di halaman dashboard), tombol form tarik dan sinkron sudah tidak boleh ada
+        $dashboardHtml = $this->actingAs($this->operator)
+            ->withSession(['tahun' => 2026])
+            ->get('/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString(route('tarik-arkas.tarik'), $dashboardHtml,
+            'Tombol Tarik Data ARKAS tidak boleh ada di sidebar.');
+        $this->assertStringNotContainsString(route('pengaturan.sinkronisasi.jalankan'), $dashboardHtml,
+            'Tombol Kirim / Sinkron ke Pusat tidak boleh ada di sidebar.');
+    }
 }
