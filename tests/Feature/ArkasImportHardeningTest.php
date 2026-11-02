@@ -200,4 +200,58 @@ class ArkasImportHardeningTest extends TestCase
         $status = TarikArkasService::isArkasRunning();
         $this->assertIsBool($status);
     }
+
+    public function test_natural_key_fallback_merekonsiliasi_transaksi_ketika_id_kas_umum_berubah(): void
+    {
+        $this->actingAs($this->operator);
+
+        // Tahap 1: Transaksi dibuat dengan id_kas_umum = 8001
+        $baris1 = [
+            [
+                '8001', 'nota-2', 'periode-1', '0',
+                '2026-03-05', 'BOS-002', 'Pengadaan Spidol Whiteboard', '5.1.02.01.01.0024',
+                'Kas Keluar', 'KK', '300000', '1', '6',
+                '0', '0', '0', '0', '0',
+                '0', '0', '2026', 'BOS Reguler', 'agg-1',
+            ],
+        ];
+
+        $file1 = $this->buatBerkasArkasUji($baris1);
+        try {
+            ArkasImportService::import($file1, $this->sekolah->id, $this->operator->id, 2026);
+            $trx1 = KasTransaction::where('school_id', $this->sekolah->id)->where('arkas_id', 'kas:8001')->firstOrFail();
+            $this->assertNotNull($trx1->natural_key);
+            $this->assertNotNull($trx1->content_hash);
+            $trxId = $trx1->id;
+
+            // Tahap 2: Di ARKAS transaksi dihapus lalu diinput ulang sehingga id_kas_umum berganti jadi 8888,
+            // namun transaksi ini mewakili belanja fisik yang sama (natural key cocok).
+            $baris2 = [
+                [
+                    '8888', 'nota-2', 'periode-1', '0',
+                    '2026-03-05', 'BOS-002', 'Pengadaan Spidol Whiteboard (Re-input)', '5.1.02.01.01.0024',
+                    'Kas Keluar', 'KK', '300000', '1', '6',
+                    '0', '0', '0', '0', '0',
+                    '0', '0', '2026', 'BOS Reguler', 'agg-1',
+                ],
+            ];
+
+            $file2 = $this->buatBerkasArkasUji($baris2);
+            try {
+                $hasil2 = ArkasImportService::import($file2, $this->sekolah->id, $this->operator->id, 2026);
+                $this->assertSame(0, $hasil2['dibuat']['transaksi'], 'Natural key harus mencegah duplikasi baris');
+                $this->assertSame(1, $hasil2['diperbarui']['transaksi']);
+
+                // Record di database tetap 2 (1 dari test sebelumnya jika di-rollback, atau 1 untuk kasus ini)
+                $trxUpdated = KasTransaction::where('school_id', $this->sekolah->id)->find($trxId);
+                $this->assertNotNull($trxUpdated);
+                $this->assertSame('kas:8888', $trxUpdated->arkas_id, 'arkas_id harus diadopsi ke ID baru dari ARKAS');
+                $this->assertSame('Pengadaan Spidol Whiteboard (Re-input)', $trxUpdated->keterangan);
+            } finally {
+                @unlink($file2);
+            }
+        } finally {
+            @unlink($file1);
+        }
+    }
 }

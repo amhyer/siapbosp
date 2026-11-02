@@ -760,11 +760,21 @@ class ArkasImportService
             }
 
             $keyBaru = trim((string) ($r['id_kas_umum'] ?? ''));
+            $noBukti = trim((string) ($r['no_bukti'] ?? ''));
+            $uraian = trim((string) ($r['uraian'] ?? ''));
+            $kdRekening = trim((string) ($r['kode_rekening'] ?? ''));
+            $kdBku = trim((string) ($r['kode_bku'] ?? ''));
+            $sumberDana = trim((string) ($r['sumber_dana'] ?? ''));
+            $volume = trim((string) ($r['volume'] ?? ''));
+
+            // Standardisasi hash ke SHA-256 untuk natural_key dan content_hash
+            $naturalKey = hash('sha256', implode('|', [$tahun, $noBukti, $tgl, $kdRekening, $nominal, $jenis]));
+            $contentHash = hash('sha256', implode('|', [$tgl, $noBukti, $uraian, $kdRekening, $jenis, $kdBku, $nominal, $tahun, $sumberDana, $volume]));
+
+            // Kunci arkas_id: preferred id_kas_umum, atau legacy sha1 untuk kompatibilitas riwayat berkas lama
             $legacyKey = 'kas:legacy:'.sha1(implode('|', [
-                $tgl, trim((string) ($r['no_bukti'] ?? '')), trim((string) ($r['uraian'] ?? '')),
-                trim((string) ($r['kode_rekening'] ?? '')), $jenis, trim((string) ($r['kode_bku'] ?? '')),
-                $nominal, $tahun, trim((string) ($r['sumber_dana'] ?? '')),
-                trim((string) ($r['volume'] ?? '')),
+                $tgl, $noBukti, $uraian, $kdRekening, $jenis, $kdBku,
+                $nominal, $tahun, $sumberDana, $volume,
             ]));
             $arkasKey = $keyBaru !== '' ? 'kas:'.$keyBaru : $legacyKey;
 
@@ -821,20 +831,21 @@ class ArkasImportService
                 continue;
             }
 
-            // Tulis idempoten + migrasi kunci legacy→baru (sekolah yang dulu
-            // impor via file lama lalu beralih ke agen). Kembaran digabung.
+            // Tulis idempoten + rekonsiliasi natural key + migrasi kunci legacy→baru.
             $t = self::simpanTransaksi($sekolah->id, $arkasKey, $legacyKey, [
                 'tahun' => $tahun, 'type' => $type,
-                'no_bukti' => trim((string) ($r['no_bukti'] ?? '')) ?: null,
-                'arkas_bku' => trim((string) ($r['no_bukti'] ?? '')) ?: null,
+                'no_bukti' => $noBukti ?: null,
+                'arkas_bku' => $noBukti ?: null,
                 'arkas_jenis_bku' => $jenis,
                 'arkas_nota_id' => trim((string) ($r['id_kas_nota'] ?? '')) ?: null,
                 'tanggal' => $tgl,
                 'bos_type_id' => self::bosTypeUntuk($r['sumber_dana'] ?? null, $bosMap),
                 'stage_id' => $stageId, 'metode_bayar' => $metode,
-                'keterangan' => trim((string) ($r['uraian'] ?? '')) ?: $jenis,
+                'keterangan' => $uraian ?: $jenis,
                 'total' => $nominal, 'created_by' => $userId,
-            ], $lap);
+                'natural_key' => $naturalKey,
+                'content_hash' => $contentHash,
+            ], $lap, $naturalKey);
             // Nomor BKU: hanya untuk baris baru (impor ulang tak menggeser penomoran).
             if ($t->wasRecentlyCreated && ! $t->no_bku) {
                 $t->no_bku = KasService::nextNoBku($sekolah->id, $tgl);
@@ -1052,13 +1063,17 @@ class ArkasImportService
 
                     continue;
                 }
+                $setorNaturalKey = hash('sha256', implode('|', [$tahun, 'setor_pajak', $tgl, (string) $induk->id, $nominal]));
+                $setorContentHash = hash('sha256', implode('|', [$tahun, $tgl, (string) $induk->id, $nominal, $base]));
                 $setor = self::simpanTransaksi($sekolah->id, 'kas:'.$base, 'kas:'.$legacyBase, [
                     'tahun' => $tahun, 'type' => 'setor_pajak',
                     'belanja_transaction_id' => $induk->id,
                     'tanggal' => $tgl, 'metode_bayar' => 'transfer',
                     'keterangan' => 'Setor '.($belum->rekeningPajak?->nama ?? $flagJenis)." (impor ARKAS {$tgl})",
                     'total' => $nominal, 'created_by' => $userId,
-                ], $lap);
+                    'natural_key' => $setorNaturalKey,
+                    'content_hash' => $setorContentHash,
+                ], $lap, $setorNaturalKey);
                 if ($setor->wasRecentlyCreated && ! $setor->no_bku) {
                     $setor->no_bku = KasService::nextNoBku($sekolah->id, $tgl);
                     $setor->save();
@@ -1140,27 +1155,42 @@ class ArkasImportService
     // ==================== Util ====================
 
     /**
-     * Simpan transaksi idempoten dengan migrasi kunci legacy→baru.
-     * Bila kembaran (legacy + baru) sama-sama ada: anak (rincian+pajak)
-     * digabung ke baris baru, kembaran lama dihapus, dilaporkan.
+     * Simpan transaksi idempoten dengan mitigasi instabilitas kunci ARKAS:
+     * 1. Preferred key: arkas_id ('kas:' . id_kas_umum)
+     * 2. Natural key fallback: SHA-256 (tahun|no_bukti|tanggal|kode_rekening|nominal|jenis)
+     * 3. Legacy key migration
      */
-    protected static function simpanTransaksi(int $schoolId, string $arkasKey, string $legacyKey, array $isi, array &$lap): KasTransaction
+    protected static function simpanTransaksi(int $schoolId, string $arkasKey, string $legacyKey, array $isi, array &$lap, ?string $naturalKey = null): KasTransaction
     {
-        $cari = fn (string $k) => KasTransaction::withoutGlobalScope('school')
-            ->where('school_id', $schoolId)->where('arkas_id', $k)->first();
-        $baru = $cari($arkasKey);
-        $lama = ($legacyKey !== $arkasKey) ? $cari($legacyKey) : null;
+        $query = KasTransaction::withoutGlobalScope('school')->where('school_id', $schoolId);
+
+        // 1. Cari via preferred key (arkas_id = kas:id_kas_umum)
+        $baru = (clone $query)->where('arkas_id', $arkasKey)->first();
+
+        // 2. Jika tidak ditemukan via arkas_id, cari via natural_key fallback
+        // (menangani transaksi yang dihapus lalu diinput ulang di ARKAS sehingga id_kas_umum berganti)
+        $natKey = $naturalKey ?? ($isi['natural_key'] ?? null);
+        $rekonsiliasiNatural = null;
+        if (! $baru && $natKey !== null && $natKey !== '') {
+            $rekonsiliasiNatural = (clone $query)->where('natural_key', $natKey)->first();
+        }
+
+        // 3. Cari legacy key (sekolah migrasi dari format lama)
+        $lama = ($legacyKey !== $arkasKey) ? (clone $query)->where('arkas_id', $legacyKey)->first() : null;
+
         if ($baru && $lama && $baru->id !== $lama->id) {
             self::gabungKembar($baru, $lama);
             $lap['digabung']['transaksi']++;
         }
-        $t = $baru ?? $lama;
+
+        $t = $baru ?? $rekonsiliasiNatural ?? $lama;
         if ($t) {
             $t->update($isi + ['arkas_id' => $arkasKey]);
             $t->wasRecentlyCreated = false;
 
             return $t;
         }
+
         $t = KasTransaction::withoutGlobalScope('school')
             ->create(['school_id' => $schoolId, 'arkas_id' => $arkasKey] + $isi);
         $t->wasRecentlyCreated = true;
