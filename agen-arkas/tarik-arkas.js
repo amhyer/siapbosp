@@ -28,7 +28,7 @@ function muatDb() {
 
 // Versi agen — dilaporkan pada `info --json` supaya aplikasi/diagnosa bisa
 // membedakan agen lama (tanpa sheet RAPBS_Periode) dari agen terbaru.
-const AGEN_VERSI = '1.0.1';
+const AGEN_VERSI = '1.1.0';
 const DB_KEY = 'K3md1kbudRIS3n4yan';
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null; };
 const adaFlag = (n) => process.argv.includes(n);
@@ -112,16 +112,116 @@ async function profilServer(server, token) {
   return r.json();
 }
 
-function bacaNpsnLokal() {
+/**
+ * Snapshot & WAL Consistency Guard:
+ * Salin arkas.db beserta -wal dan -shm ke folder sementara (%TEMP%) sebelum dibaca.
+ * Mencegah benturan lock dan pembacaan parsial saat arkas.exe sedang berjalan.
+ */
+function buatSnapshotDb(asalDbPath) {
+  if (!fs.existsSync(asalDbPath)) {
+    const err = new Error('Database ARKAS tidak ditemukan: ' + asalDbPath + '\nPastikan ARKAS sudah pernah dibuka di laptop ini.');
+    err.code = 'DB_NOT_FOUND';
+    throw err;
+  }
+  const folder = path.join(os.tmpdir(), 'siapbosp-arkas-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8));
+  fs.mkdirSync(folder, { recursive: true });
+  const salinanDb = path.join(folder, 'arkas.db');
+  fs.copyFileSync(asalDbPath, salinanDb);
+
+  const walAsal = asalDbPath + '-wal';
+  const shmAsal = asalDbPath + '-shm';
+  if (fs.existsSync(walAsal)) {
+    try { fs.copyFileSync(walAsal, path.join(folder, 'arkas.db-wal')); } catch (_) {}
+  }
+  if (fs.existsSync(shmAsal)) {
+    try { fs.copyFileSync(shmAsal, path.join(folder, 'arkas.db-shm')); } catch (_) {}
+  }
+
+  return {
+    folder,
+    dbPath: salinanDb,
+    bersihkan: () => {
+      try { fs.rmSync(folder, { recursive: true, force: true }); } catch (_) {}
+    },
+  };
+}
+
+/**
+ * Buka database snapshot, dekripsi SQLCipher, dan jalankan integrity + schema guard.
+ */
+function bukaDanVerifikasiDb(dbPath) {
+  const Database = muatDb();
+  let db;
   try {
-    if (!fs.existsSync(DB_PATH)) return null;
-    const Database = muatDb();
-    const db = new Database(DB_PATH, { readonly: true });
-    db.pragma("cipher='sqlcipher'"); db.pragma('legacy=4'); db.pragma(`key='${DB_KEY}'`);
+    db = new Database(dbPath, { readonly: true });
+  } catch (e) {
+    const err = new Error('Gagal membuka database snapshot ARKAS: ' + (e.message || String(e)));
+    err.code = 'DB_OPEN_FAILED';
+    throw err;
+  }
+
+  try {
+    db.pragma("cipher='sqlcipher'");
+    db.pragma('legacy=4');
+    db.pragma(`key='${DB_KEY}'`);
+
+    // 1. Verifikasi integritas SQLite (PRAGMA integrity_check)
+    let cekRow = null;
+    try {
+      cekRow = db.prepare('PRAGMA integrity_check').get();
+    } catch (e) {
+      const err = new Error('Database ARKAS sedang dalam penulisan aktif atau terkunci. Silakan simpan dan tutup aplikasi ARKAS lalu ulangi.');
+      err.code = 'WAL_BUSY';
+      throw err;
+    }
+    const cekHasil = cekRow ? Object.values(cekRow)[0] : 'failed';
+    if (cekHasil !== 'ok') {
+      const err = new Error('Integritas database ARKAS tidak valid (' + cekHasil + '). Silakan tutup aplikasi ARKAS lalu coba lagi.');
+      err.code = 'WAL_BUSY';
+      throw err;
+    }
+
+    // 2. Schema guard: verifikasi tabel-tabel utama
+    const tabelRows = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    const tabelMaster = tabelRows.map((t) => String(t.name || '').toLowerCase());
+    const tabelWajib = ['mst_sekolah', 'kas_umum', 'anggaran', 'ref_kode', 'ref_rekening'];
+    const hilang = tabelWajib.filter((t) => !tabelMaster.includes(t));
+    if (hilang.length > 0) {
+      const err = new Error('Skema database ARKAS tidak dikenali (tabel hilang: ' + hilang.join(', ') + '). Silakan gunakan impor Excel manual.');
+      err.code = 'SCHEMA_MISMATCH';
+      throw err;
+    }
+
+    // 3. Content guard: sanity check sekolah
+    const c = db.prepare('SELECT COUNT(*) as c FROM mst_sekolah').get();
+    if (!c || !c.c) {
+      const err = new Error('Database ARKAS tidak memuat data sekolah (mst_sekolah kosong).');
+      err.code = 'EMPTY_DATA';
+      throw err;
+    }
+
+    return db;
+  } catch (err) {
+    try { db.close(); } catch (_) {}
+    throw err;
+  }
+}
+
+function bacaNpsnLokal() {
+  if (!fs.existsSync(DB_PATH)) return null;
+  let snapshot = null;
+  let db = null;
+  try {
+    snapshot = buatSnapshotDb(DB_PATH);
+    db = bukaDanVerifikasiDb(snapshot.dbPath);
     const row = db.prepare('SELECT npsn FROM mst_sekolah LIMIT 1').get();
-    db.close();
     return row ? String(row.npsn) : null;
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  } finally {
+    if (db) { try { db.close(); } catch (_) {} }
+    if (snapshot) { snapshot.bersihkan(); }
+  }
 }
 
 // Deteksi versi aplikasi ARKAS dari `app_config.version_app` (mis. 4.3.0),
@@ -134,11 +234,12 @@ function bacaVersiArkas() {
     tenggat_penganggaran: null, tenggat_penatausahaan: null,
     allow_pergeseran: null, allow_perubahan: null, whitelist_juknis: null,
   };
+  if (!fs.existsSync(DB_PATH)) return hasil;
+  let snapshot = null;
+  let db = null;
   try {
-    if (!fs.existsSync(DB_PATH)) return hasil;
-    const Database = muatDb();
-    const db = new Database(DB_PATH, { readonly: true });
-    db.pragma("cipher='sqlcipher'"); db.pragma('legacy=4'); db.pragma(`key='${DB_KEY}'`);
+    snapshot = buatSnapshotDb(DB_PATH);
+    db = bukaDanVerifikasiDb(snapshot.dbPath);
     try {
       const a = db.prepare('SELECT nama FROM app LIMIT 1').get();
       if (a && a.nama) hasil.nama = String(a.nama);
@@ -177,8 +278,11 @@ function bacaVersiArkas() {
         hasil.whitelist_juknis = wl ? JSON.stringify(wl.sumber_dana_id) : null;
       } catch (e) { hasil.whitelist_juknis = null; }
     }
-    db.close();
   } catch (e) { /* db tidak bisa dibuka */ }
+  finally {
+    if (db) { try { db.close(); } catch (_) {} }
+    if (snapshot) { snapshot.bersihkan(); }
+  }
   return hasil;
 }
 
@@ -224,69 +328,75 @@ async function setupInteraktif(rl, serverArg, tokenArg) {
 // portabel): bangun Excel ARKAS ke berkas — tanpa server, tanpa token.
 // Impor ke SiapBOSP dilakukan aplikasi sendiri setelah berkas jadi.
 async function bangunLokal(keluar, tahun) {
-  if (!fs.existsSync(DB_PATH)) throw new Error('Database ARKAS tidak ditemukan: ' + DB_PATH + '\nPastikan ARKAS sudah pernah dibuka di laptop ini (dan tutup ARKAS bila database terkunci).');
-  const Database = muatDb();
-  const db = new Database(DB_PATH, { readonly: true });
+  const snapshot = buatSnapshotDb(DB_PATH);
+  let db = null;
   try {
-    db.pragma("cipher='sqlcipher'"); db.pragma('legacy=4'); db.pragma(`key='${DB_KEY}'`);
+    db = bukaDanVerifikasiDb(snapshot.dbPath);
     const npsn = db.prepare('SELECT npsn FROM mst_sekolah LIMIT 1').get();
     const wb = bangunExcel(db, tahun);
     const buf = await wb.xlsx.writeBuffer();
     fs.writeFileSync(keluar, buf);
-    return { ok: true, agen: AGEN_VERSI, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024), versi: bacaVersiArkas() };
+    const versi = bacaVersiArkas();
+    return { ok: true, agen: AGEN_VERSI, npsn: npsn ? String(npsn.npsn) : null, tahun, berkas: keluar, kb: Math.round(buf.byteLength / 1024), versi };
   } finally {
-    try { db.close(); } catch (_) {}
+    if (db) { try { db.close(); } catch (_) {} }
+    snapshot.bersihkan();
   }
 }
 
 async function kirim(server, token, tahun, npsnHarapan) {
-  if (!fs.existsSync(DB_PATH)) throw new Error('Database ARKAS tidak ditemukan: ' + DB_PATH + '\nPastikan ARKAS sudah pernah dibuka di laptop ini (dan tutup ARKAS bila database terkunci).');
-  const Database = muatDb();
-  const db = new Database(DB_PATH, { readonly: true });
-  db.pragma("cipher='sqlcipher'"); db.pragma('legacy=4'); db.pragma(`key='${DB_KEY}'`);
-  const npsn = db.prepare('SELECT npsn FROM mst_sekolah LIMIT 1').get();
-  cetak('Sekolah: ' + (npsn ? npsn.npsn : '?') + ' · Tahun: ' + tahun);
-  if (npsnHarapan && npsn && String(npsn.npsn) !== String(npsnHarapan)) {
+  const snapshot = buatSnapshotDb(DB_PATH);
+  let db = null;
+  try {
+    db = bukaDanVerifikasiDb(snapshot.dbPath);
+    const npsn = db.prepare('SELECT npsn FROM mst_sekolah LIMIT 1').get();
+    cetak('Sekolah: ' + (npsn ? npsn.npsn : '?') + ' · Tahun: ' + tahun);
+    if (npsnHarapan && npsn && String(npsn.npsn) !== String(npsnHarapan)) {
+      throw new Error('NPSN ARKAS laptop ini (' + npsn.npsn + ') beda dengan saat setup (' + npsnHarapan + ').\n'
+        + 'Jalankan "setup" ulang dengan token sekolah NPSN ' + npsn.npsn + '.');
+    }
+    const wb = bangunExcel(db, tahun);
     db.close();
-    throw new Error('NPSN ARKAS laptop ini (' + npsn.npsn + ') beda dengan saat setup (' + npsnHarapan + ').\n'
-      + 'Jalankan "setup" ulang dengan token sekolah NPSN ' + npsn.npsn + '.');
-  }
-  const wb = bangunExcel(db, tahun);
-  db.close();
-  const buf = await wb.xlsx.writeBuffer();
-  const form = new FormData();
-  form.append('tahun', String(tahun));
-  form.append('berkas', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `arkas-${tahun}.xlsx`);
-  cetak('Mengirim ' + (buf.byteLength / 1024).toFixed(0) + ' KB ke ' + server + ' ...');
-  const baseUrl = server.replace(/\/$/, '');
-  const headers = { Authorization: 'Bearer ' + token };
-  const r = await fetch(baseUrl + '/api/v1/arkas-push', { method: 'POST', headers, body: form });
-  let j = await r.json();
-  if (!r.ok || !j.ok) throw new Error('Ditolak: ' + (j.pesan || r.status));
-  if (r.status === 202 || j.status === 'queued' || j.status === 'processing') {
-    const batasWaktu = Date.now() + 25 * 60 * 1000;
-    cetak('Berkas diterima. Menunggu impor selesai...');
-    while (Date.now() < batasWaktu) {
-      await new Promise((resolve) => setTimeout(resolve, (j.polling_interval_seconds || 3) * 1000));
-      const statusResponse = await fetch(baseUrl + '/api/v1/arkas-import/' + encodeURIComponent(j.import_id), { headers });
-      j = await statusResponse.json();
-      if (j.status === 'completed' && j.ok) break;
-      if (j.status === 'failed' || !statusResponse.ok && statusResponse.status !== 202) {
-        throw new Error('Impor gagal: ' + (j.pesan || statusResponse.status));
+    db = null;
+    const buf = await wb.xlsx.writeBuffer();
+    const form = new FormData();
+    form.append('tahun', String(tahun));
+    form.append('berkas', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `arkas-${tahun}.xlsx`);
+    cetak('Mengirim ' + (buf.byteLength / 1024).toFixed(0) + ' KB ke ' + server + ' ...');
+    const baseUrl = server.replace(/\/$/, '');
+    const headers = { Authorization: 'Bearer ' + token };
+    const r = await fetch(baseUrl + '/api/v1/arkas-push', { method: 'POST', headers, body: form });
+    let j = await r.json();
+    if (!r.ok || !j.ok) throw new Error('Ditolak: ' + (j.pesan || r.status));
+    if (r.status === 202 || j.status === 'queued' || j.status === 'processing') {
+      const batasWaktu = Date.now() + 25 * 60 * 1000;
+      cetak('Berkas diterima. Menunggu impor selesai...');
+      while (Date.now() < batasWaktu) {
+        await new Promise((resolve) => setTimeout(resolve, (j.polling_interval_seconds || 3) * 1000));
+        const statusResponse = await fetch(baseUrl + '/api/v1/arkas-import/' + encodeURIComponent(j.import_id), { headers });
+        j = await statusResponse.json();
+        if (j.status === 'completed' && j.ok) break;
+        if (j.status === 'failed' || !statusResponse.ok && statusResponse.status !== 202) {
+          throw new Error('Impor gagal: ' + (j.pesan || statusResponse.status));
+        }
+        if (j.status === 'queued' || j.status === 'processing') cetak('Status impor: ' + j.status + '...');
       }
-      if (j.status === 'queued' || j.status === 'processing') cetak('Status impor: ' + j.status + '...');
+      if (j.status !== 'completed' || !j.ok) {
+        throw new Error('Impor masih berjalan di server. ID pekerjaan: ' + j.import_id + '. Periksa status API sebelum mengirim ulang.');
+      }
     }
-    if (j.status !== 'completed' || !j.ok) {
-      throw new Error('Impor masih berjalan di server. ID pekerjaan: ' + j.import_id + '. Periksa status API sebelum mengirim ulang.');
-    }
+    const l = j.laporan;
+    cetak('SELESAI — transaksi +' + l.dibuat.transaksi + '/~' + l.diperbarui.transaksi
+      + ', RKAS +' + l.dibuat.rkas + ', terima pajak +' + l.dibuat.pajak_terima + ', setor +' + l.dibuat.pajak_setor
+      + ', dilewati ' + (l.dilewati.transaksi + l.dilewati.rkas + l.dilewati.pajak));
+    if (l.rekening_tak_dikenal.length) cetak('Kode asing (' + l.rekening_tak_dikenal.length + '): ' + l.rekening_tak_dikenal.slice(0, 10).join(', '));
+    if (l.peringatan.length) l.peringatan.forEach((w) => cetak('PERINGATAN: ' + w));
+    return l;
+  } finally {
+    if (db) { try { db.close(); } catch (_) {} }
+    snapshot.bersihkan();
   }
-  const l = j.laporan;
-  cetak('SELESAI — transaksi +' + l.dibuat.transaksi + '/~' + l.diperbarui.transaksi
-    + ', RKAS +' + l.dibuat.rkas + ', terima pajak +' + l.dibuat.pajak_terima + ', setor +' + l.dibuat.pajak_setor
-    + ', dilewati ' + (l.dilewati.transaksi + l.dilewati.rkas + l.dilewati.pajak));
-  if (l.rekening_tak_dikenal.length) cetak('Kode asing (' + l.rekening_tak_dikenal.length + '): ' + l.rekening_tak_dikenal.slice(0, 10).join(', '));
-  if (l.peringatan.length) l.peringatan.forEach((w) => cetak('PERINGATAN: ' + w));
-  return l;
+}
 }
 
 async function tesKoneksi(server, token) {
@@ -327,7 +437,7 @@ async function tesKoneksi(server, token) {
         const lap = await kirim(butuhFlag('--server'), butuhFlag('--token'), tahun, arg('--npsn'));
         console.log(JSON.stringify({ ok: true, laporan: lap }));
       }
-    } catch (e) { console.log(JSON.stringify({ ok: false, pesan: e.message })); process.exit(1); }
+    } catch (e) { console.log(JSON.stringify({ ok: false, code: e.code || 'UNKNOWN', pesan: e.message || String(e) })); process.exit(1); }
     return;
   }
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -359,5 +469,5 @@ async function tesKoneksi(server, token) {
     rl.close();
     const tahun = parseInt(arg('--tahun') || new Date().getFullYear(), 10);
     await kirim(k.server, k.token, tahun, k.npsn);
-  } catch (e) { console.error('GAGAL: ' + e.message); try { rl.close(); } catch (_) {} process.exit(1); }
+  } catch (e) { console.error('GAGAL (' + (e.code || 'ERR') + '): ' + (e.message || String(e))); try { rl.close(); } catch (_) {} process.exit(1); }
 })();

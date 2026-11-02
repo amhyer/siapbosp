@@ -210,4 +210,30 @@ class TarikArkasTest extends TestCase
                 : putenv('APPDATA='.$appdataSebelumnya);
         }
     }
+
+    public function test_pesan_ramah_menangani_wal_busy_dan_schema_mismatch(): void
+    {
+        $pesanWal = TarikArkasService::pesanRamah('busy', '', 'WAL_BUSY');
+        $this->assertStringContainsString('ARKAS sedang memproses data di latar belakang', $pesanWal);
+        $this->assertStringContainsString('tutup aplikasinya', $pesanWal);
+
+        $pesanSkema = TarikArkasService::pesanRamah('error', '', 'SCHEMA_MISMATCH');
+        $this->assertStringContainsString('Format database ARKAS tidak dikenali', $pesanSkema);
+        $this->assertStringContainsString('Impor Excel ARKAS manual', $pesanSkema);
+
+        $pesanLock = TarikArkasService::pesanRamah('database is locked');
+        $this->assertStringContainsString('Tutup dulu aplikasi ARKAS', $pesanLock);
+    }
+
+    public function test_agen_mengimplementasikan_snapshot_guard_dan_wal_consistency(): void
+    {
+        $sumber = (string) file_get_contents(base_path('agen-arkas/tarik-arkas.js'));
+        $this->assertStringContainsString('function buatSnapshotDb', $sumber);
+        $this->assertStringContainsString('function bukaDanVerifikasiDb', $sumber);
+        $this->assertStringContainsString('PRAGMA integrity_check', $sumber);
+        $this->assertStringContainsString('arkas.db-wal', $sumber);
+        $this->assertStringContainsString('arkas.db-shm', $sumber);
+        $this->assertStringContainsString('WAL_BUSY', $sumber);
+        $this->assertStringContainsString('SCHEMA_MISMATCH', $sumber);
+    }
 }

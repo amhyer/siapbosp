@@ -317,7 +317,10 @@ class TarikArkasService
         if (! is_array($hasil) || empty($hasil['ok'])) {
             @unlink($keluar);
 
-            throw new \RuntimeException(self::pesanRamah(is_array($hasil) ? ($hasil['pesan'] ?? null) : null, $out));
+            $kode = is_array($hasil) ? ($hasil['code'] ?? null) : null;
+            $pesan = is_array($hasil) ? ($hasil['pesan'] ?? null) : null;
+
+            throw new \RuntimeException(self::pesanRamah($pesan, $out, $kode));
         }
         if (! is_file($keluar)) {
             throw new \RuntimeException('Agen tidak menghasilkan berkas Excel.');
@@ -389,8 +392,21 @@ class TarikArkasService
     }
 
     /** Pesan gagal agen → kalimat yang enak dibaca operator. */
-    protected static function pesanRamah(?string $pesan, string $out = ''): string
+    public static function pesanRamah(?string $pesan, string $out = '', ?string $kode = null): string
     {
+        if ($kode === 'WAL_BUSY') {
+            return 'Aplikasi ARKAS sedang memproses data di latar belakang atau database sedang dikunci. Silakan simpan pekerjaan Anda di ARKAS, tutup aplikasinya, lalu klik Tarik Data kembali.';
+        }
+        if ($kode === 'SCHEMA_MISMATCH') {
+            return 'Format database ARKAS tidak dikenali atau mengalami pembaruan skema. Silakan gunakan menu Impor Excel ARKAS manual sebagai alternatif.';
+        }
+        if ($kode === 'EMPTY_DATA') {
+            return 'Database ARKAS di laptop ini belum memuat data sekolah. Pastikan ARKAS sudah berhasil login dan tersinkronisasi.';
+        }
+        if ($kode === 'DB_NOT_FOUND') {
+            return 'Database ARKAS tidak ditemukan di laptop ini. Pastikan aplikasi ARKAS 4 sudah pernah dibuka dan digunakan.';
+        }
+
         $pesan = trim((string) $pesan);
         if ($pesan === '') {
             $ekor = trim(strip_tags($out));
@@ -399,7 +415,8 @@ class TarikArkasService
             }
         }
         if ($pesan === '' || stripos($pesan, 'SQLITE_BUSY') !== false
-            || stripos($pesan, 'database is locked') !== false || stripos($pesan, 'unable to open') !== false) {
+            || stripos($pesan, 'database is locked') !== false || stripos($pesan, 'unable to open') !== false
+            || stripos($pesan, 'WAL_BUSY') !== false) {
             return 'Aplikasi ARKAS sedang terbuka atau database-nya terkunci. Tutup dulu aplikasi ARKAS, lalu klik Tarik Data sekali lagi.';
         }
         if (str_contains($pesan, "\n")) {
